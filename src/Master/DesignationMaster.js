@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import BackButton from '../component/BackButton';
 import { useNavigate, useLocation } from 'react-router-dom';
+import toast from "react-hot-toast";
 
 const DesignationMaster = () => {
   const [designationID, setDesignationID] = useState('');
@@ -72,7 +73,7 @@ const DesignationMaster = () => {
 
   const handleSaveOrUpdate = async () => {
     if (!designationName.trim() || !departmentName) {
-      alert('All fields are required');
+      toast.error('All fields are required');
       return;
     }
 
@@ -83,7 +84,7 @@ const DesignationMaster = () => {
         d._id !== editId
     );
     if (duplicate) {
-      alert('Designation already exists!');
+      toast.error('Designation already exists!');
       return;
     }
 
@@ -96,7 +97,7 @@ const DesignationMaster = () => {
           grade,
           status,
         });
-        alert('Designation updated successfully');
+        toast.success('Designation updated successfully');
       } else {
         await axios.post('http://localhost:5001/api/designations', {
           designationID,
@@ -105,14 +106,14 @@ const DesignationMaster = () => {
           grade,
           status,
         });
-        alert('Designation saved successfully');
+        toast.success('Designation saved successfully');
       }
       resetForm();
       fetchDesignations();
       navigate('/designationList', { replace: true });
     } catch (err) {
       console.error('Save/Update Error:', err);
-      alert('Failed to save/update');
+      toast.error('Failed to save/update');
     }
   };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import BackButton from '../component/BackButton';
 import { useLocation, useNavigate } from 'react-router-dom';
+import toast from "react-hot-toast";
 
 const DepartmentMaster = () => {
   const [deptCode, setDeptCode] = useState('');
@@ -66,7 +67,7 @@ const DepartmentMaster = () => {
           description,
           status,
         });
-        alert('Updated successfully');
+        toast.success('Updated successfully');
       } else {
         await axios.post('http://localhost:5001/api/departments', {
           deptCode,
@@ -74,11 +75,11 @@ const DepartmentMaster = () => {
           description,
           status,
         });
-        alert('Saved successfully');
+        toast.success('Saved successfully');
       }
       navigate('/departmentList', { replace: true });
     } catch {
-      alert('Failed to save/update department');
+      toast.error('Failed to save/update department');
     }
   };
 

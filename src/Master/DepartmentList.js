@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { FaTrash, FaEdit } from "react-icons/fa";
 import BackButton from "../component/BackButton";
 import Sidebar from '../component/Sidebar';
+import toast from "react-hot-toast";
 
 const DepartmentList = () => {
   const [departments, setDepartments] = useState([]);
