@@ -9,7 +9,8 @@ import { useLocation } from "react-router-dom";
 
 const EmployeeMaster = () => {
   const location = useLocation();
-const { employee, id } = location.state || {};
+  const { employee, id } = location.state || {};
+  const [employeeData, setEmployeeData] = useState(location.state?.employee || {});
   const [step, setStep] = useState(1);
   const [employeeID, setEmployeeID] = useState("");
   const [salutation, setSalutation] = useState("");
@@ -333,9 +334,6 @@ setDesignations(
     updated[index][field] = value;
     setEducationDetails(updated);
   };
-
-const handleSubmit = async (e) => {
-  e.preventDefault();
 const getValue = (obj) => {
   if (!obj) return "";
   if (typeof obj === "object") return obj.value || obj._id || "";
@@ -417,10 +415,37 @@ leaveAuthority: getEmployeeName(leaveAuthority),
   deductions: deductionDetails,
 };
 
+const handleSaveAndNext = async () => {
   try {
-    if (employee?._id) {
-      const res = await axios.put(
-        `http://localhost:5001/api/employees/${employee._id}`,
+    if (employeeData._id) {
+      // update existing employee
+      await axios.put(
+        `http://localhost:5001/api/employees/${employeeData._id}`,
+        payload
+      );
+    } else {
+      // create first time
+      const res = await axios.post(
+        "http://localhost:5001/api/employees",
+        payload
+      );
+      setEmployeeData(res.data); // store _id for next steps
+    }
+
+    setStep(step + 1); // go to next page
+  } catch (err) {
+    console.error("Error saving:", err);
+    toast.error("Failed to save step");
+  }
+};
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    if (employeeData._id) {
+      await axios.put(
+        `http://localhost:5001/api/employees/${employeeData._id}`,
         payload
       );
       toast.success("Employee updated successfully!");
@@ -429,19 +454,17 @@ leaveAuthority: getEmployeeName(leaveAuthority),
         "http://localhost:5001/api/employees",
         payload
       );
+      setEmployeeData(res.data); // store _id
       toast.success("Employee saved successfully!");
     }
+
     navigate("/EmployeeList");
   } catch (err) {
-    console.error(
-      "Failed to save employee:",
-      err.response?.data || err.message
-    );
-    toast.error(
-      "Failed to save employee: " + (err.response?.data?.message || err.message)
-    );
+    console.error(err);
+    toast.error("Failed to save employee");
   }
 };
+
 
   return (
     <div className="min-h-screen bg-zinc-300 flex">
@@ -468,11 +491,7 @@ leaveAuthority: getEmployeeName(leaveAuthority),
               )}
             </React.Fragment>
           ))}
-          
         </div>
-
-
-
           {step === 1 && (
             <>
               <h2 className="text-2xl font-semibold mb-4 text-center text-black">
@@ -641,17 +660,16 @@ leaveAuthority: getEmployeeName(leaveAuthority),
                   options={employees.map((e) => ({
                     value: e._id,
                     label: `${e.salutation || ""} ${e.firstName || ""} ${e.middleName || ""} ${e.lastName || ""} - ${e.employeeID}`.trim(),
-                  }))}
-                />
-
-
+                  }))}/>
                 <div className="col-span-full flex justify-between mt-4">
                   <BackButton />
                   <button
                     type="button"
-                    onClick={() => setStep(2)}
+                     onClick={handleSaveAndNext} 
                     className="flex items-center gap-1 px-3 py-1 rounded text-white bg-sky-600 hover:bg-sky-700"
                   >
+                    <span>Save</span>
+                    <span>&</span>
                     <span>Next</span>
                     <span>→</span>
                   </button>
@@ -822,11 +840,11 @@ leaveAuthority: getEmployeeName(leaveAuthority),
                 </button>
                 <button
                   type="button"
-                 onClick={() => setStep(3)}
+                   onClick={handleSaveAndNext} 
 
                   className="flex items-center gap-1 px-3 py-1 rounded text-white bg-sky-600 hover:bg-sky-700"
                 >
-                  <span>Next</span>
+                  <span>Save & Next</span>
                   <span>→</span>
                 </button>
               </div>
@@ -886,7 +904,7 @@ leaveAuthority: getEmployeeName(leaveAuthority),
                             className="w-full pl-2 pr-1 border border-gray-300 font-medium rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
                           />
                         </td>
-                               <td className="border p-2">
+                        <td className="border p-2">
                         <input
                           type="date"
                           value={row.dob}
@@ -1414,10 +1432,10 @@ leaveAuthority: getEmployeeName(leaveAuthority),
                   </button>
                   <button
                     type="button"
-                   onClick={() => setStep(4)}
+                    onClick={handleSaveAndNext} 
                     className="flex items-center gap-1 px-3 py-1 rounded text-white bg-sky-600 hover:bg-sky-700"
                   >
-                    <span>Next</span>
+                    <span>Save & Next</span>
                     <span>→</span>
                   </button>
                 </div>
@@ -1524,10 +1542,10 @@ leaveAuthority: getEmployeeName(leaveAuthority),
                   </button>
                   <button
                     type="button"
-                   onClick={() => setStep(5)}
+                    onClick={handleSaveAndNext} 
                     className="flex items-center gap-1 px-3 py-1 rounded text-white bg-sky-600 hover:bg-sky-700"
                   >
-                    <span>Next</span>
+                    <span>Save & Next</span>
                     <span>→</span>
                   </button>
                 </div>
