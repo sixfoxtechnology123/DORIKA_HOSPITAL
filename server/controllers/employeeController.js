@@ -46,6 +46,10 @@ exports.createEmployee = async (req, res) => {
     // Fetch department and designation names
     const department = departmentID ? await Department.findById(departmentID).lean() : null;
     const designation = designationID ? await Designation.findById(designationID).lean() : null;
+    if (req.body.hardCopyDocuments) {
+  req.body.hardCopyDocuments = Object.keys(req.body.hardCopyDocuments)
+    .filter(k => req.body.hardCopyDocuments[k] === true);
+}
 
     const emp = new Employee({
       ...req.body,
@@ -105,6 +109,10 @@ exports.updateEmployee = async (req, res) => {
       const designation = await Designation.findById(designationID).lean();
       req.body.designationName = designation ? designation.designationName : "";
     }
+    if (req.body.hardCopyDocuments) {
+  req.body.hardCopyDocuments = Object.keys(req.body.hardCopyDocuments)
+    .filter(k => req.body.hardCopyDocuments[k] === true);
+}
 
     const updated = await Employee.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updated) return res.status(404).json({ message: "Employee not found" });

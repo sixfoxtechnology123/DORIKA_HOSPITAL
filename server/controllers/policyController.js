@@ -1,5 +1,5 @@
 // controllers/policyController.js
-const Policy = require("../models/policy");
+const Policy = require("../models/Policy");
 const Activity = require("../models/Activity"); // Import Activity model
 const path = require("path");
 

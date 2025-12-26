@@ -69,12 +69,9 @@ const handleSubmit = (e) => {
     return;
   }
 
-  // Convert leaveType id to leaveName before saving
-  const leaveTypeObj = leaveTypes.find((lt) => lt._id === formData.leaveType);
-  const payload = {
-    ...formData,
-    leaveType: leaveTypeObj ? leaveTypeObj.leaveName : formData.leaveType,
-  };
+// Send leaveType as the selected ObjectId
+const payload = { ...formData };
+
 
   if (editingData) {
     axios

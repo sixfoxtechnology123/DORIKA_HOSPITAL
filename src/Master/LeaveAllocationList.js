@@ -41,13 +41,13 @@ const LeaveAllocationList = () => {
       <Sidebar />
       <div className="flex-1 overflow-y-auto p-3">
         <div className="bg-white shadow-md rounded-md p-3">
-          <div className="bg-green-50 border border-green-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-green-800">Leave Allocations</h2>
+          <div className="bg-blue-50 border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
+            <h2 className="text-xl font-bold text-blue-800">Leave Allocations</h2>
             <div className="flex gap-2">
               <BackButton />
               <button
                 onClick={() => navigate("/LeaveAllocationForm")}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
               >
                 Manage new Leave Allocation
               </button>
@@ -55,35 +55,35 @@ const LeaveAllocationList = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full table-auto border border-green-500 text-sm">
+            <table className="w-full table-auto border border-blue-500 text-sm">
               <thead className="bg-gray-200">
                 <tr>
-                  <th className="border border-green-500 px-3 py-1">Sl.No</th>
-                  <th className="border border-green-500 px-3 py-1">Employee</th>
-                  <th className="border border-green-500 px-3 py-1">Leave Type</th>
-                  <th className="border border-green-500 px-3 py-1">Max Leave</th>
-                  <th className="border border-green-500 px-3 py-1">Opening Balance</th>
-                  <th className="border border-green-500 px-3 py-1">Leave in Hand</th>
-                  <th className="border border-green-500 px-3 py-1">Month/Year</th>
-                  <th className="border border-green-500 px-3 py-1">Action</th>
+                  <th className="border border-blue-500 px-3 py-1">Sl.No</th>
+                  <th className="border border-blue-500 px-3 py-1">Employee</th>
+                  <th className="border border-blue-500 px-3 py-1">Leave Type</th>
+                  <th className="border border-blue-500 px-3 py-1">Max Leave</th>
+                  <th className="border border-blue-500 px-3 py-1">Opening Balance</th>
+                  <th className="border border-blue-500 px-3 py-1">Leave in Hand</th>
+                  <th className="border border-blue-500 px-3 py-1">Month/Year</th>
+                  <th className="border border-blue-500 px-3 py-1">Action</th>
                 </tr>
               </thead>
               <tbody className="text-center">
                 {allocations.length > 0 ? (
                   allocations.map((alloc, index) => (
                     <tr key={alloc._id} className="hover:bg-gray-100 transition">
-                      <td className="border border-green-500 px-3 py-1">{index + 1}</td>
-                      <td className="border border-green-500 px-3 py-1">{alloc.employee}</td>
-                      <td className="border border-green-500 px-3 py-1">{alloc.leaveType}</td>
-                      <td className="border border-green-500 px-3 py-1">{alloc.maxLeave}</td>
-                      <td className="border border-green-500 px-3 py-1">{alloc.openingBalance}</td>
-                      <td className="border border-green-500 px-3 py-1">{alloc.leaveInHand}</td>
-                      <td className="border border-green-500 px-3 py-1">{alloc.monthYear}</td>
-                      <td className="border border-green-500 px-3 py-1">
+                      <td className="border border-blue-500 px-3 py-1">{index + 1}</td>
+                      <td className="border border-blue-500 px-3 py-1">{alloc.employee}</td>
+                      <td className="border border-blue-500 px-3 py-1">{alloc.leaveType}</td>
+                      <td className="border border-blue-500 px-3 py-1">{alloc.maxLeave}</td>
+                      <td className="border border-blue-500 px-3 py-1">{alloc.openingBalance}</td>
+                      <td className="border border-blue-500 px-3 py-1">{alloc.leaveInHand}</td>
+                      <td className="border border-blue-500 px-3 py-1">{alloc.monthYear}</td>
+                      <td className="border border-blue-500 px-3 py-1">
                         <div className="flex justify-center gap-4">
                          <button
                             onClick={() => navigate("/LeaveAllocationForm", { state: { allocation: alloc } })}
-                            className="text-green-600 hover:text-green-800"
+                            className="text-blue-600 hover:text-blue-800"
                           >
                             <FaEdit />
                           </button>

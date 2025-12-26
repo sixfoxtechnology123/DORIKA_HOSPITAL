@@ -1,6 +1,6 @@
 // controllers/leaveRuleController.js
 const LeaveRule = require("../models/LeaveRule");
-const LeaveType = require("../models/Leavetype");
+const LeaveType = require("../models/LeaveType");
 
 // Create Leave Rule
 exports.createLeaveRule = async (req, res) => {

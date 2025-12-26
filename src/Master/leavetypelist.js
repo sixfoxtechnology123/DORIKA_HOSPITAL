@@ -41,44 +41,44 @@ const LeaveTypeList = () => {
       <Sidebar/>
     <div className="flex-1 overflow-y-auto">
     <div className="p-3 bg-white shadow-md rounded-md">
-      <div className="bg-green-50 border border-green-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
-        <h2 className="text-xl font-bold text-green-800">Leave Type</h2>
+      <div className="bg-blue-50 border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
+        <h2 className="text-xl font-bold text-blue-800">Leave Type</h2>
         <div className="flex gap-2">
           <BackButton />
           <button
             onClick={() => navigate("/leavetypeMaster")}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
           >
             Manage New Leave Type
           </button>
         </div>
       </div>
 
-      <table className="w-full table-auto border border-green-500">
+      <table className="w-full table-auto border border-blue-500">
         <thead className="bg-gray-200 text-sm">
           <tr>
-            <th className="border border-green-500 px-2 py-1">S.No</th>
-            <th className="border border-green-500 px-2 py-1">Leave Type ID</th>
-            <th className="border border-green-500 px-2 py-1">Leave Name</th>
-            <th className="border border-green-500 px-2 py-1">alies</th>
-            {/* <th className="border border-green-500 px-2 py-1">Annual Quota</th>
-            <th className="border border-green-500 px-2 py-1">Carry Forward</th> */}
-            <th className="border border-green-500 px-2 py-1">Remarks</th>
-            <th className="border border-green-500 px-2 py-1">Action</th>
+            <th className="border border-blue-500 px-2 py-1">S.No</th>
+            <th className="border border-blue-500 px-2 py-1">Leave Type ID</th>
+            <th className="border border-blue-500 px-2 py-1">Leave Name</th>
+            <th className="border border-blue-500 px-2 py-1">alies</th>
+            {/* <th className="border border-blue-500 px-2 py-1">Annual Quota</th>
+            <th className="border border-blue-500 px-2 py-1">Carry Forward</th> */}
+            <th className="border border-blue-500 px-2 py-1">Remarks</th>
+            <th className="border border-blue-500 px-2 py-1">Action</th>
           </tr>
         </thead>
         <tbody className="text-sm text-center">
           {leaveTypes.length > 0 ? (
             leaveTypes.map((lt,index) => (
               <tr key={lt._id} className="hover:bg-gray-100 transition">
-                <td className="border border-green-500 px-2 py-1">{index + 1}</td> 
-                <td className="border border-green-500 px-2 py-1">{lt.leaveTypeID}</td>
-                <td className="border border-green-500 px-2 py-1">{lt.leaveName}</td>
-                <td className="border border-green-500 px-2 py-1">{lt.leaveCode}</td>
-                {/* <td className="border border-green-500 px-2 py-1">{lt.annualQuota}</td>
-                <td className="border border-green-500 px-2 py-1">{lt.carryForward}</td> */}
-                <td className="border border-green-500 px-2 py-1">{lt.remarks}</td>
-                <td className="border border-green-500 px-2 py-1">
+                <td className="border border-blue-500 px-2 py-1">{index + 1}</td> 
+                <td className="border border-blue-500 px-2 py-1">{lt.leaveTypeID}</td>
+                <td className="border border-blue-500 px-2 py-1">{lt.leaveName}</td>
+                <td className="border border-blue-500 px-2 py-1">{lt.leaveCode}</td>
+                {/* <td className="border border-blue-500 px-2 py-1">{lt.annualQuota}</td>
+                <td className="border border-blue-500 px-2 py-1">{lt.carryForward}</td> */}
+                <td className="border border-blue-500 px-2 py-1">{lt.remarks}</td>
+                <td className="border border-blue-500 px-2 py-1">
                   <div className="flex justify-center gap-8">
                     <button
                       onClick={() =>

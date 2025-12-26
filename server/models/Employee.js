@@ -117,6 +117,11 @@ const EmployeeSchema = new mongoose.Schema(
     payDetails: { type: PayDetailsSchema, default: {} },
     earnings: { type: [EarningSchema], default: [] },
     deductions: { type: [DeductionSchema], default: [] },
+    hardCopyDocuments: {
+      type: [String],
+      default: [],
+    },
+
 
     createdAt: { type: Date, default: Date.now },
   },

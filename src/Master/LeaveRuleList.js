@@ -47,44 +47,44 @@ const LeaveRuleList = () => {
       <Sidebar />
       <div className="flex-1 overflow-y-auto p-3">
         <div className="bg-white shadow-md rounded-md p-3">
-          <div className="bg-green-50 border border-green-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-green-800">Leave Rules</h2>
+          <div className="bg-blue-50 border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
+            <h2 className="text-xl font-bold text-blue-800">Leave Rules</h2>
             <div className="flex gap-2">
               <BackButton />
               <button
                 onClick={() => navigate("/LeaveRuleMaster")}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
               >
                 Add New Leave Rule
               </button>
             </div>
           </div>
 
-          <table className="w-full table-auto border border-green-500 text-sm">
+          <table className="w-full table-auto border border-blue-500 text-sm">
             <thead className="bg-gray-200">
               <tr>
-                <th className="border border-green-500 px-2 py-1">S.No</th>
-                <th className="border border-green-500 px-2 py-1">Leave Type</th>
-                <th className="border border-green-500 px-2 py-1">Maximum No</th>
-                <th className="border border-green-500 px-2 py-1">Entitled From Month</th>
-                <th className="border border-green-500 px-2 py-1">Maximum Balance</th>
-                <th className="border border-green-500 px-2 py-1">Effective From</th>
-                <th className="border border-green-500 px-2 py-1">Effective To</th>
-                <th className="border border-green-500 px-2 py-1">Action</th>
+                <th className="border border-blue-500 px-2 py-1">S.No</th>
+                <th className="border border-blue-500 px-2 py-1">Leave Type</th>
+                <th className="border border-blue-500 px-2 py-1">Maximum No</th>
+                <th className="border border-blue-500 px-2 py-1">Entitled From Month</th>
+                <th className="border border-blue-500 px-2 py-1">Maximum Balance</th>
+                <th className="border border-blue-500 px-2 py-1">Effective From</th>
+                <th className="border border-blue-500 px-2 py-1">Effective To</th>
+                <th className="border border-blue-500 px-2 py-1">Action</th>
               </tr>
             </thead>
             <tbody className="text-center">
               {leaveRules.length > 0 ? (
                 leaveRules.map((rule, index) => (
                   <tr key={rule._id} className="hover:bg-gray-100 transition">
-                    <td className="border border-green-500 px-2 py-1">{index + 1}</td>
-                    <td className="border border-green-500 px-2 py-1">{rule.leaveType || "-"}</td>
-                    <td className="border border-green-500 px-2 py-1">{rule.maximumNo || "-"}</td>
-                    <td className="border border-green-500 px-2 py-1">{rule.entitledFromMonth || "-"}</td>
-                    <td className="border border-green-500 px-2 py-1">{rule.maximumBalance || "-"}</td>
-                    <td className="border border-green-500 px-2 py-1">{formatDate(rule.effectiveFrom)}</td>
-                    <td className="border border-green-500 px-2 py-1">{formatDate(rule.effectiveTo)}</td>
-                    <td className="border border-green-500 px-2 py-1">
+                    <td className="border border-blue-500 px-2 py-1">{index + 1}</td>
+                    <td className="border border-blue-500 px-2 py-1">{rule.leaveType || "-"}</td>
+                    <td className="border border-blue-500 px-2 py-1">{rule.maximumNo || "-"}</td>
+                    <td className="border border-blue-500 px-2 py-1">{rule.entitledFromMonth || "-"}</td>
+                    <td className="border border-blue-500 px-2 py-1">{rule.maximumBalance || "-"}</td>
+                    <td className="border border-blue-500 px-2 py-1">{formatDate(rule.effectiveFrom)}</td>
+                    <td className="border border-blue-500 px-2 py-1">{formatDate(rule.effectiveTo)}</td>
+                    <td className="border border-blue-500 px-2 py-1">
                       <div className="flex justify-center gap-4">
                         <button
                           onClick={() => navigate("/LeaveRuleMaster", { state: { editingData: rule } })}

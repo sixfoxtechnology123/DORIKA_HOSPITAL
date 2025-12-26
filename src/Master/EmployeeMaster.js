@@ -10,7 +10,30 @@ import { useLocation } from "react-router-dom";
 const EmployeeMaster = () => {
   const location = useLocation();
   const { employee, id } = location.state || {};
-  const [employeeData, setEmployeeData] = useState(location.state?.employee || {});
+  //const [employeeData, setEmployeeData] = useState(location.state?.employee || {});
+  const [employeeData, setEmployeeData] = useState({
+  hardCopyDocuments: {
+    aadhaar: false,
+    pan: false,
+    bank: false,
+    photograph: false,
+    addressProof: false,        // Voter ID / Utility bill
+    educationCertificates: false,
+    experienceLetters: false,
+    relievingLetter: false,
+    salarySlips: false,         // last 3 months
+    medicalFitness: false,
+    policeVerification: false,
+    vaccinationCertificate: false,
+    bloodGroupProof: false,
+    nominationForm: false,      // PF / Gratuity
+    esiForm: false,
+    pfForm: false,
+    nda: false,
+  },
+  ...(location.state?.employee || {}),
+});
+
   const [step, setStep] = useState(1);
   const [employeeID, setEmployeeID] = useState("");
   const [salutation, setSalutation] = useState("");
@@ -141,6 +164,14 @@ const navigate = useNavigate();
     fetchHeads();
   }, []);
 
+  useEffect(() => {
+  const storedID = localStorage.getItem("employeeID");
+  if (storedID) {
+    setEmployeeID(storedID);
+  }
+}, []);
+
+
   const earningHeads = Array.isArray(allHeads) ? allHeads.filter(h => h.headId.startsWith("EARN")) : [];
   const deductionHeads = Array.isArray(allHeads) ? allHeads.filter(h => h.headId.startsWith("DEDUCT")) : [];
 
@@ -161,10 +192,11 @@ useEffect(() => {
   if (employee) {
     // keep same employee ID during edit
     setEmployeeID(employee.employeeID || "");
-  } else {
-    // only generate new ID when adding new employee
-    fetchNextEmployeeID();
   }
+  //  else {
+  //   // only generate new ID when adding new employee
+  //   fetchNextEmployeeID();
+  // }
 
   if (employee) {
     setSalutation(employee.salutation || "");
@@ -238,6 +270,35 @@ useEffect(() => {
     setEarningDetails(employee.earnings || []);
     setDeductionDetails(employee.deductions || []);
   }
+// Convert hardCopyDocuments array → object for checkboxes
+const hardCopyDocsObj = {};
+[
+  "aadhaar",
+  "pan",
+  "bank",
+  "photograph",
+  "addressProof",
+  "educationCertificates",
+  "experienceLetters",
+  "relievingLetter",
+  "salarySlips",
+  "medicalFitness",
+  "policeVerification",
+  "vaccinationCertificate",
+  "bloodGroupProof",
+  "pfForm",
+  "esiForm",
+  "nda",
+].forEach(key => {
+  hardCopyDocsObj[key] = employee?.hardCopyDocuments?.includes(key) || false;
+});
+
+setEmployeeData(prev => ({
+  ...prev,
+  hardCopyDocuments: hardCopyDocsObj,
+}));
+
+
 }, [employee]);
 
 
@@ -252,7 +313,7 @@ useEffect(() => {
   };
 
   useEffect(() => {
-    fetchNextEmployeeID();
+   // fetchNextEmployeeID();
     loadMasters();
     fetchEmployees();
   }, []);
@@ -413,6 +474,8 @@ leaveAuthority: getEmployeeName(leaveAuthority),
   },
   earnings: earningDetails,
   deductions: deductionDetails,
+  hardCopyDocuments: employeeData.hardCopyDocuments,
+
 };
 
 const handleSaveAndNext = async () => {
@@ -431,6 +494,7 @@ const handleSaveAndNext = async () => {
       );
       setEmployeeData(res.data); // store _id for next steps
     }
+    localStorage.setItem("employeeID", employeeID);
 
     setStep(step + 1); // go to next page
   } catch (err) {
@@ -476,7 +540,7 @@ const handleSubmit = async (e) => {
 
 
          <div className="flex items-center font-semibold gap-2 border-b border-gray-300 mb-4 pb-2 flex-wrap">
-          {["Personal & Service details", "Education", "Nominees/Medical/Address", "Pay Details", "Pay Structure"].map((s, i) => (
+          {["Personal & Service details", "Education", "Nominees/Medical/Address", "Pay Details", "Pay Structure","Doccument"].map((s, i) => (
             <React.Fragment key={i}>
               <div
                 className={`cursor-pointer px-3 py-0 rounded ${
@@ -486,7 +550,7 @@ const handleSubmit = async (e) => {
               >
                 {s}
               </div>
-              {i < 4 && (
+              {i < 5 && (
                 <span className="text-gray-400 select-none">→</span>
               )}
             </React.Fragment>
@@ -1755,7 +1819,78 @@ const handleSubmit = async (e) => {
               </table>
 
               {/* ===== NEXT/BACK BUTTONS ===== */}
-              <div className="flex justify-between mt-6">
+              <div className="col-span-full flex justify-between mt-4">
+                  <button
+                    onClick={() => setStep(3)}
+                    className="bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-800"
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveAndNext} 
+                    className="flex items-center gap-1 px-3 py-1 rounded text-white bg-sky-600 hover:bg-sky-700"
+                  >
+                    <span>Save & Next</span>
+                    <span>→</span>
+                  </button>
+                </div>
+              </div>
+              )}
+
+
+                {/* ---------- STEP 6 : DOCUMENT MANAGEMENT ---------- */}
+          {step === 6 && (
+            <div className="bg-white min-h-screen shadow-lg rounded-lg p-4 w-full">
+              <h3 className="text-xl font-semibold text-sky-600 mb-4">
+                DOCUMENT MANAGEMENT
+              </h3>
+
+              <div className="border rounded p-4 mb-6">
+                <h4 className="text-lg font-semibold mb-3">
+                  Hard Copy Documents Collected
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm font-medium">
+                  {[
+                    ["aadhaar", "Aadhaar"],
+                    ["pan", "PAN"],
+                    ["bank", "Bank Passbook / Cheque"],
+                    ["photograph", "Photograph"],
+                    ["addressProof", "Address Proof"],
+                    ["educationCertificates", "Education Certificates"],
+                    ["experienceLetters", "Experience Letters"],
+                    ["relievingLetter", "Relieving Letter"],
+                    ["salarySlips", "Salary Slips"],
+                    ["medicalFitness", "Medical Fitness"],
+                    ["policeVerification", "Police Verification"],
+                    ["vaccinationCertificate", "Vaccination Certificate"],
+                    ["bloodGroupProof", "Blood Group Proof"],
+                    ["pfForm", "PF Form"],
+                    ["esiForm", "ESI Form"],
+                    ["nda", "NDA / Agreement"],
+                  ].map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={employeeData.hardCopyDocuments?.[key] || false}
+                        onChange={(e) =>
+                          setEmployeeData({
+                            ...employeeData,
+                            hardCopyDocuments: {
+                              ...employeeData.hardCopyDocuments,
+                              [key]: e.target.checked,
+                            },
+                          })
+                        }
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+             <div className="flex justify-between mt-6">
                <button
                     onClick={() => setStep(4)}
                     className="bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-800"
@@ -1777,15 +1912,14 @@ const handleSubmit = async (e) => {
                 </form>
 
               </div>
-              </div>
-              )}
-             
+            </div>
+          )}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-    
-  );
-};
+        
+      );
+    };
 
 // Input
 const Input = ({ label, value, onChange, type = "text", readOnly = false }) => (
