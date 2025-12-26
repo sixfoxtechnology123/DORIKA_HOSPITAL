@@ -33,7 +33,7 @@ const PolicyMaster = () => {
 
   const fetchNextPolicyID = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/policies/next-id");
+      const res = await axios.get("http://localhost:5002/api/policies/next-id");
       setPolicyID(res.data.policyID);
     } catch (err) {
       console.error("Fetch Next ID Error:", err);
@@ -56,13 +56,13 @@ const PolicyMaster = () => {
 
       if (isEditMode) {
         await axios.put(
-          `http://localhost:5001/api/policies/${editId}`,
+          `http://localhost:5002/api/policies/${editId}`,
           formData,
           { headers: { "Content-Type": "multipart/form-data" } }
         );
         alert("Policy updated successfully");
       } else {
-        await axios.post("http://localhost:5001/api/policies", formData, {
+        await axios.post("http://localhost:5002/api/policies", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         alert("Policy saved successfully");

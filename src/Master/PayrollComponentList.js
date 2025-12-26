@@ -12,7 +12,7 @@ const PayrollComponentList = () => {
 
   const fetchComponents = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/payrollcomponents");
+      const res = await axios.get("http://localhost:5002/api/payrollcomponents");
       setComponents(res.data);
     } catch (err) {
       console.error("Fetch Components Error:", err);
@@ -26,7 +26,7 @@ const PayrollComponentList = () => {
   const deleteComponent = async (id) => {
     if (!window.confirm("Are you sure you want to delete this component?")) return;
     try {
-      await axios.delete(`http://localhost:5001/api/payrollcomponents/${id}`);
+      await axios.delete(`http://localhost:5002/api/payrollcomponents/${id}`);
       setComponents(components.filter((c) => c._id !== id));
     } catch (err) {
       console.error(err);

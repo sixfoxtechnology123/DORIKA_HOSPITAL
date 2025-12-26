@@ -18,8 +18,8 @@ const AdminLogin = () => {
     try {
       const endpoint =
         loginType === "admin"
-          ? "http://localhost:5001/api/adminManagement/login"
-          : "http://localhost:5001/api/employee-ids/login"; 
+          ? "http://localhost:5002/api/adminManagement/login"
+          : "http://localhost:5002/api/employee-ids/login"; 
 
           
 

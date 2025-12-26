@@ -17,7 +17,7 @@ const UserProfile = () => {
     }
 
     axios
-      .get(`http://localhost:5001/api/employee-ids/details/${user.employeeID}`)
+      .get(`http://localhost:5002/api/employee-ids/details/${user.employeeID}`)
       .then((res) => {
         setEmployee(res.data);
         setLoading(false);

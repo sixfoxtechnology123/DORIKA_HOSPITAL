@@ -16,7 +16,7 @@ const LeaveAllocationList = () => {
 
   const fetchAllocations = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/leaveAllocations");
+      const res = await axios.get("http://localhost:5002/api/leaveAllocations");
       setAllocations(res.data);
     } catch (err) {
       console.error("Failed to fetch allocations:", err);
@@ -27,7 +27,7 @@ const LeaveAllocationList = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this record?")) return;
     try {
-      await axios.delete(`http://localhost:5001/api/leaveAllocations/${id}`);
+      await axios.delete(`http://localhost:5002/api/leaveAllocations/${id}`);
       setAllocations(allocations.filter((alloc) => alloc._id !== id));
       toast.success("Record deleted successfully!");
     } catch (err) {

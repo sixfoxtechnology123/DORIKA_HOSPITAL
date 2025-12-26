@@ -26,7 +26,7 @@ const ChangePassword = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.put(
-        "http://localhost:5001/api/admin/change-password",
+        "http://localhost:5002/api/admin/change-password",
         { currentPassword, newPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );

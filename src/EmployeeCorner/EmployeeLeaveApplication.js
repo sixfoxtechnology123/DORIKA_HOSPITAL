@@ -39,7 +39,7 @@ useEffect(() => {
 
   axios
     .get(
-      `http://localhost:5001/api/leave-application/leaveAllocations/employee/${loggedUser.employeeID}`
+      `http://localhost:5002/api/leave-application/leaveAllocations/employee/${loggedUser.employeeID}`
     )
     .then((res) => {
       const data = res.data;
@@ -85,7 +85,7 @@ useEffect(() => {
   if (!loggedUser || !loggedUser.employeeID) return;
 
   axios
-    .get(`http://localhost:5001/api/leave-application/leaveAllocations/employee/${loggedUser.employeeID}`)
+    .get(`http://localhost:5002/api/leave-application/leaveAllocations/employee/${loggedUser.employeeID}`)
     .then((res) => {
       const data = res.data;
       if (!data.length) return;
@@ -158,14 +158,14 @@ const handleSubmit = async () => {
   try {
     if (isEditMode) {
       await axios.put(
-        `http://localhost:5001/api/leave-application/${editingId}`,
+        `http://localhost:5002/api/leave-application/${editingId}`,
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Leave application updated!");
     } else {
       await axios.post(
-        "http://localhost:5001/api/leave-application",
+        "http://localhost:5002/api/leave-application",
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );

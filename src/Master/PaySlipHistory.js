@@ -13,7 +13,7 @@ const PaySlipHistory = () => {
   useEffect(() => {
     const fetchPaySlips = async () => {
       try {
-        const res = await axios.get("http://localhost:5001/api/payslips");
+        const res = await axios.get("http://localhost:5002/api/payslips");
         if (res.data.success) {
           setPaySlips(res.data.data);
         }
@@ -30,7 +30,7 @@ const PaySlipHistory = () => {
   const deletePaySlip = async (id) => {
     if (!window.confirm("Are you sure you want to delete this payslip?")) return;
     try {
-      await axios.delete(`http://localhost:5001/api/payslips/${id}`);
+      await axios.delete(`http://localhost:5002/api/payslips/${id}`);
       setPaySlips(paySlips.filter((slip) => slip._id !== id));
       toast.success("Payslip deleted successfully");
     } catch (err) {

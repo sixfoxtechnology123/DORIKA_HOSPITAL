@@ -40,12 +40,12 @@ const LeaveAllocationForm = () => {
   // Fetch Leave Types and Employees
   useEffect(() => {
     axios
-      .get("http://localhost:5001/api/leaveAllocations/leaverules/all")
+      .get("http://localhost:5002/api/leaveAllocations/leaverules/all")
       .then((res) => setLeaveTypes(res.data))
       .catch(() => toast.error("Failed to load Leave Types"));
 
     axios
-      .get("http://localhost:5001/api/employees")
+      .get("http://localhost:5002/api/employees")
       .then((res) => setEmployees(res.data))
       .catch(() => toast.error("Failed to load Employee Data"));
   }, []);
@@ -113,7 +113,7 @@ const handleChange = (e) => {
 
     if (editingData) {
       axios
-        .put(`http://localhost:5001/api/leaveAllocations/${editingData._id}`, formData)
+        .put(`http://localhost:5002/api/leaveAllocations/${editingData._id}`, formData)
         .then(() => {
           toast.success("Leave Allocation Updated!");
           navigate("/LeaveAllocationList");
@@ -121,7 +121,7 @@ const handleChange = (e) => {
         .catch(() => toast.error("Failed to update Leave Allocation"));
     } else {
       axios
-        .post("http://localhost:5001/api/leaveAllocations", formData)
+        .post("http://localhost:5002/api/leaveAllocations", formData)
         .then(() => {
           toast.success("Leave Allocation Saved!");
           handleReset();

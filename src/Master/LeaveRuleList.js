@@ -13,7 +13,7 @@ const LeaveRuleList = () => {
   useEffect(() => {
     const fetchLeaveRules = async () => {
       try {
-        const res = await axios.get("http://localhost:5001/api/leaveRule");
+        const res = await axios.get("http://localhost:5002/api/leaveRule");
         setLeaveRules(res.data);
       } catch (err) {
         console.error("Fetch LeaveRules Error:", err);
@@ -27,7 +27,7 @@ const LeaveRuleList = () => {
   const deleteLeaveRule = async (id) => {
     if (!window.confirm("Are you sure you want to delete this leave rule?")) return;
     try {
-      await axios.delete(`http://localhost:5001/api/leaverules/${id}`);
+      await axios.delete(`http://localhost:5002/api/leaverules/${id}`);
       setLeaveRules(leaveRules.filter((rule) => rule._id !== id));
       toast.success("Leave rule deleted successfully");
     } catch (err) {

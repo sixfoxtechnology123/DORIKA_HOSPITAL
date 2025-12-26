@@ -12,7 +12,7 @@ const LocationList = () => {
 
   const fetchLocations = async () => {
     try {
-      const res = await axios.get('http://localhost:5001/api/locations');
+      const res = await axios.get('http://localhost:5002/api/locations');
       setLocations(res.data);
     } catch (err) {
       console.error('Fetch Locations Error:', err);
@@ -26,7 +26,7 @@ const LocationList = () => {
   const deleteLocation = async (id) => {
     if (!window.confirm('Are you sure you want to delete this location?')) return;
     try {
-      await axios.delete(`http://localhost:5001/api/locations/${id}`);
+      await axios.delete(`http://localhost:5002/api/locations/${id}`);
       setLocations((prev) => prev.filter((l) => l._id !== id));
     } catch (err) {
       console.error('Delete Error:', err);

@@ -46,7 +46,7 @@ const DesignationMaster = () => {
 
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get('http://localhost:5001/api/departments');
+      const res = await axios.get('http://localhost:5002/api/departments');
       setDepartments(res.data);
     } catch (err) {
       console.error('Fetch Departments Error:', err);
@@ -55,7 +55,7 @@ const DesignationMaster = () => {
 
   const fetchDesignations = async () => {
     try {
-      const res = await axios.get('http://localhost:5001/api/designations');
+      const res = await axios.get('http://localhost:5002/api/designations');
       setDesignations(res.data);
     } catch (err) {
       console.error('Fetch Designations Error:', err);
@@ -64,7 +64,7 @@ const DesignationMaster = () => {
 
   const fetchNextDesignationID = async () => {
     try {
-      const res = await axios.get('http://localhost:5001/api/designations/next-id');
+      const res = await axios.get('http://localhost:5002/api/designations/next-id');
       setDesignationID(res.data.designationID);
     } catch (err) {
       console.error('Fetch Next ID Error:', err);
@@ -90,7 +90,7 @@ const DesignationMaster = () => {
 
     try {
       if (isEditMode) {
-        await axios.put(`http://localhost:5001/api/designations/${editId}`, {
+        await axios.put(`http://localhost:5002/api/designations/${editId}`, {
           designationID,
           designationName,
           departmentName,
@@ -99,7 +99,7 @@ const DesignationMaster = () => {
         });
         toast.success('Designation updated successfully');
       } else {
-        await axios.post('http://localhost:5001/api/designations', {
+        await axios.post('http://localhost:5002/api/designations', {
           designationID,
           designationName,
           departmentName,

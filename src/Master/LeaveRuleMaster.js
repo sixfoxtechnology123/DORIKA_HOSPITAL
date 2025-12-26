@@ -46,7 +46,7 @@ useEffect(() => {
   // Fetch leave types
   useEffect(() => {
     axios
-      .get("http://localhost:5001/api/leaverule/leavetypes/all")
+      .get("http://localhost:5002/api/leaverule/leavetypes/all")
       .then((res) => setLeaveTypes(res.data))
       .catch(() => toast.error("Failed to fetch leave types"));
   }, []);
@@ -75,7 +75,7 @@ const payload = { ...formData };
 
   if (editingData) {
     axios
-      .put(`http://localhost:5001/api/leaverule/${editingData._id}`, payload)
+      .put(`http://localhost:5002/api/leaverule/${editingData._id}`, payload)
       .then(() => {
         toast.success("Leave rule updated successfully");
         navigate("/LeaveRuleList");
@@ -83,7 +83,7 @@ const payload = { ...formData };
       .catch(() => toast.error("Failed to update leave rule"));
   } else {
     axios
-      .post("http://localhost:5001/api/leaverule/", payload)
+      .post("http://localhost:5002/api/leaverule/", payload)
       .then(() => {
         toast.success("Leave rule saved successfully");
         setFormData({

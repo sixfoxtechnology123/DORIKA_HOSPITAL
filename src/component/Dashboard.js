@@ -39,7 +39,7 @@ const Dashboard = () => {
   // Fetch counts
   useEffect(() => {
     axios
-      .get("http://localhost:5001/api/dashboard/counts")
+      .get("http://localhost:5002/api/dashboard/counts")
       .then((res) => setCounts(res.data))
       .catch((err) => console.error(err));
   }, []);
@@ -47,7 +47,7 @@ const Dashboard = () => {
   // Fetch activities
   useEffect(() => {
     axios
-      .get("http://localhost:5001/api/dashboard/activities")
+      .get("http://localhost:5002/api/dashboard/activities")
       .then((res) => {
         const formatted = res.data.map((a) => {
           const dateObj = new Date(a.createdAt || new Date());
@@ -144,7 +144,7 @@ const Dashboard = () => {
 
             <img
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              src={admin?.profileImage ? `http://localhost:5001/${admin.profileImage}?t=${Date.now()}` : defaultAvatar}
+              src={admin?.profileImage ? `http://localhost:5002/${admin.profileImage}?t=${Date.now()}` : defaultAvatar}
               alt="profile"
               className="w-10 h-10 rounded-full object-cover cursor-pointer"
             />

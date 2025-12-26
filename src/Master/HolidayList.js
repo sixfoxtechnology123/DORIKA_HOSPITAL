@@ -12,7 +12,7 @@ const HolidayList = () => {
 
   const fetchHolidays = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/holidays");
+      const res = await axios.get("http://localhost:5002/api/holidays");
       setHolidays(res.data);
     } catch (err) {
       console.error("Fetch Holidays Error:", err);
@@ -26,7 +26,7 @@ const HolidayList = () => {
   const deleteHoliday = async (id) => {
     if (!window.confirm("Are you sure you want to delete this holiday?")) return;
     try {
-      await axios.delete(`http://localhost:5001/api/holidays/${id}`);
+      await axios.delete(`http://localhost:5002/api/holidays/${id}`);
       setHolidays(holidays.filter((h) => h._id !== id));
     } catch (err) {
       console.error(err);

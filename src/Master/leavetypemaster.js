@@ -42,7 +42,7 @@ const LeaveTypeMaster = () => {
 
   const fetchLeaveTypes = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/leavetypes");
+      const res = await axios.get("http://localhost:5002/api/leavetypes");
       setLeaveTypes(res.data);
     } catch (err) {
       console.error("Fetch LeaveTypes Error:", err);
@@ -51,7 +51,7 @@ const LeaveTypeMaster = () => {
 
   const fetchNextLeaveTypeID = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/leavetypes/next-id");
+      const res = await axios.get("http://localhost:5002/api/leavetypes/next-id");
       setLeaveTypeID(res.data.leaveTypeID);
     } catch (err) {
       console.error("Fetch Next ID Error:", err);
@@ -78,7 +78,7 @@ const LeaveTypeMaster = () => {
 
     try {
       if (isEditMode) {
-        await axios.put(`http://localhost:5001/api/leavetypes/${editId}`, {
+        await axios.put(`http://localhost:5002/api/leavetypes/${editId}`, {
           leaveTypeID,
           leaveName,
           leaveCode,
@@ -89,7 +89,7 @@ const LeaveTypeMaster = () => {
         });
         toast.success("Leave type updated successfully");
       } else {
-        await axios.post("http://localhost:5001/api/leavetypes", {
+        await axios.post("http://localhost:5002/api/leavetypes", {
           leaveTypeID,
           leaveName,
           leaveCode,

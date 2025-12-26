@@ -22,7 +22,7 @@ const ShiftMaster = () => {
   useEffect(() => {
     const fetchNextShiftId = async () => {
       try {
-        const res = await axios.get("http://localhost:5001/api/shifts/next-id");
+        const res = await axios.get("http://localhost:5002/api/shifts/next-id");
         const nextId = res.data?.shiftID || "SHIFT0001";
         setShift((prev) => ({ ...prev, shiftID: nextId }));
       } catch (err) {
@@ -64,11 +64,11 @@ const ShiftMaster = () => {
       if (isEditMode) {
         //  UPDATE → never send shiftID (kept constant)
         const { _id, shiftID, ...payload } = shift;
-        await axios.put(`http://localhost:5001/api/shifts/${_id}`, payload);
+        await axios.put(`http://localhost:5002/api/shifts/${_id}`, payload);
         alert("Shift updated successfully!");
       } else {
         // CREATE → include shiftID
-        await axios.post("http://localhost:5001/api/shifts", shift);
+        await axios.post("http://localhost:5002/api/shifts", shift);
         alert("Shift added successfully!");
       }
       navigate("/shiftList", { replace: true });

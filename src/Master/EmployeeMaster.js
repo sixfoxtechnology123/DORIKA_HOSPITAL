@@ -147,7 +147,7 @@ const navigate = useNavigate();
   useEffect(() => {
     const fetchHeads = async () => {
       try {
-        const res = await axios.get("http://localhost:5001/api/salary-heads/salary-list");
+        const res = await axios.get("http://localhost:5002/api/salary-heads/salary-list");
         if (Array.isArray(res.data)) {
           setAllHeads(res.data);
         } else if (Array.isArray(res.data.data)) {
@@ -179,7 +179,7 @@ const navigate = useNavigate();
 useEffect(() => {
   if (!employee) {
     axios
-      .get("http://localhost:5001/api/employees/next-id")
+      .get("http://localhost:5002/api/employees/next-id")
       .then((res) => {
         // backend returns { employeeID: "EMP5" }
         setEmployeeID(res.data.employeeID || "");
@@ -320,7 +320,7 @@ setEmployeeData(prev => ({
 
 const fetchNextEmployeeID = async () => {
   try {
-    const res = await axios.get("http://localhost:5001/api/employees/next-id");
+    const res = await axios.get("http://localhost:5002/api/employees/next-id");
     setEmployeeID(res.data.nextEmployeeID);
   } catch (err) {
     console.error("Failed to get next employee ID", err);
@@ -331,8 +331,8 @@ const fetchNextEmployeeID = async () => {
   const loadMasters = async () => {
     try {
       const [deptRes, desigRes] = await Promise.all([
-        axios.get("http://localhost:5001/api/departments"),
-        axios.get("http://localhost:5001/api/designations"),
+        axios.get("http://localhost:5002/api/departments"),
+        axios.get("http://localhost:5002/api/designations"),
       ]);
 
    setDepartments(
@@ -348,7 +348,7 @@ setDesignations(
   };
   const fetchEmployees = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/employees");
+      const res = await axios.get("http://localhost:5002/api/employees");
       setEmployees(res.data); // store all employees
     } catch (err) {
       console.error("Failed to fetch employees:", err);
@@ -357,7 +357,7 @@ setDesignations(
   useEffect(() => {
   const fetchEmployees = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/employees");
+      const res = await axios.get("http://localhost:5002/api/employees");
       setEmployees(res.data); // store all employees
     } catch (err) {
       console.error("Failed to fetch employees:", err);
@@ -483,13 +483,13 @@ const handleSaveAndNext = async () => {
     if (employeeData._id) {
       // update existing employee
       await axios.put(
-        `http://localhost:5001/api/employees/${employeeData._id}`,
+        `http://localhost:5002/api/employees/${employeeData._id}`,
         payload
       );
     } else {
       // create first time
       const res = await axios.post(
-        "http://localhost:5001/api/employees",
+        "http://localhost:5002/api/employees",
         payload
       );
       setEmployeeData(res.data); // store _id for next steps
@@ -509,13 +509,13 @@ const handleSubmit = async (e) => {
   try {
     if (employeeData._id) {
       await axios.put(
-        `http://localhost:5001/api/employees/${employeeData._id}`,
+        `http://localhost:5002/api/employees/${employeeData._id}`,
         payload
       );
       toast.success("Employee updated successfully!");
     } else {
       const res = await axios.post(
-        "http://localhost:5001/api/employees",
+        "http://localhost:5002/api/employees",
         payload
       );
       setEmployeeData(res.data); // store _id

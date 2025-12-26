@@ -149,7 +149,7 @@ const handlePrintAllOnePDF = async () => {
 
 const fetchLatestPayslip = async (emp) => {
   try {
-    const res = await axios.get(`http://localhost:5001/api/payslips/latest/${emp.employeeID}`);
+    const res = await axios.get(`http://localhost:5002/api/payslips/latest/${emp.employeeID}`);
     const payslip = res.data;
 
     // Map DB structure to print-friendly format
@@ -193,7 +193,7 @@ const fetchLatestPayslip = async (emp) => {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const res = await axios.get("http://localhost:5001/api/employees");
+        const res = await axios.get("http://localhost:5002/api/employees");
         setEmployees(res.data);
       } catch (err) {
         console.error("Fetch Employee Error:", err);

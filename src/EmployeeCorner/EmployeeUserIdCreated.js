@@ -24,7 +24,7 @@ const EmployeeUserIdCreated = () => {
   // Fetch all employees for search
   useEffect(() => {
     axios
-      .get("http://localhost:5001/api/employees", {
+      .get("http://localhost:5002/api/employees", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setEmployees(res.data))
@@ -35,7 +35,7 @@ const EmployeeUserIdCreated = () => {
   // Fetch all created Employee IDs
   const fetchEmployeeIds = () => {
     axios
-      .get("http://localhost:5001/api/employee-ids", {
+      .get("http://localhost:5002/api/employee-ids", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setEmployeeIds(res.data))
@@ -77,13 +77,13 @@ const EmployeeUserIdCreated = () => {
     try {
       if (editingId) {
         await axios.put(
-          `http://localhost:5001/api/employee-ids/${editingId}`,
+          `http://localhost:5002/api/employee-ids/${editingId}`,
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         toast.success("Employee ID updated successfully!");
       } else {
-        await axios.post("http://localhost:5001/api/employee-ids", payload, {
+        await axios.post("http://localhost:5002/api/employee-ids", payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
         toast.success("Employee ID created successfully!");
@@ -114,7 +114,7 @@ const EmployeeUserIdCreated = () => {
   const deleteEmployeeId = (id) => {
     if (!window.confirm("Are you sure you want to delete?")) return;
     axios
-      .delete(`http://localhost:5001/api/employee-ids/${id}`, {
+      .delete(`http://localhost:5002/api/employee-ids/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then(() => {

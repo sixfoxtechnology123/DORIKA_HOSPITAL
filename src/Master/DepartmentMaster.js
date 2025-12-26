@@ -35,7 +35,7 @@ const DepartmentMaster = () => {
 
   const fetchDeptCode = async () => {
     try {
-      const res = await axios.get('http://localhost:5001/api/departments/next-code');
+      const res = await axios.get('http://localhost:5002/api/departments/next-code');
       setDeptCode(res.data.deptCode);
     } catch {
       setDeptCode('');
@@ -43,7 +43,7 @@ const DepartmentMaster = () => {
   };
 
   const fetchDepartments = async () => {
-    const res = await axios.get('http://localhost:5001/api/departments');
+    const res = await axios.get('http://localhost:5002/api/departments');
     setDepartments(res.data);
   };
 
@@ -61,7 +61,7 @@ const DepartmentMaster = () => {
 
     try {
       if (isEditMode) {
-        await axios.put(`http://localhost:5001/api/departments/${editId}`, {
+        await axios.put(`http://localhost:5002/api/departments/${editId}`, {
           deptCode,
           deptName,
           description,
@@ -69,7 +69,7 @@ const DepartmentMaster = () => {
         });
         toast.success('Updated successfully');
       } else {
-        await axios.post('http://localhost:5001/api/departments', {
+        await axios.post('http://localhost:5002/api/departments', {
           deptCode,
           deptName,
           description,

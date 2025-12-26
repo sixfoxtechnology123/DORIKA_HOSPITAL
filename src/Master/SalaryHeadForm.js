@@ -27,7 +27,7 @@ const SalaryHeadForm = ({ onSaved }) => {
       if (!headType || editingData) return;
       try {
         const res = await axios.get(
-          `http://localhost:5001/api/salary-heads/next-id?type=${headType}`
+          `http://localhost:5002/api/salary-heads/next-id?type=${headType}`
         );
         setAutoId(res.data.nextId || "");
       } catch {
@@ -50,13 +50,13 @@ const SalaryHeadForm = ({ onSaved }) => {
 
       if (editingData?._id) {
         res = await axios.put(
-          `http://localhost:5001/api/salary-heads/salary-heads/${editingData._id}`,
+          `http://localhost:5002/api/salary-heads/salary-heads/${editingData._id}`,
           payload
         );
         toast.success("Updated successfully");
       } else {
         res = await axios.post(
-          "http://localhost:5001/api/salary-heads/salary-heads",
+          "http://localhost:5002/api/salary-heads/salary-heads",
           payload
         );
         toast.success("Saved successfully");

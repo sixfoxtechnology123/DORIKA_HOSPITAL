@@ -15,9 +15,9 @@ const EmployeeList = () => {
   const fetchAll = async () => {
     try {
       const [empRes, deptRes, desigRes] = await Promise.all([
-        axios.get("http://localhost:5001/api/employees"),
-        axios.get("http://localhost:5001/api/departments"),
-        axios.get("http://localhost:5001/api/designations"),
+        axios.get("http://localhost:5002/api/employees"),
+        axios.get("http://localhost:5002/api/departments"),
+        axios.get("http://localhost:5002/api/designations"),
       ]);
 
       setEmployees(empRes.data || []);
@@ -65,7 +65,7 @@ const EmployeeList = () => {
   const deleteEmployee = async (id) => {
     if (!window.confirm("Are you sure you want to delete this employee?")) return;
     try {
-      await axios.delete(`http://localhost:5001/api/employees/${id}`);
+      await axios.delete(`http://localhost:5002/api/employees/${id}`);
       setEmployees((prev) => prev.filter((e) => e._id !== id));
       toast.success("Employee Deleted successfully");
     } catch (e) {

@@ -5,7 +5,7 @@ import BackButton from '../component/BackButton';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 // If your backend is on another host/port, change this:
-const API_BASE = 'http://localhost:5001';
+const API_BASE = 'http://localhost:5002';
 
 const countriesData = [
   {

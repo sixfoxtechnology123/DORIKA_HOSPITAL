@@ -13,7 +13,7 @@ const DepartmentList = () => {
   // Fetch all departments
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/departments");
+      const res = await axios.get("http://localhost:5002/api/departments");
       const formatted = res.data.map((d) => ({
         _id: d._id,
         deptCode: d.deptCode || d.dept_code || d.code || "",
@@ -36,7 +36,7 @@ const DepartmentList = () => {
     if (!window.confirm("Are you sure you want to delete this department?"))
       return;
     try {
-      await axios.delete(`http://localhost:5001/api/departments/${id}`);
+      await axios.delete(`http://localhost:5002/api/departments/${id}`);
       setDepartments(departments.filter((d) => d._id !== id));
     } catch (err) {
       console.error("Failed to delete department:", err);

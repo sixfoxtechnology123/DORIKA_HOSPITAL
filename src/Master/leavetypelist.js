@@ -13,7 +13,7 @@ const LeaveTypeList = () => {
 
   const fetchLeaveTypes = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/leavetypes");
+      const res = await axios.get("http://localhost:5002/api/leavetypes");
       setLeaveTypes(res.data);
     } catch (err) {
       console.error("Fetch LeaveTypes Error:", err);
@@ -28,7 +28,7 @@ const LeaveTypeList = () => {
     if (!window.confirm("Are you sure you want to delete this leave type?"))
       return;
     try {
-      await axios.delete(`http://localhost:5001/api/leavetypes/${id}`);
+      await axios.delete(`http://localhost:5002/api/leavetypes/${id}`);
       setLeaveTypes(leaveTypes.filter((lt) => lt._id !== id));
       toast.success("Leave type deleted successfully")
     } catch (err) {

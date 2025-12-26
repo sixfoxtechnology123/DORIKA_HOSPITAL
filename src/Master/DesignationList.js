@@ -12,7 +12,7 @@ const DesignationList = () => {
 
   const fetchDesignations = async () => {
     try {
-      const res = await axios.get('http://localhost:5001/api/designations');
+      const res = await axios.get('http://localhost:5002/api/designations');
       console.log('Fetched designations:', res.data); // ✅ Debug
       setDesignations(res.data);
     } catch (err) {
@@ -28,7 +28,7 @@ const DesignationList = () => {
     if (!window.confirm('Are you sure you want to delete this designation?'))
       return;
     try {
-      await axios.delete(`http://localhost:5001/api/designations/${id}`);
+      await axios.delete(`http://localhost:5002/api/designations/${id}`);
       setDesignations(designations.filter((d) => d._id !== id));
     } catch (err) {
       console.error(err);

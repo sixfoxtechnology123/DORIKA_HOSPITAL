@@ -11,7 +11,7 @@ const PolicyList = () => {
 
   const fetchPolicies = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/policies");
+      const res = await axios.get("http://localhost:5002/api/policies");
       setPolicies(res.data);
     } catch (err) {
       console.error("Fetch Policies Error:", err);
@@ -25,7 +25,7 @@ const PolicyList = () => {
   const deletePolicy = async (id) => {
     if (!window.confirm("Are you sure you want to delete this policy?")) return;
     try {
-      await axios.delete(`http://localhost:5001/api/policies/${id}`);
+      await axios.delete(`http://localhost:5002/api/policies/${id}`);
       setPolicies(policies.filter((p) => p._id !== id));
     } catch (err) {
       console.error(err);
@@ -85,7 +85,7 @@ const PolicyList = () => {
                       <div className="flex justify-center gap-4">
                         {/* View */}
                         <a
-                          href={`http://localhost:5001/uploads/${p.policyDocument}`}
+                          href={`http://localhost:5002/uploads/${p.policyDocument}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-blue-600 hover:underline"
@@ -95,7 +95,7 @@ const PolicyList = () => {
                         </a>
                         {/* Download */}
                         <a
-                          href={`http://localhost:5001/uploads/${p.policyDocument}`}
+                          href={`http://localhost:5002/uploads/${p.policyDocument}`}
                           download
                           className="text-green-600 hover:underline"
                           title="Download Document"

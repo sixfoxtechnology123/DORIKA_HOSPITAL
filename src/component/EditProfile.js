@@ -15,7 +15,7 @@ const EditProfile = () => {
     if (adminData) {
       const admin = JSON.parse(adminData);
       setName(admin.name);
-      setPreview(admin.profileImage ? `http://localhost:5001/${admin.profileImage}?t=${Date.now()}` : defaultAvatar);
+      setPreview(admin.profileImage ? `http://localhost:5002/${admin.profileImage}?t=${Date.now()}` : defaultAvatar);
     }
   }, []);
 
@@ -37,12 +37,12 @@ const EditProfile = () => {
     if (profileImage) formData.append("profileImage", profileImage);
 
     try {
-      const res = await axios.put("http://localhost:5001/api/admin/edit-profile", formData, {
+      const res = await axios.put("http://localhost:5002/api/admin/edit-profile", formData, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
       });
 
       localStorage.setItem("adminData", JSON.stringify(res.data.admin));
-      setPreview(res.data.admin.profileImage ? `http://localhost:5001/${res.data.admin.profileImage}?t=${Date.now()}` : defaultAvatar);
+      setPreview(res.data.admin.profileImage ? `http://localhost:5002/${res.data.admin.profileImage}?t=${Date.now()}` : defaultAvatar);
       setMessage("Profile updated successfully");
 
       window.dispatchEvent(new Event("profileUpdated"));

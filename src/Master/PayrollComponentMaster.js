@@ -42,7 +42,7 @@ const PayrollComponentMaster = () => {
 
   const fetchComponents = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/payrollcomponents");
+      const res = await axios.get("http://localhost:5002/api/payrollcomponents");
       setComponents(res.data);
     } catch (err) {
       console.error("Fetch Components Error:", err);
@@ -51,7 +51,7 @@ const PayrollComponentMaster = () => {
 
   const fetchNextComponentID = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/payrollcomponents/next-id");
+      const res = await axios.get("http://localhost:5002/api/payrollcomponents/next-id");
       setComponentID(res.data.componentID);
     } catch (err) {
       console.error("Fetch Next ID Error:", err);
@@ -88,10 +88,10 @@ const PayrollComponentMaster = () => {
 
     try {
       if (isEditMode) {
-        await axios.put(`http://localhost:5001/api/payrollcomponents/${editId}`, payload);
+        await axios.put(`http://localhost:5002/api/payrollcomponents/${editId}`, payload);
         alert("Component updated successfully");
       } else {
-        await axios.post("http://localhost:5001/api/payrollcomponents", payload);
+        await axios.post("http://localhost:5002/api/payrollcomponents", payload);
         alert("Component saved successfully");
       }
       navigate("/payrollcomponentList", { replace: true });

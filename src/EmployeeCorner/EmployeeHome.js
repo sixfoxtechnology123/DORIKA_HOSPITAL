@@ -20,7 +20,7 @@ useEffect(() => {
       if (!employeeId) return setLeaveApplications([]); // no ID, show empty
 
       const res = await axios.get(
-        `http://localhost:5001/api/leave-application/employee/${employeeId}`
+        `http://localhost:5002/api/leave-application/employee/${employeeId}`
       );
       setLeaveApplications(res.data);
     } catch (err) {
@@ -35,7 +35,7 @@ useEffect(() => {
 const deleteLeaveApplication = async (id) => {
   if (!window.confirm("Are you sure you want to delete this leave application?")) return;
   try {
-    await axios.delete(`http://localhost:5001/api/leave-application/${id}`);
+    await axios.delete(`http://localhost:5002/api/leave-application/${id}`);
 
     setLeaveApplications((prev) => prev.filter((leave) => leave._id === undefined ? leave.id !== id : leave._id !== id));
     toast.success("Leave application deleted successfully");

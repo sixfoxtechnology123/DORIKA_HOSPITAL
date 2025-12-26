@@ -62,7 +62,7 @@ export default function AdminManagement() {
     if (!token) return;
     try {
       const res = await axios.get(
-        "http://localhost:5001/api/adminManagement/users",
+        "http://localhost:5002/api/adminManagement/users",
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setUsers(res.data);
@@ -95,7 +95,7 @@ export default function AdminManagement() {
       let res;
       if (isEditing) {
         res = await axios.put(
-          `http://localhost:5001/api/adminManagement/users/${editingUserId}`,
+          `http://localhost:5002/api/adminManagement/users/${editingUserId}`,
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -105,7 +105,7 @@ export default function AdminManagement() {
         );
       } else {
         res = await axios.post(
-          "http://localhost:5001/api/adminManagement/users",
+          "http://localhost:5002/api/adminManagement/users",
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -132,7 +132,7 @@ export default function AdminManagement() {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
       await axios.delete(
-        `http://localhost:5001/api/adminManagement/users/${id}`,
+        `http://localhost:5002/api/adminManagement/users/${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       alert("User deleted successfully!");

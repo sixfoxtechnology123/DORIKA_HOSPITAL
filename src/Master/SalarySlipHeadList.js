@@ -13,7 +13,7 @@ const SalarySlipHeadList = () => {
 useEffect(() => {
   const fetchSalaryHeads = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/salary-heads/salary-list");
+      const res = await axios.get("http://localhost:5002/api/salary-heads/salary-list");
       setSalaryHeads(res.data.data); // <-- use data property
     } catch (err) {
       console.error("Fetch Salary Heads Error:", err);
@@ -27,7 +27,7 @@ useEffect(() => {
   const deleteSalaryHead = async (id) => {
     if (!window.confirm("Are you sure you want to delete this salary slip head?")) return;
     try {
-      await axios.delete(`http://localhost:5001/api/salary-heads/${id}`);
+      await axios.delete(`http://localhost:5002/api/salary-heads/${id}`);
       setSalaryHeads(salaryHeads.filter((h) => h._id !== id));
       toast.success("Salary slip head deleted successfully");
     } catch (err) {

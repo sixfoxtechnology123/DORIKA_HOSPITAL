@@ -11,7 +11,7 @@ const ShiftList = () => {
 
   const fetchShifts = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/shifts");
+      const res = await axios.get("http://localhost:5002/api/shifts");
       setShifts(res.data);
     } catch (err) {
       console.error("Fetch Shifts Error:", err);
@@ -25,7 +25,7 @@ const ShiftList = () => {
   const deleteShift = async (id) => {
     if (!window.confirm("Are you sure you want to delete this shift?")) return;
     try {
-      await axios.delete(`http://localhost:5001/api/shifts/${id}`);
+      await axios.delete(`http://localhost:5002/api/shifts/${id}`);
       setShifts(shifts.filter((s) => s._id !== id));
     } catch (err) {
       console.error(err);

@@ -58,7 +58,7 @@ useEffect(() => {
 
   const fetchHolidays = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/holidays");
+      const res = await axios.get("http://localhost:5002/api/holidays");
       setHolidays(res.data || []);
     } catch (err) {
       console.error("Fetch Holidays Error:", err);
@@ -67,7 +67,7 @@ useEffect(() => {
 
   const fetchNextHolidayID = async () => {
     try {
-      const res = await axios.get("http://localhost:5001/api/holidays/next-id");
+      const res = await axios.get("http://localhost:5002/api/holidays/next-id");
       setHolidayID(res.data.holidayID || "");
     } catch (err) {
       console.error("Next Holiday ID Error:", err);
@@ -101,10 +101,10 @@ useEffect(() => {
       };
 
       if (isEditMode) {
-        await axios.put(`http://localhost:5001/api/holidays/${editId}`, payload);
+        await axios.put(`http://localhost:5002/api/holidays/${editId}`, payload);
         alert("Holiday updated successfully");
       } else {
-        await axios.post("http://localhost:5001/api/holidays", payload);
+        await axios.post("http://localhost:5002/api/holidays", payload);
         alert("Holiday saved successfully");
       }
 
