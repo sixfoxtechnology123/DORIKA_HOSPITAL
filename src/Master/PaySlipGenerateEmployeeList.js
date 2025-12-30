@@ -7,7 +7,7 @@ import BackButton from "../component/BackButton";
 import { FaEye, FaPlusCircle, FaPrint } from "react-icons/fa";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import EyeLogo from "../assets/EyeLogo.png";
+import EyeLogo from "../assets/dorikaLogo.png";
 
 
 const PaySlipGenerateEmployeeList = () => {
