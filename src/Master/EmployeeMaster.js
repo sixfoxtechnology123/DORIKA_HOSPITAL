@@ -54,6 +54,7 @@ const EmployeeMaster = () => {
   const [dob, setDob] = useState("");
   const [dor, setDor] = useState("");
   const [doj, setDoj] = useState("");
+  const [statusChangeDate, setStatusChangeDate] = useState("");
   const [confirmationDate, setConfirmationDate] = useState("");
   const [nextIncrementDate, setNextIncrementDate] = useState("");
   const [eligiblePromotion, setEligiblePromotion] = useState("");
@@ -438,6 +439,7 @@ designationID: getValue(designationName),
   dob,
   dor,
   doj,
+    ...(statusChangeDate ? { statusChangeDate } : { statusChangeDate: doj }),
   confirmationDate,
   nextIncrementDate,
   eligiblePromotion,
@@ -703,6 +705,13 @@ const handleSubmit = async (e) => {
                   value={doj}
                   onChange={setDoj}
                 />
+                <Input
+                  type="date"
+                  label="Status Change Date"
+                  value={statusChangeDate || doj} // default to Date of Joining
+                  onChange={setStatusChangeDate}
+                />
+
                 <Input
                   type="date"
                   label="Confirmation Date"
