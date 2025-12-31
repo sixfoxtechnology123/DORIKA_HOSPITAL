@@ -36,6 +36,8 @@ const EmployeeMaster = () => {
 
   const [step, setStep] = useState(1);
   const [employeeID, setEmployeeID] = useState("");
+  const [employmentStatus, setEmploymentStatus] = useState("");
+  const [governmentRegistrationNumber, setGovernmentRegistrationNumber] = useState("");
   const [salutation, setSalutation] = useState("");
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
@@ -164,29 +166,31 @@ const navigate = useNavigate();
     fetchHeads();
   }, []);
 
-  useEffect(() => {
-  const storedID = localStorage.getItem("employeeID");
-  if (storedID) {
-    setEmployeeID(storedID);
-  }
-}, []);
+//   useEffect(() => {
+//   const storedID = localStorage.getItem("employeeID");
+//   if (storedID) {
+//     setEmployeeID(storedID);
+//   }
+// }, []);
 
 
   const earningHeads = Array.isArray(allHeads) ? allHeads.filter(h => h.headId.startsWith("EARN")) : [];
   const deductionHeads = Array.isArray(allHeads) ? allHeads.filter(h => h.headId.startsWith("DEDUCT")) : [];
 
-// put near top of component (after state defs)
 useEffect(() => {
-  if (!employee) {
+  if (!employee && employmentStatus) {
     axios
-      .get("http://localhost:5002/api/employees/next-id")
+      .get(
+        "http://localhost:5002/api/employees/next-id",
+        { params: { employmentStatus } }
+      )
       .then((res) => {
-        // backend returns { employeeID: "EMP5" }
         setEmployeeID(res.data.employeeID || "");
       })
-      .catch((err) => console.error("Error fetching next ID:", err));
+      .catch((err) => console.error(err));
   }
-}, [employee]);
+}, [employmentStatus, employee]);
+
 
 useEffect(() => {
   if (employee) {
@@ -199,6 +203,9 @@ useEffect(() => {
   // }
 
   if (employee) {
+    setEmploymentStatus(employee.employmentStatus);
+    setGovernmentRegistrationNumber(employee.governmentRegistrationNumber);
+
     setSalutation(employee.salutation || "");
     setFirstName(employee.firstName || "");
     setMiddleName(employee.middleName || "");
@@ -409,6 +416,9 @@ const getEmployeeName = (id) => {
 
 const payload = {
   employeeID,
+  employmentStatus,
+  governmentRegistrationNumber,
+
   salutation,
   firstName,
   middleName,
@@ -525,8 +535,11 @@ const handleSubmit = async (e) => {
     navigate("/EmployeeList");
   } catch (err) {
     console.error(err);
-    toast.error("Failed to save employee");
-  }
+   if (err.response && err.response.data && err.response.data.error) {
+      toast.error(err.response.data.error); // shows "Please select Employment Status"
+    } else {
+      toast.error("Failed to save employee");
+    }}
 };
 
 
@@ -567,7 +580,29 @@ const handleSubmit = async (e) => {
               </h3>
 
               <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Input label="Employee ID" value={employeeID} readOnly />
+                <Select
+                    label="Employment Status *"
+                    value={employmentStatus}
+                    onChange={setEmploymentStatus}
+                    options={[
+                      { label: "Trainee", value: "TR" },
+                      { label: "TEP", value: "TEP" },
+                      { label: "Probation", value: "PB" },
+                      { label: "Permanent", value: "P" },
+                      { label: "PDP", value: "PDP" },
+                      { label: "PD", value: "PD" },
+                      { label: "ExEmployee", value: "EX" },
+                    ]}
+                  />
+
+                 <Input label="Employee ID" value={employeeID} readOnly />
+
+                <Input
+                  label="Government Registration Number"
+                  value={governmentRegistrationNumber}
+                  onChange={(val) => setGovernmentRegistrationNumber(val.toUpperCase())}
+                />
+
                 <Select
                   label="Salutation"
                   value={salutation}

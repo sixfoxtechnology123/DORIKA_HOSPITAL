@@ -4,27 +4,53 @@ const Department = require("../models/Department");
 const Designation = require("../models/Designation");
 
 // Auto-generate EmployeeID: EMP1, EMP2, EMP3...
-const generateEmployeeID = async () => {
+// const generateEmployeeID = async () => {
+//   try {
+//     const lastEmp = await Employee.findOne().sort({ createdAt: -1 }).lean();
+//     let next = 1;
+
+//     if (lastEmp?.employeeID) {
+//       const match = lastEmp.employeeID.match(/EMP(\d+)/);
+//       if (match) next = parseInt(match[1], 10) + 1;
+//     }
+
+//     return `EMP${next}`;
+//   } catch (err) {
+//     console.error("Error generating employeeID:", err);
+//     return "EMP1";
+//   }
+// };
+
+
+// Auto-generate EmployeeID with continuous serial and prefix
+const generateEmployeeID = async (employmentStatus) => {
   try {
+    const prefix = employmentStatus;
+
+    // Get last employee by createdAt (global last, ignore prefix)
     const lastEmp = await Employee.findOne().sort({ createdAt: -1 }).lean();
+
     let next = 1;
 
     if (lastEmp?.employeeID) {
-      const match = lastEmp.employeeID.match(/EMP(\d+)/);
+      const match = lastEmp.employeeID.match(/-(\d+)$/);
       if (match) next = parseInt(match[1], 10) + 1;
     }
 
-    return `EMP${next}`;
+    const nextID = String(next).padStart(5, "0"); // 5 digits
+    return `${prefix}-${nextID}`;
   } catch (err) {
-    console.error("Error generating employeeID:", err);
-    return "EMP1";
+    return `${employmentStatus}-00001`;
   }
 };
+
+
 
 // GET /api/employees/next-id
 exports.getNextEmployeeID = async (req, res) => {
   try {
-    const employeeID = await generateEmployeeID();
+const employeeID = await generateEmployeeID(req.query.employmentStatus);
+
     res.json({ employeeID });
   } catch (err) {
     res.status(500).json({ error: "Failed to generate employee ID" });
@@ -35,10 +61,14 @@ exports.getNextEmployeeID = async (req, res) => {
 exports.createEmployee = async (req, res) => {
   try {
     if (!req.body) req.body = {};
+ if (!req.body.employmentStatus) {
+  return res.status(400).json({ error: "Please select Employment Status" });
+}
 
     // Auto-generate employeeID if not provided
     if (!req.body.employeeID) {
-      req.body.employeeID = await generateEmployeeID();
+    req.body.employeeID = await generateEmployeeID(req.body.employmentStatus);
+
     }
 
     const { departmentID, designationID } = req.body;

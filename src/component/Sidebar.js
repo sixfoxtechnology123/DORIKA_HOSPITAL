@@ -5,6 +5,7 @@ import {
   Users,
   BookA,
   Building2,
+  Bell,
   Briefcase,
   Calendar,
   CalendarDays,
@@ -31,6 +32,12 @@ const Sidebar = () => {
 
   const menus = [
     { name: "Dashboard", path: "/Dashboard", icon: LayoutDashboard, permission: "Dashboard_View" },
+    {
+      name: "Reminder",
+      path: "/ReminderPage",
+      icon: Bell,          // or any icon you prefer
+      permission: "Reminder_View",
+    },
     { name: "New Employee Reg", path: "/EmployeeList", icon: Users, permission: "Employee_View" },
     {
       name:"Pay Slip",

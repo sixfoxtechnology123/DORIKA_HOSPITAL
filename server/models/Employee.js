@@ -75,7 +75,19 @@ const PayDetailsSchema = new mongoose.Schema({
 const EmployeeSchema = new mongoose.Schema(
   {
     // Personal & Service
-    employeeID: { type: String, required: true, unique: true },
+   
+employmentStatus: {
+  type: String,
+  enum: ["TR", "TEP", "PB", "P", "PDP", "PD", "EX"],
+  required: [true, "Employment Status is required"],
+},
+
+employeeID: { type: String, required: true, unique: true },
+  governmentRegistrationNumber: {
+    type: String,
+    default: '',
+  },
+ 
     salutation: { type: String, default: "" },
     firstName: { type: String, default: "" },
     middleName: { type: String, default: "" },

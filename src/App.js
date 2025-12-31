@@ -44,6 +44,7 @@ import SalarySlipHeadList from "./Master/SalarySlipHeadList";
 import PaySlipGenerateEmployeeList from "./Master/PaySlipGenerateEmployeeList";
 import GeneratePaySlip from "./Master/GeneratePaySlip";
 import PaySlipHistory from "./Master/PaySlipHistory";
+import ReminderPage from "./Master/ReminderPage";
 
 export default function App(){
   return (
@@ -92,6 +93,7 @@ export default function App(){
       <Route path="/PaySlipGenerateEmployeeList" element={<PaySlipGenerateEmployeeList/>} />
       <Route path="/GeneratePaySlip" element={<GeneratePaySlip/>} />
       <Route path="/PaySlipHistory" element={<PaySlipHistory/>} />
+      <Route path="/ReminderPage" element={<ReminderPage/>} />
 
      </Routes>
         <Toaster
