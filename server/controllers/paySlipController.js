@@ -63,11 +63,14 @@ export const createPaySlip = async (req, res) => {
       amount: Number(e.amount || 0)
     }));
 
-    const mappedDeductions = deductions.map(d => ({
+  const mappedDeductions = deductions
+    .filter(d => d.headName && d.headName.trim() !== "")
+    .map(d => ({
       headName: d.headName,
       type: d.type || "FIXED",
       amount: Number(d.amount || 0)
     }));
+
 
 
     //validation

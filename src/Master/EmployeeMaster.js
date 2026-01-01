@@ -10,6 +10,10 @@ import { useLocation } from "react-router-dom";
 const EmployeeMaster = () => {
   const location = useLocation();
   const { employee, id } = location.state || {};
+  const isEditMode = Boolean(employee?._id);
+  const [initialEmploymentStatus, setInitialEmploymentStatus] = useState("");
+
+
   //const [employeeData, setEmployeeData] = useState(location.state?.employee || {});
   const [employeeData, setEmployeeData] = useState({
   hardCopyDocuments: {
@@ -179,24 +183,48 @@ const navigate = useNavigate();
   const deductionHeads = Array.isArray(allHeads) ? allHeads.filter(h => h.headId.startsWith("DEDUCT")) : [];
 
 useEffect(() => {
-  if (!employee && employmentStatus) {
+  if (!employmentStatus) return;
+
+  // NEW employee → generate full new ID
+  if (!isEditMode) {
     axios
-      .get(
-        "http://localhost:5002/api/employees/next-id",
-        { params: { employmentStatus } }
-      )
-      .then((res) => {
-        setEmployeeID(res.data.employeeID || "");
+      .get("http://localhost:5002/api/employees/next-id", {
+        params: { employmentStatus },
       })
-      .catch((err) => console.error(err));
+      .then(res => setEmployeeID(res.data.employeeID || ""));
+    return;
   }
-}, [employmentStatus, employee]);
+
+  // EDIT employee → change PREFIX ONLY
+  if (employmentStatus !== initialEmploymentStatus && employeeID) {
+    const numberPart = employeeID.split("-")[1] || employeeID.slice(2);
+    setEmployeeID(`${employmentStatus}-${numberPart}`);
+  }
+}, [employmentStatus]);
+
+
+
+
+useEffect(() => {
+  // Wait until employee and master data are loaded
+  if (!employee || !departments.length || !designations.length) return;
+
+  const deptObj = departments.find(d => d.value === employee.departmentID);
+  const desigObj = designations.find(d => d.value === employee.designationID);
+
+  setDepartmentName(deptObj || null);
+  setDesignationName(desigObj || null);
+
+  // Prefill statusChangeDate: if null, use DOJ
+  setStatusChangeDate(employee.statusChangeDate || employee.doj || "");
+}, [employee, departments, designations]);
 
 
 useEffect(() => {
   if (employee) {
-    // keep same employee ID during edit
     setEmployeeID(employee.employeeID || "");
+setInitialEmploymentStatus(employee.employmentStatus);
+
   }
   //  else {
   //   // only generate new ID when adding new employee
@@ -218,17 +246,19 @@ useEffect(() => {
     setReligion(employee.religion || "");
     setMaritalStatus(employee.maritalStatus || "");
 
-    setDepartmentName(
-      employee.departmentName
-        ? { value: employee.departmentID, label: employee.departmentName }
-        : null
-    );
+setDepartmentName(
+  employee.departmentName
+    ? { value: employee.departmentID, label: employee.departmentName }
+    : null
+);
 
-    setDesignationName(
-      employee.designationName
-        ? { value: employee.designationID, label: employee.designationName }
-        : null
-    );
+setDesignationName(
+  employee.designationName
+    ? { value: employee.designationID, label: employee.designationName }
+    : null
+);
+
+
 
     setDob(employee.dob || "");
     setDor(employee.dor || "");
@@ -707,7 +737,7 @@ const handleSubmit = async (e) => {
                 />
                 <Input
                   type="date"
-                  label="Status Change Date"
+                  label="Employee Status Change Date"
                   value={statusChangeDate || doj} // default to Date of Joining
                   onChange={setStatusChangeDate}
                 />
@@ -730,7 +760,7 @@ const handleSubmit = async (e) => {
                   onChange={setEligiblePromotion}
                   options={["Yes", "No"]}
                 />
-                <Select
+                {/* <Select
                   label="Employee Type *"
                   value={employmentType}
                   onChange={setEmploymentType}
@@ -741,7 +771,7 @@ const handleSubmit = async (e) => {
                     "EX-EMPLOYEE",
                     "CONTRACT",
                   ]}
-                />
+                /> */}
                 {/* <div>
                   <label className="block text-sm">Profile Image</label>
                   <input

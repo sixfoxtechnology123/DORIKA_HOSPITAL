@@ -7,7 +7,7 @@ import BackButton from "../component/BackButton";
 import { FaEye, FaPlusCircle, FaPrint } from "react-icons/fa";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import EyeLogo from "../assets/dorikaLogo.png";
+import EyeLogo from "../assets/dorikaLogo.jpg";
 
 
 const PaySlipGenerateEmployeeList = () => {
@@ -411,39 +411,39 @@ const fetchLatestPayslip = async (emp) => {
 {selectedEmployee && (
   <div
     id="print-section"
-    className="hidden print:block border-2 border-black w-[210mm] max-w-full mx-auto py-4 px-3"
+    className="hidden print:block border-2 border-black w-[210mm] max-w-full mx-auto py-4 px-12"
     style={{ fontFamily: "sans-serif", fontSize: "14px" }}
-  >
-  <div className="flex items-center justify-between mb-2 px-4">
+>
+  <div className="flex items-start justify-between px-4">
+
   {/* Left Logo */}
   <img 
     src={EyeLogo}
     alt="Left Logo"
-     className="w-24 h-24 rounded-full object-cover ml-1"
+    className="w-36 h-36 rounded-full object-cover"
   />
 
   {/* Center Title + Address */}
-  <div className="text-center flex-1">
-    <h1 className="text-3xl font-semibold">Netrapedia Eye Hospital</h1>
-    <p className="text-base">
-      1/32 Sahid Nagar, PO - Dhakuria, PS - Garfa</p>
-      <p className="text-base">Kolkata - 700031, West Bengal</p>
+ <div className="text-center flex-1 self-start">
+    <h1 className="text-3xl font-sans font-bold">DORIKA HOSPITAL</h1>
+    <p className="text-base font-normal font-serif tracking-wide">1/32 Sahid Nagar, PO - Dhakuria, PS - Garfa</p>
+      <p className="text-base font-normal font-serif tracking-wide">Kolkata - 700031, West Bengal</p>
   </div>
 
   {/* Right Logo */}
   <img 
     src={EyeLogo}
     alt="Right Logo"
-     className="w-24 h-24 rounded-full object-cover mr-1"
+     className="w-36 h-36 rounded-full object-cover"
   />
 </div>
 
 <div className="text-center mb-4">
-  <h2 className="text-2xl font-semibold">PAY SLIP</h2>
+  <h2 className="text-2xl font-humanist font-semibold">PAY SLIP</h2>
   {/* <p className="font-semibold text-lg">{month} - {year}</p> */}
 </div>
 
-<div className="border border-black p-2 mb-4">
+<div className="border border-black px-4 py-2 mb-4">
 <div className="mb-4 grid grid-cols-3 gap-4 items-start text-xl">
   {/* Left Section (2/3) */}
   <div className="col-span-2 space-y-2">
@@ -455,7 +455,7 @@ const fetchLatestPayslip = async (emp) => {
   </div>
 
   {/* Right Section (1/3) */}
-  <div className="col-span-1 border border-gray-300 rounded p-4 bg-green-50 text-left">
+  <div className="col-span-1 border border-gray-300 rounded px-4 py-2 bg-green-50 text-left">
     <p className="text-2xl font-semibold">₹{inHandSalary.toFixed(2)}</p>
     <p className="text-lg text-gray-800">Total Payable</p>
     <div className="mt-2 text-left space-y-1">
@@ -472,7 +472,7 @@ const fetchLatestPayslip = async (emp) => {
   <div className="grid grid-cols-2 gap-4 mb-4">
     {/* Earnings */}
     <div className="border border-black p-2">
-      <h3 className="text-xl font-semibold mb-2">Earnings</h3>
+      <h3 className="text-xl font-semibold mb-3">Earnings</h3>
       <table className="w-full border border-black text-lg">
         <thead>
           <tr className="bg-gray-200 text-center">
@@ -497,7 +497,7 @@ const fetchLatestPayslip = async (emp) => {
 
     {/* Deductions */}
     <div className="border border-black p-2">
-      <h3 className="text-xl font-semibold mb-2">Deductions</h3>
+      <h3 className="text-xl font-semibold mb-3">Deductions</h3>
       <table className="w-full border border-black text-lg">
         <thead>
           <tr className="bg-gray-200">
@@ -521,15 +521,15 @@ const fetchLatestPayslip = async (emp) => {
     </div>
   </div>
 
-  <div className="border border-black p-3 text-lg space-y-2">
+  <div className="border border-black  px-4 py-2 text-lg space-y-2">
     <TwoColRow label1="Gross Salary" value1={`₹${grossSalary.toFixed(2)}`} />
     <TwoColRow label1="Total Deduction" value1={`₹${totalDeduction.toFixed(2)}`} />
 
     <TwoColRow label1="Net Salary" value1={`₹${netSalary.toFixed(2)}`} />
     <TwoColRow label1="LOP Deduction" value1={`₹${lopAmount.toFixed(2)}`} />
 
-    <div className="mt-2">
-      <h3 className="text-2xl font-semibold">
+    <div>
+      <h3 className="text-2xl font-semibold mb-3">
         In-Hand Salary: ₹{inHandSalary.toFixed(2)}
       </h3>
     </div>

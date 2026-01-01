@@ -109,7 +109,7 @@ employeeID: { type: String, required: true, unique: true },
     confirmationDate: { type: String, default: "" },
     nextIncrementDate: { type: String, default: "" },
     eligiblePromotion: { type: String, default: "" },
-    employmentType: { type: String, default: "" },
+    //employmentType: { type: String, default: "" },
 
      profileImage: {
     data: Buffer,

@@ -13,6 +13,9 @@ module.exports = {
           green: "#2BB673",
         },
       },
+    //     fontFamily: {
+    //   humanist: ['Merriweather', 'serif'],
+    // },
     },
   },
   plugins: [],
