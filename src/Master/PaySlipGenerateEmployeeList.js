@@ -420,21 +420,21 @@ const fetchLatestPayslip = async (emp) => {
   <img 
     src={EyeLogo}
     alt="Left Logo"
-    className="w-36 h-36 rounded-full object-cover"
+    className="w-32 h-32 rounded-full object-cover"
   />
 
   {/* Center Title + Address */}
  <div className="text-center flex-1 self-start">
     <h1 className="text-3xl font-sans font-bold">DORIKA HOSPITAL</h1>
-    <p className="text-base font-normal font-serif tracking-wide">1/32 Sahid Nagar, PO - Dhakuria, PS - Garfa</p>
-      <p className="text-base font-normal font-serif tracking-wide">Kolkata - 700031, West Bengal</p>
+    <p className="text-base font-normal font-serif tracking-wide">NH 715, Mazgaon, Tezpur- 784154</p>
+      {/* <p className="text-base font-normal font-serif tracking-wide">Kolkata - 700031, West Bengal</p> */}
   </div>
 
   {/* Right Logo */}
   <img 
     src={EyeLogo}
     alt="Right Logo"
-     className="w-36 h-36 rounded-full object-cover"
+     className="w-32 h-32 rounded-full object-cover"
   />
 </div>
 

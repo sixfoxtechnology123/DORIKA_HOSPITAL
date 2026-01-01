@@ -78,9 +78,19 @@ const EmployeeSchema = new mongoose.Schema(
    
 employmentStatus: {
   type: String,
-  enum: ["TR", "TEP", "PB", "P", "PDP", "PD", "EX"],
+  enum: ["TP", "TR", "TEP", "PB", "P", "PDP", "PD", "EX"],
   required: [true, "Employment Status is required"],
 },
+statusHistory: [
+  {
+    beforeStatus: { type: String },
+    beforeDate: { type: String, default: "" },
+    currentStatus: { type: String },
+    currentDate: { type: String, default: "" }
+  }
+]
+,
+
 
 employeeID: { type: String, required: true, unique: true },
   governmentRegistrationNumber: {

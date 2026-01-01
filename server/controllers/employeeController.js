@@ -144,7 +144,39 @@ exports.updateEmployee = async (req, res) => {
     .filter(k => req.body.hardCopyDocuments[k] === true);
 }
 
-    const updated = await Employee.findByIdAndUpdate(req.params.id, req.body, { new: true });
+   const employee = await Employee.findById(req.params.id);
+if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+if (
+  req.body.employmentStatus &&
+  employee.employmentStatus !== req.body.employmentStatus
+) {
+  // last history currentDate (if exists)
+  const lastHistory =
+    employee.statusHistory.length > 0
+      ? employee.statusHistory[employee.statusHistory.length - 1]
+      : null;
+
+  const beforeDate =
+    lastHistory?.currentDate ||
+    employee.statusChangeDate ||
+    employee.createdAt;
+
+  employee.statusHistory.push({
+    beforeStatus: employee.employmentStatus,
+    beforeDate: beforeDate,                 // ← previous currentDate
+    currentStatus: req.body.employmentStatus,
+    currentDate: req.body.statusChangeDate, // ← FROM FRONTEND ONLY
+  });
+
+  employee.statusChangeDate = req.body.statusChangeDate;
+}
+
+
+// APPLY ALL UPDATES
+Object.assign(employee, req.body);
+
+const updated = await employee.save();
     if (!updated) return res.status(404).json({ message: "Employee not found" });
 
     try {
@@ -231,4 +263,25 @@ exports.getEmployeeById = async (req, res) => {
   }
 };
 
+// Delete a single status history entry
+exports.deleteEmployeeHistory = async (req, res) => {
+  try {
+    const { employeeID, historyID } = req.params;
 
+    // Find employee by employeeID
+    const employee = await Employee.findOne({ employeeID });
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+    // Find the index of the history entry
+    const index = employee.statusHistory.findIndex(h => h._id.toString() === historyID);
+    if (index === -1) return res.status(404).json({ message: "History entry not found" });
+
+    // Remove that history entry
+    employee.statusHistory.splice(index, 1);
+    await employee.save();
+
+    res.json({ message: "History entry deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

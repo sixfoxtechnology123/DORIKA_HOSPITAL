@@ -3,7 +3,14 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
 import BackButton from "../component/BackButton";
+import { FaTrash } from "react-icons/fa";
 import toast from "react-hot-toast";
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+  const [y, m, d] = dateStr.split("-");
+  return `${d}-${m}-${y}`;
+};
 
 // Updated status flow as per your 2 phases
 const STATUS_RULES = {
@@ -72,16 +79,28 @@ const ReminderPage = () => {
             changeAvailable: remainingDays <= 0,
           };
         });
+        
 
-      // Process History
-      const history = res.data.map(emp => ({
-        employeeID: emp.employeeID,
-        name: `${emp.firstName} ${emp.middleName || ""} ${emp.lastName}`,
-        beforeStatus: "N/A", // Usually requires a separate history table from backend
-        beforeDate: "N/A",
-        currentStatus: STATUS_LABELS[emp.employmentStatus] || emp.employmentStatus,
-        currentDate: emp.statusChangeDate ? emp.statusChangeDate.split("T")[0] : "N/A",
-      }));
+      const history = [];
+
+      res.data.forEach(emp => {
+        if (!emp.statusHistory || emp.statusHistory.length === 0) return;
+
+        emp.statusHistory.forEach(h => {
+        history.push({
+          _id: h._id, // ← this is the fix
+          employeeID: emp.employeeID,
+          name: `${emp.firstName} ${emp.middleName || ""} ${emp.lastName}`,
+          beforeStatus: STATUS_LABELS[h.beforeStatus] || h.beforeStatus,
+          beforeDate: formatDate(h.beforeDate),
+          currentStatus: STATUS_LABELS[h.currentStatus] || h.currentStatus,
+          currentDate: formatDate(h.currentDate),
+        });
+      });
+
+      });
+
+
 
       setReminderList(reminders);
       setHistoryList(history);
@@ -90,6 +109,25 @@ const ReminderPage = () => {
       toast.error("Failed to load reminder data");
     }
   };
+
+
+
+const handleDeleteHistory = async (employeeID, historyID) => {
+  if (!window.confirm("Are you sure you want to delete this status history entry?")) return;
+
+  try {
+    await axios.delete(`http://localhost:5002/api/employees/${employeeID}/history/${historyID}`);
+    toast.success("Status history entry deleted successfully");
+
+    // Update frontend history list
+    setHistoryList(prev =>
+      prev.filter(h => h._id !== historyID)
+    );
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to delete history entry");
+  }
+};
 
   const handleGoChange = (employee) => {
     navigate("/EmployeeMaster", {
@@ -102,10 +140,15 @@ const ReminderPage = () => {
       <Sidebar />
       <div className="flex-1 overflow-y-auto p-3">
         <div className="bg-white shadow-md rounded-md p-3">
-          <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-dorika-blue">Employee Status Reminder</h2>
+         <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-dorika-blue">
+            Employee Status Reminder
+          </h2>
+          <div className="ml-auto">
             <BackButton />
           </div>
+        </div>
+
 
           <div className="flex gap-4 mb-3">
             <button onClick={() => setActiveTab("reminder")} className={`px-4 py-1 rounded font-semibold ${activeTab === "reminder" ? "bg-dorika-blue text-white" : "bg-gray-200 text-gray-700"}`}>
@@ -170,6 +213,7 @@ const ReminderPage = () => {
                   <th className="border px-2 py-1">Before Date</th>
                   <th className="border px-2 py-1">Current Status</th>
                   <th className="border px-2 py-1">Current Date</th>
+                  <th className="border px-2 py-1">Action</th>
                 </tr>
               </thead>
               <tbody className="text-center">
@@ -178,10 +222,18 @@ const ReminderPage = () => {
                     <td className="border px-2 py-1">{i + 1}</td>
                     <td className="border px-2 py-1">{h.employeeID}</td>
                     <td className="border px-2 py-1">{h.name}</td>
-                    <td className="border px-2 py-1">{h.beforeStatus}</td>
-                    <td className="border px-2 py-1">{h.beforeDate}</td>
-                    <td className="border px-2 py-1 font-bold">{h.currentStatus}</td>
-                    <td className="border px-2 py-1">{h.currentDate}</td>
+                    <td className="border px-2 py-1 font-semibold font-sans text-dorika-orange">{h.beforeStatus}</td>
+                    <td className="border px-2 py-1 font-semibold font-sans text-dorika-orange">{h.beforeDate}</td>
+                    <td className="border px-2 py-1 font-semibold text-sky-500">{h.currentStatus}</td>
+                    <td className="border px-2 py-1 font-semibold text-sky-500">{h.currentDate}</td>
+                    <td className="border px-2 py-1">
+                              <button
+                                   onClick={() => handleDeleteHistory(h.employeeID, h._id)}
+                                  className="text-dorika-orange hover:text-red-700"
+                                >
+                                  <FaTrash />
+                                </button>
+                             </td>
                   </tr>
                 ))}
               </tbody>

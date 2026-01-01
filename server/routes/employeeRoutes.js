@@ -11,4 +11,7 @@ router.put("/:id", employeeController.updateEmployee);
 router.delete("/:id", employeeController.deleteEmployee);
 router.get("/employees/:id", employeeController.getEmployeeById);
 
+
+router.delete("/:employeeID/history/:historyID", employeeController.deleteEmployeeHistory);
+
 module.exports = router;

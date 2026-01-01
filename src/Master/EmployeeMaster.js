@@ -617,6 +617,7 @@ const handleSubmit = async (e) => {
                     value={employmentStatus}
                     onChange={setEmploymentStatus}
                     options={[
+                      { label: "TraineeProbation", value: "TP" },
                       { label: "Trainee", value: "TR" },
                       { label: "TEP", value: "TEP" },
                       { label: "Probation", value: "PB" },
