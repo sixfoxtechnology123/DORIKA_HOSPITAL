@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate,useLocation } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
 import BackButton from "../component/BackButton";
 import { FaTrash } from "react-icons/fa";
 import toast from "react-hot-toast";
+
+import Pagination from "../Master/Pagination";
 
 const formatDate = (dateStr) => {
   if (!dateStr) return "";
@@ -44,7 +46,22 @@ const ReminderPage = () => {
   const [reminderList, setReminderList] = useState([]);
   const [historyList, setHistoryList] = useState([]);
   const [activeTab, setActiveTab] = useState("reminder");
+  
+  const [historyFilter, setHistoryFilter] = useState("");
+  const handleHistoryFilterChange = (e) => {
+    setHistoryFilter(e.target.value.toUpperCase());
+  };
+
   const navigate = useNavigate();
+  const location = useLocation();
+
+
+// Pagination states
+const [currentPageReminder, setCurrentPageReminder] = useState(1);
+const [currentPageHistory, setCurrentPageHistory] = useState(1);
+
+
+  const perPage = 10;
 
   useEffect(() => {
     fetchReminderData();
@@ -135,6 +152,29 @@ const handleDeleteHistory = async (employeeID, historyID) => {
     });
   };
 
+// For Reminder tab
+const startIndexReminder = (currentPageReminder - 1) * perPage;
+const paginatedReminders = reminderList.slice(
+  startIndexReminder,
+  startIndexReminder + perPage
+);
+
+// Filter history if input is present
+const filteredHistory = historyList.filter((h) =>
+  h.employeeID.includes(historyFilter)
+);
+
+// If filter is applied, show all matching entries, otherwise paginate
+const displayedHistory = historyFilter
+  ? filteredHistory
+  : historyList.slice(
+      (currentPageHistory - 1) * perPage,
+      currentPageHistory * perPage
+    );
+
+
+
+
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       <Sidebar />
@@ -174,10 +214,11 @@ const handleDeleteHistory = async (employeeID, historyID) => {
                 </tr>
               </thead>
               <tbody className="text-center">
-                {reminderList.length > 0 ? (
-                  reminderList.map((emp, index) => (
+               {paginatedReminders.length > 0 ? (
+                  paginatedReminders.map((emp, index) => (
+
                     <tr key={index} className="hover:bg-dorika-blueLight">
-                      <td className="border px-2 py-1">{index + 1}</td>
+                      <td className="border px-2 py-1">{startIndexReminder+index + 1}</td>
                       <td className="border px-2 py-1">{emp.employeeID}</td>
                       <td className="border px-2 py-1">{emp.name}</td>
                       <td className="border px-2 py-1">{emp.designation}</td>
@@ -203,6 +244,20 @@ const handleDeleteHistory = async (employeeID, historyID) => {
           )}
 
           {activeTab === "history" && (
+            <>
+            <div className="mb-2">
+              <input
+                type="text"
+                placeholder="Search by Employee ID"
+                value={historyFilter}
+                onChange={(e) => setHistoryFilter(e.target.value.toUpperCase())}
+                className="border-2 border-slate-400 rounded-md px-2 py-1 w-full font-serif"
+              />
+            </div>
+
+
+          
+            
             <table className="w-full table-auto border border-dorika-blue text-sm">
               <thead className="bg-dorika-blue text-white">
                 <tr>
@@ -217,7 +272,7 @@ const handleDeleteHistory = async (employeeID, historyID) => {
                 </tr>
               </thead>
               <tbody className="text-center">
-                {historyList.map((h, i) => (
+               {displayedHistory.map((h, i) => (
                   <tr key={i} className="hover:bg-dorika-blueLight">
                     <td className="border px-2 py-1">{i + 1}</td>
                     <td className="border px-2 py-1">{h.employeeID}</td>
@@ -238,7 +293,30 @@ const handleDeleteHistory = async (employeeID, historyID) => {
                 ))}
               </tbody>
             </table>
-          )}
+              </>
+          )
+          }
+            {activeTab === "reminder" && (
+              <Pagination
+                total={reminderList.length}
+                perPage={perPage}
+                currentPage={currentPageReminder}
+                onPageChange={(page) => setCurrentPageReminder(page)}
+              />
+            )}
+
+           {activeTab === "history" && !historyFilter && (
+              <Pagination
+                total={historyList.length}
+                perPage={perPage}
+                currentPage={currentPageHistory}
+                onPageChange={(page) => setCurrentPageHistory(page)}
+              />
+            )}
+
+
+
+
         </div>
       </div>
     </div>
