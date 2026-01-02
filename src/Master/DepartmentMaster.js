@@ -100,10 +100,10 @@ const DepartmentMaster = () => {
           <input type="text" value={deptName} onChange={(e) => setDeptName(e.target.value)} className="w-full p-1 border rounded uppercase" />
         </div>
 
-        <div className="mb-4">
+        {/* <div className="mb-4">
           <label className="block text-black mb-1">Description</label>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="w-full p-1 border rounded" rows="2" />
-        </div>
+        </div> */}
 
         <div className="mb-4">
           <label className="block text-black mb-1">Status</label>
