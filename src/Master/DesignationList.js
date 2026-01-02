@@ -40,52 +40,52 @@ const DesignationList = () => {
       <Sidebar/>
     <div className="flex-1 overflow-y-auto">
     <div className="p-3 bg-white shadow-md rounded-md">
-      <div className="bg-green-50 border border-green-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
-        <h2 className="text-xl font-bold text-green-800">Designation</h2>
+      <div className="bg-dorika-blueLight border border-green-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
+        <h2 className="text-xl font-bold text-dorika-blue">Designation</h2>
         <div className="flex gap-2">
           <BackButton />
           <button
             onClick={() => navigate('/designationMaster')}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
+            className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
           >
             Add Designation
           </button>
         </div>
       </div>
 
-      <table className="w-full table-auto border border-green-500">
-        <thead className="bg-gray-200 text-sm">
+      <table className="w-full table-auto border border-dorika-blue">
+        <thead className="bg-dorika-blue text-white text-sm">
           <tr>
-            <th className="border border-green-500 px-2 py-1">Designation ID</th>
-            <th className="border border-green-500 px-2 py-1">Designation Name</th>
-            <th className="border border-green-500 px-2 py-1">Department</th>
-            <th className="border border-green-500 px-2 py-1">Grade</th>
-            <th className="border border-green-500 px-2 py-1">Status</th>
-            <th className="border border-green-500 px-2 py-1">Action</th>
+            <th className="border border-dorika-blue px-2 py-1">Designation ID</th>
+            <th className="border border-dorika-blue px-2 py-1">Designation Name</th>
+            <th className="border border-dorika-blue px-2 py-1">Department</th>
+            <th className="border border-dorika-blue px-2 py-1">Grade</th>
+            <th className="border border-dorika-blue px-2 py-1">Status</th>
+            <th className="border border-dorika-blue px-2 py-1">Action</th>
           </tr>
         </thead>
         <tbody className="text-sm text-center">
           {designations.length > 0 ? (
             designations.map((d) => (
-              <tr key={d._id} className="hover:bg-gray-100 transition">
-                <td className="border border-green-500 px-2 py-1">{d.designationID}</td>
-                <td className="border border-green-500 px-2 py-1">{d.designationName}</td>
-                <td className="border border-green-500 px-2 py-1">{d.departmentName}</td>
-                <td className="border border-green-500 px-2 py-1">{d.grade}</td>
-                <td className="border border-green-500 px-2 py-1">{d.status}</td>
-                <td className="border border-green-500 px-2 py-1 ">
+              <tr key={d._id} className="hover:bg-dorika-blueLight transition">
+                <td className="border border-dorika-blue px-2 py-1">{d.designationID}</td>
+                <td className="border border-dorika-blue px-2 py-1">{d.designationName}</td>
+                <td className="border border-dorika-blue px-2 py-1">{d.departmentName}</td>
+                <td className="border border-dorika-blue px-2 py-1">{d.grade}</td>
+                <td className="border border-dorika-blue px-2 py-1">{d.status}</td>
+                <td className="border border-dorika-blue px-2 py-1 ">
                 <div className='flex justify-center gap-8'>
                     <button
                     onClick={() =>
                       navigate('/designationMaster', { state: { designation: d } })
                     }
-                    className="text-blue-600 hover:text-blue-800"
+                    className="text-dorika-blue hover:text-dorika-green"
                   >
                     <FaEdit />
                   </button>
                   <button
                     onClick={() => deleteDesignation(d._id)}
-                    className="text-red-600 hover:text-red-800"
+                    className="text-dorika-orange hover:text-red-700"
                   >
                     <FaTrash />
                   </button>

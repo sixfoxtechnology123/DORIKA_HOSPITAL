@@ -3,6 +3,8 @@ import axios from 'axios';
 import BackButton from '../component/BackButton';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from "react-hot-toast";
+import Sidebar from "../component/Sidebar";
+
 
 const DesignationMaster = () => {
   const [designationID, setDesignationID] = useState('');
@@ -130,9 +132,11 @@ const DesignationMaster = () => {
   const handleBack = () => navigate(-1);
 
   return (
-    <div className="min-h-screen bg-zinc-300 flex items-center justify-center">
-      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4 text-center text-black">
+    <div className="min-h-screen bg-zinc-300 flex">
+      <Sidebar />
+      <div className="flex-1 p-3 overflow-y-auto flex items-center justify-center">
+       <div className="bg-white shadow-lg rounded-lg p-4 w-full max-w-lg">
+          <h2 className="text-xl font-bold mb-4">
           {isEditMode ? 'Update Designation' : 'Designation Master'}
         </h2>
 
@@ -214,6 +218,7 @@ const DesignationMaster = () => {
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 };

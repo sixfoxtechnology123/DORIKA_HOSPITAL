@@ -49,14 +49,14 @@ const DepartmentList = () => {
     <div className="flex-1 overflow-y-auto">
     <div className="p-3 bg-white shadow-md rounded-md">
       {/* Header */}
-      <div className="bg-green-50 border border-green-300 rounded-lg shadow-md p-2 mb-4">
+      <div className="bg-dorika-blueLight border border-green-300 rounded-lg shadow-md p-2 mb-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold text-green-800">Department</h2>
+          <h2 className="text-xl font-bold text-dorika-blue">Department</h2>
           <div className="flex gap-2">
             <BackButton />
             <button
               onClick={() => navigate("/departmentMaster")}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
+              className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
             >
                Add Department
             </button>
@@ -65,19 +65,19 @@ const DepartmentList = () => {
       </div>
 
       {/* Table */}
-      <table className="w-full table-auto border border-green-500">
-        <thead className="bg-gray-200 text-sm">
+      <table className="w-full table-auto border border-dorika-blue">
+        <thead className="bg-dorika-blue text-white text-sm">
           <tr>
-            <th className="border border-green-500 px-2 py-1">
+            <th className="border border-dorika-blue px-2 py-1">
               Department Code
             </th>
-            <th className="border border-green-500 px-2 py-1">
+            <th className="border border-dorika-blue px-2 py-1">
               Department Name
             </th>
-            {/* <th className="border border-green-500 px-2 py-1">
+            {/* <th className="border border-dorika-blue px-2 py-1">
               Description
             </th> */}
-            <th className="border border-green-500 px-2 py-1">Action</th>
+            <th className="border border-dorika-blue px-2 py-1">Action</th>
           </tr>
         </thead>
         <tbody className="text-sm text-center">
@@ -85,33 +85,33 @@ const DepartmentList = () => {
             departments.map((dept) => (
               <tr
                 key={dept._id}
-                className="hover:bg-gray-100 transition text-center"
+                className="hover:bg-dorika-blueLight transition text-center"
               >
-                <td className="border border-green-500 px-2 py-1">
+                <td className="border border-dorika-blue px-2 py-1">
                   {dept.deptCode}
                 </td>
-                <td className="border border-green-500 px-2 py-1">
+                <td className="border border-dorika-blue px-2 py-1">
                   {dept.deptName}
                 </td>
-                {/* <td className="border border-green-500 px-2 py-1">
+                {/* <td className="border border-dorika-blue px-2 py-1">
                   {dept.description}
                 </td> */}
-                <td className="border border-green-500 px-2 py-1">
+                <td className="border border-dorika-blue px-2 py-1">
                   <div className="flex justify-center items-center gap-4">
                     {/* Edit Button */}
                     <button
                       onClick={() =>
                         navigate("/departmentMaster", { state: { department: dept } })
                       }
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-dorika-blue hover:text-dorika-green"
                       aria-label="Edit Department"
                     >
                       <FaEdit />
                     </button>
-                    {/* Delete Button */}
+                    {/* Delete Buttton */}
                     <button
                       onClick={() => deleteDepartment(dept._id)}
-                      className="text-red-600 hover:text-red-800"
+                      className="text-dorika-orange hover:text-red-700"
                       aria-label="Delete Department"
                     >
                       <FaTrash />

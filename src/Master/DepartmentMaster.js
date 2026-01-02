@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import BackButton from '../component/BackButton';
+import Sidebar from "../component/Sidebar";
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from "react-hot-toast";
 
@@ -84,9 +85,11 @@ const DepartmentMaster = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-300 flex items-center justify-center">
-      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-sm">
-        <h2 className="text-2xl font-bold mb-4 text-center text-black">
+    <div className="min-h-screen bg-zinc-300 flex">
+      <Sidebar />
+      <div className="flex-1 p-3 overflow-y-auto flex items-center justify-center">
+       <div className="bg-white shadow-lg rounded-lg p-4 w-full max-w-lg">
+          <h2 className="text-xl font-bold mb-4">
           {isEditMode ? 'Update Department' : 'Department'}
         </h2>
 
@@ -125,6 +128,7 @@ const DepartmentMaster = () => {
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 };
