@@ -78,7 +78,7 @@ const EmployeeList = () => {
       <Sidebar/>
     <div className="flex-1 overflow-y-auto">
     <div className="p-3 bg-white shadow-md rounded-md">
-      <div className="bg-dorika-blueLight borderborder-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
+      <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
         <h2 className="text-xl font-bold text-dorika-blue">Employee List</h2>
         <div className="flex gap-2">
           <BackButton />

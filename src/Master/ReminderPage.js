@@ -5,7 +5,6 @@ import Sidebar from "../component/Sidebar";
 import BackButton from "../component/BackButton";
 import { FaTrash } from "react-icons/fa";
 import toast from "react-hot-toast";
-
 import Pagination from "../Master/Pagination";
 
 const formatDate = (dateStr) => {
