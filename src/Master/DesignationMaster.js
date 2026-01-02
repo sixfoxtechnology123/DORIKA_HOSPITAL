@@ -152,7 +152,7 @@ const DesignationMaster = () => {
             type="text"
             value={designationName}
             onChange={(e) => setDesignationName(e.target.value)}
-            className="w-full p-1 border rounded"
+            className="w-full p-1 border rounded uppercase"
           />
         </div>
 

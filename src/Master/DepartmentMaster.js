@@ -97,7 +97,7 @@ const DepartmentMaster = () => {
 
         <div className="mb-4">
           <label className="block text-black mb-1">Department Name</label>
-          <input type="text" value={deptName} onChange={(e) => setDeptName(e.target.value)} className="w-full p-1 border rounded" />
+          <input type="text" value={deptName} onChange={(e) => setDeptName(e.target.value)} className="w-full p-1 border rounded uppercase" />
         </div>
 
         <div className="mb-4">
