@@ -151,7 +151,7 @@ const DesignationMaster = () => {
           <input
             type="text"
             value={designationName}
-            onChange={(e) => setDesignationName(e.target.value)}
+            onChange={(e) => setDesignationName(e.target.value.toUpperCase())}
             className="w-full p-1 border rounded uppercase"
           />
         </div>

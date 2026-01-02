@@ -74,9 +74,9 @@ const DepartmentList = () => {
             <th className="border border-green-500 px-2 py-1">
               Department Name
             </th>
-            <th className="border border-green-500 px-2 py-1">
+            {/* <th className="border border-green-500 px-2 py-1">
               Description
-            </th>
+            </th> */}
             <th className="border border-green-500 px-2 py-1">Action</th>
           </tr>
         </thead>
@@ -93,9 +93,9 @@ const DepartmentList = () => {
                 <td className="border border-green-500 px-2 py-1">
                   {dept.deptName}
                 </td>
-                <td className="border border-green-500 px-2 py-1">
+                {/* <td className="border border-green-500 px-2 py-1">
                   {dept.description}
-                </td>
+                </td> */}
                 <td className="border border-green-500 px-2 py-1">
                   <div className="flex justify-center items-center gap-4">
                     {/* Edit Button */}
