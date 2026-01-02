@@ -251,7 +251,7 @@ const handleSubmit = async () => {
         <div className="flex justify-end mt-3">
           <button
             onClick={handleSubmit}
-            className="bg-dorika-blue hover:bg-dorika-orange text-white px-6 py-2 rounded font-semibold"
+            className="bg-dorika-blue hover:bg-dorika-orange text-white px-4 py-1 rounded font-semibold"
           >
             Submit
           </button>
