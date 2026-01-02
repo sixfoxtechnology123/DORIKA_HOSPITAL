@@ -12,6 +12,12 @@ const EmployeeMaster = () => {
   const { employee, id } = location.state || {};
   const isEditMode = Boolean(employee?._id);
   const [initialEmploymentStatus, setInitialEmploymentStatus] = useState("");
+  const [filteredDesignations, setFilteredDesignations] = useState([]);
+  const [selectedDepartmentName, setSelectedDepartmentName] = useState("");
+  
+const [departmentID, setDepartmentID] = useState("");
+const [departmentName, setDepartmentName] = useState("");
+const [designationID, setDesignationID] = useState("");
 
 
   //const [employeeData, setEmployeeData] = useState(location.state?.employee || {});
@@ -52,7 +58,6 @@ const EmployeeMaster = () => {
   const [subCaste, setSubCaste] = useState("");
   const [religion, setReligion] = useState("");
   const [maritalStatus, setMaritalStatus] = useState("");
-  const [departmentName, setDepartmentName] = useState(null);
   const [designationName, setDesignationName] = useState(null);
 
   const [dob, setDob] = useState("");
@@ -204,20 +209,34 @@ useEffect(() => {
 
 
 
+useEffect(() => {
+  if (!selectedDepartmentName) {
+    setFilteredDesignations([]);
+    return;
+  }
+
+  const filtered = designations
+    .filter(d => d.departmentName === selectedDepartmentName)
+    .map(d => ({
+      label: d.designationName,
+      value: d._id
+    }));
+
+  setFilteredDesignations(filtered);
+}, [selectedDepartmentName, designations]);
+
 
 useEffect(() => {
-  // Wait until employee and master data are loaded
-  if (!employee || !departments.length || !designations.length) return;
+  if (employee && departments.length && designations.length) {
+    const dept = departments.find(d => d.value === employee.departmentID);
+    setDepartmentID(dept?._id || "");
+    setSelectedDepartmentName(dept?.deptName || "");
 
-  const deptObj = departments.find(d => d.value === employee.departmentID);
-  const desigObj = designations.find(d => d.value === employee.designationID);
-
-  setDepartmentName(deptObj || null);
-  setDesignationName(desigObj || null);
-
-  // Prefill statusChangeDate: if null, use DOJ
-  setStatusChangeDate(employee.statusChangeDate || employee.doj || "");
+    const desig = designations.find(d => d.value === employee.designationID);
+    setDesignationID(desig?._id || "");
+  }
 }, [employee, departments, designations]);
+
 
 
 useEffect(() => {
@@ -366,24 +385,38 @@ const fetchNextEmployeeID = async () => {
 };
 
 
-  const loadMasters = async () => {
-    try {
-      const [deptRes, desigRes] = await Promise.all([
-        axios.get("http://localhost:5002/api/departments"),
-        axios.get("http://localhost:5002/api/designations"),
-      ]);
+const loadMasters = async () => {
+  try {
+    const [deptRes, desigRes] = await Promise.all([
+      axios.get("http://localhost:5002/api/departments"),
+      axios.get("http://localhost:5002/api/designations"),
+    ]);
 
    setDepartments(
-  (deptRes.data || []).map((d) => ({ value: d._id, label: d.deptName, _id: d._id }))
-);
-setDesignations(
-  (desigRes.data || []).map((d) => ({ value: d._id, label: d.designationName, _id: d._id }))
+  (deptRes.data || []).map((d) => ({
+    value: d._id,
+    label: d.deptName,
+    _id: d._id,
+    deptName: d.deptName
+  }))
 );
 
-    } catch (err) {
-      console.error("Error fetching master data:", err);
-    }
-  };
+setDesignations(
+  (desigRes.data || []).map((d) => ({
+    value: d._id,
+    label: d.designationName,
+    _id: d._id,
+    designationName: d.designationName,
+    departmentName: d.departmentName // ✅ Important for filtering
+  }))
+);
+
+
+  } catch (err) {
+    console.error("Error fetching master data:", err);
+  }
+};
+
   const fetchEmployees = async () => {
     try {
       const res = await axios.get("http://localhost:5002/api/employees");
@@ -462,8 +495,9 @@ const payload = {
   maritalStatus,
 
 
-departmentID: getValue(departmentName),
-designationID: getValue(designationName),
+departmentID: departmentID,
+designationID: designationID,
+
 
 
   dob,
@@ -702,20 +736,30 @@ const handleSubmit = async (e) => {
                 <h3 className="text-xl font-semibold text-sky-600 col-span-full">
                   Service Details
                 </h3>
+<Select
+  label="Department *"
+  value={departmentID}
+  onChange={(val) => {
+    setDepartmentID(val); // val is ObjectId string
+    const dept = departments.find(d => d._id === val);
+    setDepartmentName(dept?.deptName || ""); // only for display/filtering
+    setSelectedDepartmentName(dept?.deptName || "");
+  }}
+  options={departments.map(dep => ({
+    label: dep.deptName,
+    value: dep._id
+  }))}
+/>
 
-               <Select
-                  label="Department *"
-                  value={departmentName}
-                  onChange={(value) => setDepartmentName(value)}
-                  options={departments}
-                />
-
-                <Select
-                  label="Designation *"
-                  value={designationName}
-                  onChange={(value) => setDesignationName(value)}
-                  options={designations}
-                />
+<Select
+  label="Designation *"
+  value={designationID}
+  onChange={(val) => setDesignationID(val)} // ObjectId
+  options={filteredDesignations.map(des => ({
+    label: des.label,
+    value: des.value // ObjectId
+  }))}
+/>
 
                 <Input
                   type="date"
