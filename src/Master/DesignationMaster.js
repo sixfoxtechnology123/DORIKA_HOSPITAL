@@ -146,7 +146,7 @@ const DesignationMaster = () => {
             type="text"
             value={designationID}
             readOnly
-            className="w-full p-1 border rounded cursor-not-allowed"
+            className="w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 cursor-not-allowed"
           />
         </div>
 
@@ -156,7 +156,7 @@ const DesignationMaster = () => {
             type="text"
             value={designationName}
             onChange={(e) => setDesignationName(e.target.value.toUpperCase())}
-            className="w-full p-1 border rounded uppercase"
+            className="w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
           />
         </div>
 
@@ -165,7 +165,7 @@ const DesignationMaster = () => {
           <select
             value={departmentName}
             onChange={(e) => setDepartmentName(e.target.value)}
-            className="w-full p-1 border rounded"
+            className="w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
           >
             <option value="">Select Department</option>
             {departments.map((d) => (
@@ -181,7 +181,7 @@ const DesignationMaster = () => {
           <select
             value={grade}
             onChange={(e) => setGrade(e.target.value)}
-            className="w-full p-1 border rounded"
+            className="w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
           >
             <option value="A">A</option>
             <option value="B">B</option>
@@ -195,7 +195,7 @@ const DesignationMaster = () => {
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="w-full p-1 border rounded"
+           className="w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
           >
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>

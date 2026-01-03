@@ -8,8 +8,7 @@ import toast from "react-hot-toast";
 
 
 
-// Shift options
-const SHIFT_OPTIONS = ["M", "N", "G", "E", "OFF"];
+
 
 const ShiftManagement = () => {
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -17,13 +16,42 @@ const ShiftManagement = () => {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
     const navigate = useNavigate();
-  
+  const [shiftOptions, setShiftOptions] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [designations, setDesignations] = useState([]);
   const [selectedDesignation, setSelectedDesignation] = useState("ALL");
   const [shifts, setShifts] = useState({});
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = 8; // employees per page
+
+useEffect(() => {
+  const fetchShiftOptions = async () => {
+    try {
+      const res = await axios.get("http://localhost:5002/api/shifts"); // fetch all shifts
+     const options = res.data
+      .filter(s => s.status === "Active")
+      .map(s => ({
+        code: s.shiftName.charAt(0).toUpperCase(), // M, N
+        name: s.shiftName,                         // MORNING
+        start: s.startTime,                        // 02.36 AM
+        end: s.endTime                             // 06.40 AM
+      }));
+
+    setShiftOptions([
+    ...options,
+    { code: "OFF", name: "OFF" },
+    { code: "DD", name: "Double Duty" }
+  ]);
+
+
+    } catch (err) {
+      console.error("Failed to fetch shift options:", err);
+    }
+  };
+
+  fetchShiftOptions();
+}, []);
 
 
 
@@ -60,27 +88,34 @@ const ShiftManagement = () => {
     fetchDesignations();
   }, []);
 
-  /* ================= FETCH SHIFTS MONTH WISE ================= */
-  useEffect(() => {
-    const fetchShifts = async () => {
-      try {
-        const res = await axios.get(
-          `http://localhost:5002/api/shift-management/${selectedMonth}`
-        );
+useEffect(() => {
+  const fetchShifts = async () => {
+    try {
+      // convert selectedMonth to same format as saved month
+      const formatMonth = (ym) => {
+        const [y, m] = ym.split("-");
+        return new Date(y, m - 1).toLocaleString("en-US", { month: "short" }) + "-" + y;
+      };
 
-        const formatted = {};
-        res.data.forEach((item) => {
-          formatted[item.employeeID] = item.shifts || {};
-        });
+      const res = await axios.get(
+        `http://localhost:5002/api/shift-management/${formatMonth(selectedMonth)}`
+      );
 
-        setShifts(formatted);
-      } catch (err) {
-        console.error("Shift fetch error:", err);
-      }
-    };
+      const formatted = {};
+      res.data.forEach((item) => {
+        formatted[item.employeeID] = item.shifts || {};
+      });
 
-    fetchShifts();
-  }, [selectedMonth]);
+      setShifts(formatted);
+    } catch (err) {
+      console.error("Shift fetch error:", err);
+      setShifts({});
+    }
+  };
+
+  fetchShifts();
+}, [selectedMonth]);
+
 
   /* ================= DAYS IN MONTH ================= */
   const daysInMonth = useMemo(() => {
@@ -117,14 +152,18 @@ const handleShiftChange = (emp, day, value) => {
 
 const handleSubmit = async () => {
   try {
-    // Prepare only employees with at least one shift
+    const formatMonth = (ym) => {
+      const [y, m] = ym.split("-");
+      return new Date(y, m - 1).toLocaleString("en-US", { month: "short" }) + "-" + y;
+    };
+
     const dataToSave = filteredEmployees
       .map(emp => {
         const empShifts = shifts[emp.employeeID] || {};
         const nonEmptyShifts = Object.fromEntries(
-          Object.entries(empShifts).filter(([day, shift]) => shift)
+          Object.entries(empShifts).filter(([_, shift]) => shift)
         );
-        if (Object.keys(nonEmptyShifts).length === 0) return null; // skip if no shift
+        if (Object.keys(nonEmptyShifts).length === 0) return null;
         return {
           employeeID: emp.employeeID,
           employeeName: `${emp.firstName} ${emp.middleName} ${emp.lastName}`,
@@ -132,22 +171,97 @@ const handleSubmit = async () => {
           shifts: nonEmptyShifts,
         };
       })
-      .filter(Boolean); // remove nulls
+      .filter(Boolean);
 
     if (dataToSave.length === 0) {
-     toast.error("No shifts to save ❌");
+      toast.error("No shifts to save ❌");
       return;
     }
 
     await axios.post("http://localhost:5002/api/shift-management/save-bulk", {
-      month: selectedMonth,
+      month: formatMonth(selectedMonth), 
       data: dataToSave,
     });
 
     toast.success("Shift saved successfully ✅");
-  } catch (error) {
+  } catch {
     toast.error("Failed to save shifts ❌");
   }
+};
+const EMP_COLORS = [
+  "bg-dorika-blueLight",
+  "bg-dorika-green/20",
+  "bg-dorika-orange/20",
+];
+
+const getRowColor = (index) => EMP_COLORS[index % EMP_COLORS.length];
+
+const getShiftColor = (shift, rowIndex) => {
+  if (shift === "OFF") return "bg-red-200 text-red-800"; 
+  return getRowColor(rowIndex);
+};
+
+const handlePrint = () => {
+  const printData =
+    selectedEmployees.length > 0
+      ? filteredEmployees.filter(emp =>
+          selectedEmployees.includes(emp.employeeID)
+        )
+      : filteredEmployees;
+
+  const printWindow = window.open("", "", "width=1200,height=800");
+  printWindow.document.write(`
+    <html>
+    <head>
+      <title>Shift Report</title>
+      <style>
+        body { font-family: Arial; }
+        table { border-collapse: collapse; width: 100%; font-size: 10px; }
+        th, td { border: 1px solid #000; padding: 4px; text-align: center; }
+        th { background: #e6f0ff; }
+        @page { size: A4 landscape; margin: 10mm; }
+      </style>
+    </head>
+    <body>
+    <h3>
+      Shift Report : ${
+        new Date(
+          selectedMonth.split("-")[0],
+          selectedMonth.split("-")[1] - 1
+        ).toLocaleString("en-US", { month: "short" })
+      } - ${selectedMonth.split("-")[0]}
+    </h3>
+
+      <table>
+        <tr>
+          <th>SL</th>
+          <th>Emp ID</th>
+          <th>Name</th>
+          <th>Designation</th>
+          ${daysInMonth.map(d => `<th>${d}</th>`).join("")}
+        </tr>
+        ${printData
+          .map((emp, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${emp.employeeID}</td>
+              <td>${emp.firstName} ${emp.middleName} ${emp.lastName}</td>
+              <td>${emp.designationName}</td>
+              ${daysInMonth
+                .map(
+                  d =>
+                    `<td>${shifts?.[emp.employeeID]?.[d] || ""}</td>`
+                )
+                .join("")}
+            </tr>
+          `)
+          .join("")}
+      </table>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.print();
 };
 
 
@@ -169,24 +283,24 @@ const handleSubmit = async () => {
         </div>
       </div>
 
-      {/* ================= TOP SECTION ================= */}
-      <div className="bg-white p-2 rounded-lg shadow mb-4 flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <label className="font-semibold">Month:</label>
+     {/* ================= TOP SECTION ================= */}
+     <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-4 flex items-center justify-between border border-dorika-blue">
+  <div className="flex items-center gap-6">
+          <label className="font-semibold text-dorika-blue">Month:</label>
           <input
             type="month"
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="border rounded px-3 "
+            className="border border-dorika-blue rounded px-3 py-1 text-dorika-blue focus:outline-none focus:ring-1 focus:ring-dorika-orange"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="font-semibold">Designation:</label>
+          <label className="font-semibold text-dorika-blue">Designation:</label>
           <select
             value={selectedDesignation}
             onChange={(e) => setSelectedDesignation(e.target.value)}
-            className="border rounded px-3 "
+            className="border border-dorika-blue rounded px-3 py-1 text-dorika-blue focus:outline-none focus:ring-1 focus:ring-dorika-green"
           >
             {designations.map((des) => (
               <option key={des} value={des}>
@@ -195,13 +309,43 @@ const handleSubmit = async () => {
             ))}
           </select>
         </div>
-      </div>
+          <div>
 
+          <button
+            onClick={handlePrint}
+            className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold"
+          >
+            Print Report
+          </button>
+        </div>
+
+        </div>
+
+    
       {/* ================= SHIFT TABLE ================= */}
       <div className="overflow-x-auto bg-white rounded-lg shadow">
         <table className="border-collapse border-dorika-blue w-full text-xs">
           <thead className="bg-dorika-blue text-white sticky top-0">
             <tr>
+              <th className="border px-2 py-1 border-dorika-blue text-center">
+              <input
+                type="checkbox"
+                checked={
+                  filteredEmployees.length > 0 &&
+                  selectedEmployees.length === filteredEmployees.length
+                }
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    //  SELECT ALL EMPLOYEES FROM ALL PAGES
+                    setSelectedEmployees(
+                      filteredEmployees.map(emp => emp.employeeID)
+                    );
+                  } else {
+                    setSelectedEmployees([]);
+                  }
+                }}
+              />
+            </th>
               <th className="border px-2 py-1 border-dorika-blue">SL No</th>
               <th className="border px-2 py-1 border-dorika-blue">Emp ID</th>
               <th className="border px-2 py-1 border-dorika-blue">Employee Name</th>
@@ -215,26 +359,57 @@ const handleSubmit = async () => {
           </thead>
           <tbody>
           {paginatedEmployees.map((emp, index) => (
-              <tr key={emp.employeeID} className="hover:bg-dorika-blueLight transition">
+              <tr key={emp.employeeID}
+                    className={`${getRowColor(index)} transition`}>
+                     <td className="border px-2 py-1 border-dorika-blue text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedEmployees.includes(emp.employeeID)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedEmployees(prev => [...prev, emp.employeeID]);
+                        } else {
+                          setSelectedEmployees(prev =>
+                            prev.filter(id => id !== emp.employeeID)
+                          );
+                        }
+                      }}
+                    />
+                  </td>
                 <td className="border px-2 py-1 border-dorika-blue"> {startIndex + index + 1}</td>
-                <td className="border px-2 py-1 border-dorika-blue">{emp.employeeID}</td>
-                <td className="border px-2 py-1 border-dorika-blue">{emp.firstName} {emp.middleName} {emp.lastName}</td>
-                <td className="border px-2 py-1 border-dorika-blue">{emp.designationName}</td>
+                <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.employeeID}</td>
+                <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.firstName} {emp.middleName} {emp.lastName}</td>
+                <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.designationName}</td>
                 {daysInMonth.map((day) => (
-                  <td key={day} className="border border-dorika-blue px-1 py-1 text-center">
-                    <select
-                      value={shifts?.[emp.employeeID]?.[day] || ""}
-                      onChange={(e) =>
-                        handleShiftChange(emp, day, e.target.value)
-                      }
-                      className="border rounded px-1 py-0.5 text-xs"
+                 <td
+                      key={day}
+                      className={`border border-dorika-blue px-1 py-1 text-center ${getShiftColor(
+                        shifts?.[emp.employeeID]?.[day],
+                        index
+                      )}`}
                     >
+                  <select
+                        value={shifts?.[emp.employeeID]?.[day] || ""}
+                        onChange={(e) => handleShiftChange(emp, day, e.target.value)}
+                        className="bg-transparent border rounded px-1 py-0.5 text-xs font-semibold"
+                      >
+
                       <option value="">-</option>
-                      {SHIFT_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
+                        {shiftOptions.map((opt) => (
+                          <option
+                            key={opt.code}
+                            value={opt.code}
+                            title={
+                              opt.code !== "OFF"
+                                ? `${opt.name}\n${opt.start} to ${opt.end}`
+                                : "OFF"
+                            }
+                          >
+                            {opt.code}
+                          </option>
+                        ))}
+
+
                     </select>
                   </td>
                 ))}
@@ -248,15 +423,14 @@ const handleSubmit = async () => {
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             />
-        <div className="flex justify-end mt-3">
-          <button
-            onClick={handleSubmit}
-            className="bg-dorika-blue hover:bg-dorika-orange text-white px-4 py-1 rounded font-semibold"
-          >
-            Submit
-          </button>
-        </div>
-
+            <div className="absolute right-3 bottom-3">
+              <button
+                onClick={handleSubmit}
+                className="bg-dorika-blue hover:bg-dorika-orange text-white px-4 py-1 rounded font-semibold"
+              >
+                Submit
+              </button>
+            </div>
       </div>
     </div>
     </div>

@@ -20,7 +20,7 @@ const shiftManagementSchema = new mongoose.Schema(
       required: true,
     },
     shifts: {
-      type: Map,            // ✅ USE MAP
+      type: Map,          
       of: String,
       default: {},
     },

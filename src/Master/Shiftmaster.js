@@ -2,6 +2,10 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import BackButton from "../component/BackButton";
 import { useNavigate, useLocation } from "react-router-dom";
+import Sidebar from '../component/Sidebar';
+import toast from "react-hot-toast";
+
+
 
 const ShiftMaster = () => {
   const [shift, setShift] = useState({
@@ -38,8 +42,9 @@ const ShiftMaster = () => {
         _id: s._id,
         shiftID: s.shiftID,   // fixed → always existing id
         shiftName: s.shiftName || "",
-        startTime: s.startTime || "",
-        endTime: s.endTime || "",
+        startTime: to24Hour(s.startTime) || "",
+        endTime: to24Hour(s.endTime) || "",
+
         breakDuration: s.breakDuration || "",
         status: s.status || "Active",
       });
@@ -56,37 +61,68 @@ const ShiftMaster = () => {
     setShift((prev) => ({ ...prev, [name]: value }));
   };
 
+
+const to12Hour = (time24) => {
+  if (!time24) return "";
+  let [h, m] = time24.split(":").map(Number);
+  const ampm = h >= 12 ? " PM" : " AM"; // ✅ space added
+  h = h % 12 || 12;
+  return `${String(h).padStart(2, "0")}.${String(m).padStart(2, "0")}${ampm}`;
+};
+const to24Hour = (time12) => {
+  if (!time12) return "";
+  const [time, mod] = time12.split(" ");
+  let [h, m] = time.split(".").map(Number);
+
+  if (mod === "PM" && h !== 12) h += 12;
+  if (mod === "AM" && h === 12) h = 0;
+
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+};
+
+
   // Save / Update
   const handleSaveOrUpdate = async (e) => {
     e.preventDefault();
 
     try {
       if (isEditMode) {
-        //  UPDATE → never send shiftID (kept constant)
         const { _id, shiftID, ...payload } = shift;
-        await axios.put(`http://localhost:5002/api/shifts/${_id}`, payload);
-        alert("Shift updated successfully!");
+        await axios.put(`http://localhost:5002/api/shifts/${_id}`, {
+          ...payload,
+          startTime: to12Hour(shift.startTime),
+          endTime: to12Hour(shift.endTime),
+        });
+
+        toast.success("Shift updated successfully!");
       } else {
         // CREATE → include shiftID
-        await axios.post("http://localhost:5002/api/shifts", shift);
-        alert("Shift added successfully!");
+       await axios.post("http://localhost:5002/api/shifts", {
+      ...shift,
+      startTime: to12Hour(shift.startTime),
+      endTime: to12Hour(shift.endTime),
+    });
+
+        toast.success("Shift added successfully!");
       }
       navigate("/shiftList", { replace: true });
     } catch (err) {
       console.error("Save failed:", err);
-      alert(err?.response?.data?.error || "Error saving shift");
+      toast.error(err?.response?.data?.error || "Error saving shift");
     }
   };
 
   return (
-    <div className="min-h-screen bg-zinc-300 flex items-center justify-center">
-      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-6xl">
-        <h2 className="text-2xl font-bold mb-4 text-center text-black">
+    <div className="min-h-screen bg-zinc-300 flex">
+      <Sidebar />
+      <div className="flex-1 p-3 overflow-y-auto flex items-center justify-center">
+       <div className="bg-white shadow-lg rounded-lg p-4 w-full max-w-lg">
+          <h2 className="text-xl font-bold mb-4">
           {isEditMode ? "Update Shift" : "Shift"}
         </h2>
 
         <form onSubmit={handleSaveOrUpdate}
-         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+         className="gap-4">
           <div>
             <label className="block font-medium">Shift ID</label>
             <input
@@ -94,20 +130,29 @@ const ShiftMaster = () => {
               name="shiftID"
               value={shift.shiftID}
               readOnly
-              className="w-full p-1 border rounded bg-gray-100 cursor-not-allowed"
+              className="w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 cursor-not-allowed"
             />
           </div>
 
           <div>
             <label className="block font-medium">Shift Name</label>
-            <input
-              type="text"
-              name="shiftName"
-              value={shift.shiftName}
-              onChange={handleChange}
-              className="w-full border border-gray-300 p-1 rounded bg-gray-100 " placeholder="eg-Morning, Night, General"
-              required
-            />
+           <input
+                type="text"
+                name="shiftName"
+                value={shift.shiftName}
+                onChange={(e) =>
+                  handleChange({
+                    target: {
+                      name: e.target.name,
+                      value: e.target.value.toUpperCase(),
+                    },
+                  })
+                }
+                className="w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
+                placeholder="eg-MORNING, NIGHT, GENERAL"
+                required
+              />
+
           </div>
 
           <div>
@@ -117,7 +162,7 @@ const ShiftMaster = () => {
               name="startTime"
               value={shift.startTime}
               onChange={handleChange}
-              className="w-full border border-gray-300 p-1 rounded bg-gray-100 "
+             className="w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
               required
             />
           </div>
@@ -129,7 +174,7 @@ const ShiftMaster = () => {
               name="endTime"
               value={shift.endTime}
               onChange={handleChange}
-              className="w-full border border-gray-300 p-1 rounded bg-gray-100 "
+              className="w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
               required
             />
           </div>
@@ -141,7 +186,7 @@ const ShiftMaster = () => {
               name="breakDuration"
               value={shift.breakDuration}
               onChange={handleChange}
-              className="w-full border border-gray-300 p-1 rounded bg-gray-100 "
+              className="w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
               required
             />
           </div>
@@ -152,7 +197,7 @@ const ShiftMaster = () => {
               name="status"
               value={shift.status}
               onChange={handleChange}
-              className="w-full border border-gray-300 p-1 rounded bg-gray-100 "
+             className="w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
               required
             >
               <option value="Active">Active</option>
@@ -175,6 +220,7 @@ const ShiftMaster = () => {
           </div>
         </form>
       </div>
+    </div>
     </div>
   );
 };

@@ -95,12 +95,12 @@ const DepartmentMaster = () => {
 
         <div className="mb-4">
           <label className="block text-black mb-1">Department Code</label>
-          <input type="text" value={deptCode} readOnly className="w-full p-1 border rounded cursor-not-allowed" />
+          <input type="text" value={deptCode} readOnly className="w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 cursor-not-allowed" />
         </div>
 
         <div className="mb-4">
           <label className="block text-black mb-1">Department Name</label>
-          <input type="text" value={deptName} onChange={(e) => setDeptName(e.target.value.toUpperCase())} className="w-full p-1 border rounded uppercase" />
+          <input type="text" value={deptName} onChange={(e) => setDeptName(e.target.value.toUpperCase())}  className="w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150" />
         </div>
 
         {/* <div className="mb-4">
@@ -110,7 +110,7 @@ const DepartmentMaster = () => {
 
         <div className="mb-4">
           <label className="block text-black mb-1">Status</label>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full p-1 border rounded">
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150">
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
           </select>

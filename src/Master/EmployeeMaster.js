@@ -736,30 +736,30 @@ const handleSubmit = async (e) => {
                 <h3 className="text-xl font-semibold text-sky-600 col-span-full">
                   Service Details
                 </h3>
-<Select
-  label="Department *"
-  value={departmentID}
-  onChange={(val) => {
-    setDepartmentID(val); // val is ObjectId string
-    const dept = departments.find(d => d._id === val);
-    setDepartmentName(dept?.deptName || ""); // only for display/filtering
-    setSelectedDepartmentName(dept?.deptName || "");
-  }}
-  options={departments.map(dep => ({
-    label: dep.deptName,
-    value: dep._id
-  }))}
-/>
+                  <Select
+                    label="Department *"
+                    value={departmentID}
+                    onChange={(val) => {
+                      setDepartmentID(val); // val is ObjectId string
+                      const dept = departments.find(d => d._id === val);
+                      setDepartmentName(dept?.deptName || ""); // only for display/filtering
+                      setSelectedDepartmentName(dept?.deptName || "");
+                    }}
+                    options={departments.map(dep => ({
+                      label: dep.deptName,
+                      value: dep._id
+                    }))}
+                  />
 
-<Select
-  label="Designation *"
-  value={designationID}
-  onChange={(val) => setDesignationID(val)} // ObjectId
-  options={filteredDesignations.map(des => ({
-    label: des.label,
-    value: des.value // ObjectId
-  }))}
-/>
+                  <Select
+                    label="Designation *"
+                    value={designationID}
+                    onChange={(val) => setDesignationID(val)} // ObjectId
+                    options={filteredDesignations.map(des => ({
+                      label: des.label,
+                      value: des.value // ObjectId
+                    }))}
+                  />
 
                 <Input
                   type="date"
