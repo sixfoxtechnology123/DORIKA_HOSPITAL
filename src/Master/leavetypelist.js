@@ -41,56 +41,58 @@ const LeaveTypeList = () => {
       <Sidebar/>
     <div className="flex-1 overflow-y-auto">
     <div className="p-3 bg-white shadow-md rounded-md">
-      <div className="bg-blue-50 border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
-        <h2 className="text-xl font-bold text-blue-800">Leave Type</h2>
+      <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
+        <h2 className="text-xl font-bold text-dorika-blue">Leave Type</h2>
         <div className="flex gap-2">
           <BackButton />
           <button
             onClick={() => navigate("/leavetypeMaster")}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
+            className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
           >
             Manage New Leave Type
           </button>
         </div>
       </div>
 
-      <table className="w-full table-auto border border-blue-500">
-        <thead className="bg-gray-200 text-sm">
+      <table className="w-full table-auto border border-dorika-blue">
+        <thead className="bg-dorika-blue text-white text-sm">
           <tr>
-            <th className="border border-blue-500 px-2 py-1">S.No</th>
-            <th className="border border-blue-500 px-2 py-1">Leave Type ID</th>
-            <th className="border border-blue-500 px-2 py-1">Leave Name</th>
-            <th className="border border-blue-500 px-2 py-1">alies</th>
-            {/* <th className="border border-blue-500 px-2 py-1">Annual Quota</th>
-            <th className="border border-blue-500 px-2 py-1">Carry Forward</th> */}
-            <th className="border border-blue-500 px-2 py-1">Remarks</th>
-            <th className="border border-blue-500 px-2 py-1">Action</th>
+            <th className="border border-dorika-blue px-2 py-1">S.No</th>
+            <th className="border border-dorika-blue px-2 py-1">Leave Type ID</th>
+            <th className="border border-dorika-blue px-2 py-1">Leave Name</th>
+            <th className="border border-dorika-blue px-2 py-1">Alies</th>
+            <th className="border border-dorika-blue px-2 py-1">Total Days</th>
+            {/* <th className="border border-dorika-blue px-2 py-1">Annual Quota</th>
+            <th className="border border-dorika-blue px-2 py-1">Carry Forward</th> */}
+            <th className="border border-dorika-blue px-2 py-1">Remarks</th>
+            <th className="border border-dorika-blue px-2 py-1">Action</th>
           </tr>
         </thead>
         <tbody className="text-sm text-center">
           {leaveTypes.length > 0 ? (
             leaveTypes.map((lt,index) => (
-              <tr key={lt._id} className="hover:bg-gray-100 transition">
-                <td className="border border-blue-500 px-2 py-1">{index + 1}</td> 
-                <td className="border border-blue-500 px-2 py-1">{lt.leaveTypeID}</td>
-                <td className="border border-blue-500 px-2 py-1">{lt.leaveName}</td>
-                <td className="border border-blue-500 px-2 py-1">{lt.leaveCode}</td>
-                {/* <td className="border border-blue-500 px-2 py-1">{lt.annualQuota}</td>
-                <td className="border border-blue-500 px-2 py-1">{lt.carryForward}</td> */}
-                <td className="border border-blue-500 px-2 py-1">{lt.remarks}</td>
-                <td className="border border-blue-500 px-2 py-1">
+              <tr key={lt._id} className="hover:bg-dorika-blueLight transition">
+                <td className="border border-dorika-blue px-2 py-1">{index + 1}</td> 
+                <td className="border border-dorika-blue px-2 py-1">{lt.leaveTypeID}</td>
+                <td className="border border-dorika-blue px-2 py-1">{lt.leaveName}</td>
+                <td className="border border-dorika-blue px-2 py-1">{lt.leaveCode}</td>
+                <td className="border border-dorika-blue px-2 py-1">{lt.totalDays}</td>
+                {/* <td className="border border-dorika-blue px-2 py-1">{lt.annualQuota}</td>
+                <td className="border border-dorika-blue px-2 py-1">{lt.carryForward}</td> */}
+                <td className="border border-dorika-blue px-2 py-1">{lt.remarks}</td>
+                <td className="border border-dorika-blue px-2 py-1">
                   <div className="flex justify-center gap-8">
                     <button
                       onClick={() =>
                         navigate("/leavetypeMaster", { state: { leaveType: lt } })
                       }
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-dorika-blue hover:text-dorika-green"
                     >
                       <FaEdit />
                     </button>
                     <button
                       onClick={() => deleteLeaveType(lt._id)}
-                      className="text-red-600 hover:text-red-800"
+                      className="text-dorika-orange hover:text-red-700"
                     >
                       <FaTrash />
                     </button>

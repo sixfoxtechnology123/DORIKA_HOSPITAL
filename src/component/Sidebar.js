@@ -62,8 +62,8 @@ const Sidebar = () => {
           submenus: [
             { name: "Dashboard", path: "/LeaveDashboard" },
             { name: "Manage Leave Type", path: "/LeaveTypeList" },
-            { name: "Leave Rule", path: "/LeaveRuleList" },
-            { name: "Leave Allocation", path: "/LeaveAllocationList" },
+            // { name: "Leave Rule", path: "/LeaveRuleList" },
+            // { name: "Leave Allocation", path: "/LeaveAllocationList" },
           ],
         },
         { name: "Holidays", path: "/HolidayList" },

@@ -16,6 +16,8 @@ const LeaveTypeMaster = () => {
   const [leaveTypes, setLeaveTypes] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState(null);
+  const [totalDays, setTotalDays] = useState("");
+
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,7 +33,8 @@ const LeaveTypeMaster = () => {
       setAnnualQuota(lt.annualQuota);
       setCarryForward(lt.carryForward);
       setStatus(lt.status);
-      setRemarks(lt.remarks || ""); // <-- load existing remarks
+      setRemarks(lt.remarks || "");
+      setTotalDays(lt.totalDays || ""); 
       setEditId(lt._id);
       setIsEditMode(true);
     } else {
@@ -83,6 +86,7 @@ const LeaveTypeMaster = () => {
           leaveName,
           leaveCode,
           annualQuota,
+           totalDays,
           carryForward,
           status,
           remarks, // <-- save remarks
@@ -95,6 +99,7 @@ const LeaveTypeMaster = () => {
           leaveCode,
           annualQuota,
           carryForward,
+          totalDays,
           status,
           remarks, // <-- save remarks
         });
@@ -119,7 +124,7 @@ const LeaveTypeMaster = () => {
           </h2>
           <form
             onSubmit={handleSaveOrUpdate}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
           >
             <div>
               <label className="block text-sm">Leave Type ID</label>
@@ -154,6 +159,18 @@ const LeaveTypeMaster = () => {
                 placeholder="e.g., CL, SL"
               />
             </div>
+            <div>
+              <label className="block text-sm">Total Days</label>
+              <input
+                type="number"
+                min="0"
+                value={totalDays}
+                onChange={(e) => setTotalDays(e.target.value)}
+                className="w-full pl-2 pr-1 border border-gray-300 font-medium rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400"
+                placeholder="Enter total days"
+              />
+            </div>
+
 
             {/* <div>
               <label className="block text-sm">Annual Quota</label>
@@ -190,7 +207,7 @@ const LeaveTypeMaster = () => {
             </div> */}
 
             {/* Remarks Box */}
-            <div className="md:col-span-2 lg:col-span-3">
+            <div className="md:col-span-2 lg:col-span-4">
               <label className="block text-sm">Remarks</label>
               <textarea
                 value={remarks}
@@ -201,7 +218,7 @@ const LeaveTypeMaster = () => {
               />
             </div>
 
-            <div className="col-span-1 md:col-span-2 lg:col-span-3 flex justify-between mt-2">
+            <div className="col-span-1 md:col-span-2 lg:col-span-4 flex justify-between mt-2">
               <BackButton type="button" />
               <button
                 type="submit"

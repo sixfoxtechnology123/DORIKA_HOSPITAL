@@ -5,12 +5,17 @@ import { FaTrash, FaEdit } from "react-icons/fa";
 import BackButton from "../component/BackButton";
 import Sidebar from '../component/Sidebar';
 import toast from "react-hot-toast";
+import Pagination from "./Pagination";
+
 
 const EmployeeList = () => {
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]); // normalized: [{id, name}]
   const [designations, setDesignations] = useState([]);
   const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const perPage = 10;
+
 
   const fetchAll = async () => {
     try {
@@ -72,6 +77,11 @@ const EmployeeList = () => {
       console.error(e);
     }
   };
+
+  const paginatedEmployees = useMemo(() => {
+  const start = (currentPage - 1) * perPage;
+  return employees.slice(start, start + perPage);
+}, [employees, currentPage]);
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">

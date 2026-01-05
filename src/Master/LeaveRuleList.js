@@ -27,7 +27,7 @@ const LeaveRuleList = () => {
   const deleteLeaveRule = async (id) => {
     if (!window.confirm("Are you sure you want to delete this leave rule?")) return;
     try {
-      await axios.delete(`http://localhost:5002/api/leaverules/${id}`);
+      await axios.delete(`http://localhost:5002/api/leaverule/${id}`);
       setLeaveRules(leaveRules.filter((rule) => rule._id !== id));
       toast.success("Leave rule deleted successfully");
     } catch (err) {
