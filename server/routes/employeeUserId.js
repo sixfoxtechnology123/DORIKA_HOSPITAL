@@ -11,6 +11,7 @@ router.delete("/:id", controller.deleteEmployeeUserId);
 // Employee login route
 router.post("/login", controller.employeeLogin);
 router.get("/details/:employeeId", controller.getEmployeeDetails);
+router.get("/leave-types", controller.getAllLeaveTypes);
 
 
 module.exports = router;

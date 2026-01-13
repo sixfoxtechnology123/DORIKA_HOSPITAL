@@ -1,46 +1,33 @@
-const mongoose = require("mongoose");
+const mongoose = require("mongoose"); // ✅ ADD THIS LINE
 
 const leaveApplicationSchema = new mongoose.Schema(
   {
-    employeeId: {
-      type: String,
-      required: true,
-    },
-    employeeName: {
-      type: String,
-      required: true,
-    },
+    employeeId: { type: String, required: true },
+    employeeName: { type: String, required: true },
+
     applicationDate: {
-      type: String,
-      required: true,
+      type: Date,
+      default: Date.now,
     },
-    leaveType: {
-      type: String,
-      required: true,
-    },
+
+    leaveType: { type: String, required: true },
+
     leaveInHand: {
       type: Number,
-      required: true,
+      default: 0,
     },
-    fromDate: {
-      type: String,
-      required: true,
-    },
-    toDate: {
-      type: String,
-      required: true,
-    },
-    noOfDays: {
-      type: Number,
-      required: true,
-    },
-    reason: {
-      type: String,
-      required: true,
-    },
+
+    fromDate: { type: Date, required: true },
+    toDate: { type: Date, required: true },
+
+    noOfDays: { type: Number, required: true },
+
+    reason: { type: String, default: "" },
+
     status: {
       type: String,
-      default: "PENDING", // PENDING, APPROVED, REJECTED
+      enum: ["PENDING", "APPROVED", "REJECTED"],
+      default: "PENDING",
     },
   },
   { timestamps: true }

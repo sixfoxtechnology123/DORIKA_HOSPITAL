@@ -131,20 +131,20 @@ const EmployeeUserIdCreated = () => {
     <div className="flex min-h-screen flex-col md:flex-row">
       <Sidebar />
       <div className="flex-1 overflow-y-auto">
-        <div className="min-h-screen bg-blue-50 p-4">
-          <h2 className="text-2xl font-bold text-blue-800 mb-4">
+        <div className="min-h-screen bg-dorika-blueLight p-4">
+          <h2 className="text-2xl font-bold text-dorika-blue mb-4">
             Employee User ID Creation
           </h2>
 
           {/* Form */}
           <div className="bg-white p-4 rounded-2xl shadow mb-3 border border-blue-200">
-            <h3 className="text-lg font-semibold text-blue-700 mb-4">
+            <h3 className="text-lg font-semibold text-dorika-blue mb-4">
               {editingId ? "Update Employee ID" : "Create Employee ID"}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-blue-800">Employee ID</label>
+                <label className="block text-sm font-medium text-dorika-blue">Employee ID</label>
                 <input
                   placeholder="Enter Employee ID and press Enter"
                   value={formData.employeeId}
@@ -154,30 +154,30 @@ const EmployeeUserIdCreated = () => {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleFetchEmployee(formData.employeeId);
                   }}
-                  className="border border-blue-300 p-0 pl-2 rounded w-full uppercase"
+                  className="border border-dorika-blue p-0 pl-2 rounded w-full uppercase"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-blue-800">Name</label>
+                <label className="block text-sm font-medium text-dorika-blue">Name</label>
                 <input
                   value={formData.name}
                   readOnly
-                  className="border border-blue-300 p-0 pl-2 rounded w-full bg-gray-100"
+                  className="border border-dorika-blue p-0 pl-2 rounded w-full bg-gray-100"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-blue-800">Email</label>
+                <label className="block text-sm font-medium text-dorika-blue">Email</label>
                 <input
                   value={formData.email}
                   readOnly
-                  className="border border-blue-300 p-0 pl-2 rounded w-full bg-gray-100"
+                  className="border border-dorika-blue p-0 pl-2 rounded w-full bg-gray-100"
                 />
               </div>
 
               <div className="relative">
-                <label className="block text-sm font-medium text-blue-800">Password</label>
+                <label className="block text-sm font-medium text-dorika-blue">Password</label>
                 <input
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
@@ -185,12 +185,12 @@ const EmployeeUserIdCreated = () => {
                     setFormData({ ...formData, password: e.target.value })
                   }
                   placeholder="Enter Password"
-                  className="border border-blue-300 p-0 pl-2 rounded w-full pr-10"
+                  className="border border-dorika-blue p-0 pl-2 rounded w-full pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-6 text-blue-600"
+                  className="absolute right-3 top-6 text-dorika-blue"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -202,7 +202,7 @@ const EmployeeUserIdCreated = () => {
               className={`mt-3 px-4 font-semibold py-1 rounded-lg ${
                 editingId
                   ? "bg-yellow-400 hover:bg-yellow-500 text-black"
-                  : "bg-blue-600 hover:bg-blue-700 text-white"
+                  : "bg-dorika-orange hover:bg-dorika-blue text-white"
               }`}
             >
               {editingId ? "Update Employee ID" : "Save Employee ID"}
@@ -211,36 +211,36 @@ const EmployeeUserIdCreated = () => {
 
           {/* Table */}
           <div className="bg-white p-4 rounded-2xl shadow border border-blue-200">
-            <h3 className="text-lg font-semibold text-blue-700 mb-2">
+            <h3 className="text-lg font-semibold text-dorika-blue mb-2">
               Created Employee IDs
             </h3>
-            <table className="w-full table-auto border border-blue-500 text-sm text-center">
-              <thead className="bg-blue-100 text-blue-800">
+            <table className="w-full table-auto border border-dorika-blue text-sm text-center">
+              <thead className="bg-blue-100 text-dorika-blue">
                 <tr>
-                  <th className="border border-blue-500 px-2 py-1">Employee ID</th>
-                  <th className="border border-blue-500 px-2 py-1">Name</th>
-                  <th className="border border-blue-500 px-2 py-1">Email</th>
-                  <th className="border border-blue-500 px-2 py-1">Action</th>
+                  <th className="border border-dorika-blue px-2 py-1">Employee ID</th>
+                  <th className="border border-dorika-blue px-2 py-1">Name</th>
+                  <th className="border border-dorika-blue px-2 py-1">Email</th>
+                  <th className="border border-dorika-blue px-2 py-1">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {employeeIds.length > 0 ? (
                   employeeIds.map((emp) => (
-                    <tr key={emp._id} className="hover:bg-blue-50">
-                      <td className="border border-blue-500 px-2 py-1">{emp.employeeId}</td>
-                      <td className="border border-blue-500 px-2 py-1">{emp.name}</td>
-                      <td className="border border-blue-500 px-2 py-1">{emp.email}</td>
-                      <td className="border border-blue-500 px-2 py-1">
+                    <tr key={emp._id} className="hover:bg-dorika-blueLight">
+                      <td className="border border-dorika-blue px-2 py-1">{emp.employeeId}</td>
+                      <td className="border border-dorika-blue px-2 py-1">{emp.name}</td>
+                      <td className="border border-dorika-blue px-2 py-1">{emp.email}</td>
+                      <td className="border border-dorika-blue px-2 py-1">
                         <div className="flex justify-center items-center gap-4">
                           <button
                             onClick={() => editEmployeeId(emp._id)}
-                            className="text-blue-600 hover:text-blue-800"
+                            className="text-dorika-blue hover:text-dorika-green"
                           >
                             <FaEdit />
                           </button>
                           <button
                             onClick={() => deleteEmployeeId(emp._id)}
-                            className="text-red-600 hover:text-red-800"
+                            className="text-dorika-orange hover:text-red-700"
                           >
                             <FaTrash />
                           </button>

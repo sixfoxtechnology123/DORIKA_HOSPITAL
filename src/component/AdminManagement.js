@@ -169,13 +169,14 @@ export default function AdminManagement() {
     <div className="flex min-h-screen flex-col md:flex-row">
       <Sidebar />
       <div className="flex-1 overflow-y-auto">
-        <div className="min-h-screen bg-blue-50 p-4">
+        <div className="min-h-screen bg-dorika-blueLight p-4">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-blue-800">Admin Management</h2>
+            <h2 className="text-2xl font-bold text-dorika-blue">Admin Management</h2>
             <button
               onClick={() => navigate("/Dashboard")}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 font-semibold py-1 rounded-lg shadow hover:bg-blue-700"
+              className="flex items-center gap-2 bg-dorika-orange hover:bg-dorika-blue
+          text-white px-4 font-semibold py-1 rounded-lg shado"
             >
               <Home size={20} /> Home
             </button>
@@ -183,37 +184,39 @@ export default function AdminManagement() {
 
           {/* User Form */}
           <div className="bg-white p-4 rounded-2xl shadow mb-3 border border-blue-200">
-            <h3 className="text-lg font-semibold text-blue-700 mb-4">
+            <h3 className="text-lg font-semibold text-dorika-blue mb-4">
               {editingUserId ? "Update User" : "Create New User"}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-blue-800">User ID</label>
+                <label className="block text-sm font-medium text-dorika-blue">User ID</label>
                 <input
                   placeholder="Enter User ID"
                   value={newUser.userId}
                   onChange={(e) =>
                     setNewUser({ ...newUser, userId: e.target.value })
                   }
-                  className="border border-blue-300 p-0 pl-2 rounded w-full"
+                  className="border border-dorika-blue
+ p-0 pl-2 rounded w-full"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-blue-800">Name</label>
+                <label className="block text-sm font-medium text-dorika-blue">Name</label>
                 <input
                   placeholder="Enter Name"
                   value={newUser.name}
                   onChange={(e) =>
                     setNewUser({ ...newUser, name: e.target.value })
                   }
-                  className="border border-blue-300 p-0 pl-2 rounded w-full"
+                  className="border border-dorika-blue
+ p-0 pl-2 rounded w-full"
                 />
               </div>
 
               <div className="relative">
-                <label className="block text-sm font-medium text-blue-800">Password</label>
+                <label className="block text-sm font-medium text-dorika-blue">Password</label>
                 <input
                   placeholder="Enter Password"
                   type={showPassword ? "text" : "password"}
@@ -221,7 +224,8 @@ export default function AdminManagement() {
                   onChange={(e) =>
                     setNewUser({ ...newUser, password: e.target.value })
                   }
-                  className="border border-blue-300 p-0 pl-2 rounded w-full pr-10"
+                  className="border border-dorika-blue
+ p-0 pl-2 rounded w-full pr-10"
                 />
                 <button
                   type="button"
@@ -233,13 +237,14 @@ export default function AdminManagement() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-blue-800">Role</label>
+                <label className="block text-sm font-medium text-dorika-blue">Role</label>
                 <select
                   value={newUser.role}
                   onChange={(e) =>
                     setNewUser({ ...newUser, role: e.target.value })
                   }
-                  className="border border-blue-300 p-0 pl-2 rounded w-full"
+                  className="border border-dorika-blue
+ p-0 pl-2 rounded w-full"
                 >
                   <option value="HR">HR</option>
                   <option value="Manager">Manager</option>
@@ -250,7 +255,7 @@ export default function AdminManagement() {
 
             {/* Permissions */}
             <div className="mt-4">
-              <h4 className="font-medium text-blue-700 mb-2">Permissions:</h4>
+              <h4 className="font-medium text-dorika-blue mb-2">Permissions:</h4>
               <div className="grid grid-cols-2 md:grid-cols-6 gap-2 font-semibold">
                 {permissionsList.map((perm) => (
                   <label key={perm} className="flex items-center">
@@ -271,7 +276,7 @@ export default function AdminManagement() {
               className={`mt-3 px-4 font-semibold py-1 rounded-lg ${
                 editingUserId
                   ? "bg-yellow-400 hover:bg-yellow-500 text-black"
-                  : "bg-blue-600 hover:bg-blue-700 text-white"
+                  : "bg-dorika-orange hover:bg-dorika-blue text-white"
               }`}
             >
               {editingUserId ? "Update User" : "Create User"}
@@ -280,15 +285,15 @@ export default function AdminManagement() {
 
           {/* Users Table */}
           <div className="bg-white p-4 rounded-2xl shadow border border-blue-200">
-            <h3 className="text-lg font-semibold text-blue-700 mb-2">Existing Users</h3>
-            <table className="w-full table-auto border border-blue-500 text-sm text-center">
-              <thead className="bg-blue-100 text-blue-800">
+            <h3 className="text-lg font-semibold text-dorika-blue mb-2">Existing Users</h3>
+            <table className="w-full table-auto border border-dorika-blue text-sm text-center">
+              <thead className="bg-blue-100 text-dorika-blue">
                 <tr>
-                  <th className="border border-blue-500 px-2 py-1">User ID</th>
-                  <th className="border border-blue-500 px-2 py-1">Name</th>
-                  <th className="border border-blue-500 px-2 py-1">Role</th>
-                  <th className="border border-blue-500 px-2 py-1">Permissions</th>
-                  <th className="border border-blue-500 px-2 py-1">Action</th>
+                  <th className="border border-dorika-blue px-2 py-1">User ID</th>
+                  <th className="border border-dorika-blue px-2 py-1">Name</th>
+                  <th className="border border-dorika-blue px-2 py-1">Role</th>
+                  <th className="border border-dorika-blue px-2 py-1">Permissions</th>
+                  <th className="border border-dorika-blue px-2 py-1">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -296,22 +301,22 @@ export default function AdminManagement() {
                   users.map((u) => {
                     const disabled = isMainAdmin(u);
                     return (
-                      <tr key={u._id} className="hover:bg-blue-50">
-                        <td className="border border-blue-500 px-2 py-1">{u.userId}</td>
-                        <td className="border border-blue-500 px-2 py-1">{u.name}</td>
-                        <td className="border border-blue-500 px-2 py-1">{u.role}</td>
-                        <td className="border border-blue-500 px-2 py-1">
+                      <tr key={u._id} className="hover:bg-dorika-blueLight">
+                        <td className="border border-dorika-blue px-2 py-1">{u.userId}</td>
+                        <td className="border border-dorika-blue px-2 py-1">{u.name}</td>
+                        <td className="border border-dorika-blue px-2 py-1">{u.role}</td>
+                        <td className="border border-dorika-blue px-2 py-1">
                           {Array.isArray(u.permissions) && u.permissions.length > 0
                             ? u.permissions.join(", ")
                             : "-"}
                         </td>
-                        <td className="border border-blue-500 px-2 py-1">
+                        <td className="border border-dorika-blue px-2 py-1">
                           <div className="flex justify-center items-center gap-4">
                             <button
                               onClick={() => { if (!disabled) editUser(u); }}
                               disabled={disabled}
                               className={`${
-                                disabled ? "text-gray-400 cursor-not-allowed" : "text-blue-600 hover:text-blue-800"
+                                disabled ? "text-gray-400 cursor-not-allowed" : "text-dorika-blue hover:text-dorika-green"
                               }`}
                             >
                               <FaEdit />
@@ -320,7 +325,7 @@ export default function AdminManagement() {
                               onClick={() => { if (!disabled) deleteUser(u._id); }}
                               disabled={disabled}
                               className={`${
-                                disabled ? "text-gray-400 cursor-not-allowed" : "text-red-600 hover:text-red-800"
+                                disabled ? "text-gray-400 cursor-not-allowed" : "text-dorika-orange hover:text-red-700"
                               }`}
                             >
                               <FaTrash />

@@ -1,326 +1,461 @@
-// src/pages/employeeLeaveApplication.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import EmployeeCornerSidebar from "./EmployeeCornerSidebar";
-import { useLocation } from "react-router-dom";
+import { useLocation,useNavigate } from "react-router-dom";
+
+const formatDDMMYYYY = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
+const parseDDMMYYYY = (date) => {
+  if (!date) return null;
+  const [d, m, y] = date.split("-");
+  return new Date(y, m - 1, d);
+};
+
 
 const EmployeeLeaveApplication = () => {
-   const location = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const editingData = location.state?.editingData || null;
+  const [empStatus, setEmpStatus] = useState(""); 
+  const [statusChangeDate, setStatusChangeDate] = useState(null);
+  const [usedLeaves, setUsedLeaves] = useState({ sick: 0, casual: 0 });
   const [leaveTypes, setLeaveTypes] = useState([]);
-  const [leaveInHand, setLeaveInHand] = useState(0);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
 
+  const loggedUser = JSON.parse(localStorage.getItem("employeeUser")) || {};
+  const token = localStorage.getItem("employeeToken");
+
   const [formData, setFormData] = useState({
-    employeeId: "",
-    employeeName: "",
-    applicationDate: "",
+    employeeId: loggedUser.employeeID || "",
+    employeeName: `${loggedUser.firstName || ""} ${loggedUser.lastName || ""}`.trim(),
+    applicationDate: new Date().toISOString().split("T")[0],
     leaveType: "",
-    leaveInHand: "",
+    leaveInHand: 0,
     fromDate: "",
     toDate: "",
     noOfDays: 0,
     reason: "",
   });
 
-  const inputClass =
-    "w-full pl-2 pr-1 border border-gray-300 font-medium rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all duration-150";
-
-  const token = localStorage.getItem("employeeToken");
-  const loggedUser = JSON.parse(localStorage.getItem("employeeUser"));
-
-  const formatDate = (date) => new Date(date).toISOString().split("T")[0];
+  const formatDate = (date) => (date ? new Date(date).toISOString().split("T")[0] : "");
 
 useEffect(() => {
-  if (!loggedUser || !loggedUser.employeeID) return;
+  if (!loggedUser?.employeeID) return;
 
+// STEP A: Fetch Profile & Employment Status
+axios
+  .get(`http://localhost:5002/api/employee-ids/details/${loggedUser.employeeID}`)
+  .then((profileRes) => {
+    const emp = profileRes.data;
+    setEmpStatus(emp.employmentStatus || "");
+    setStatusChangeDate(emp.statusChangeDate); // <--- SAVE THE DATE HERE
+    const fullName = `${emp.firstName || ""} ${emp.middleName || ""} ${emp.lastName || ""}`.trim();
+    setFormData((prev) => ({ ...prev, employeeName: fullName }));
+  })
+  .catch((err) => console.error("Profile Fetch Error:", err));
+
+  
+  // STEP C: Fetch Leave Types
   axios
-    .get(
-      `http://localhost:5002/api/leave-application/leaveAllocations/employee/${loggedUser.employeeID}`
-    )
+    .get(`http://localhost:5002/api/employee-ids/leave-types`)
+    .then((res) => setLeaveTypes(res.data || []));
+
+  // STEP D: Prefill Data for Editing
+  if (editingData) {
+    setIsEditMode(true);
+    setEditingId(editingData._id);
+    
+    setFormData({
+      employeeId: editingData.employeeId,
+      employeeName: editingData.employeeName,
+      // Use the global formatDate for the hidden picker
+      applicationDate: formatDate(editingData.applicationDate), 
+      leaveType: editingData.leaveType,
+      leaveInHand: editingData.leaveInHand,
+      // IMPORTANT: If DB already has DD-MM-YYYY, use it directly
+      fromDate: editingData.fromDate, 
+      toDate: editingData.toDate,
+      noOfDays: editingData.noOfDays,
+      reason: editingData.reason || "",
+    });
+  }
+}, [loggedUser.employeeID, editingData]);
+
+// This block ensures Sick and Casual history updates when you change the date
+useEffect(() => {
+  if (!loggedUser?.employeeID || !formData.applicationDate) return;
+
+  // 1. Calculate the Session window based on the SELECTED Application Date
+  const appDate = new Date(formData.applicationDate);
+  const fyYear = appDate.getMonth() < 3 ? appDate.getFullYear() - 1 : appDate.getFullYear();
+  const fyStart = new Date(fyYear, 3, 1);  // April 1st
+  const fyEnd = new Date(fyYear + 1, 2, 31); // March 31st
+
+  // 2. Fetch history and filter strictly for THIS session
+  axios
+    .get(`http://localhost:5002/api/leave-application/employee/${loggedUser.employeeID}`)
     .then((res) => {
-      const data = res.data;
-      if (!data.length) return;
+      const allLeaves = res.data || [];
+      const otherLeaves = editingData ? allLeaves.filter(l => l._id !== editingData._id) : allLeaves;
 
-      setLeaveTypes(data);
+      const sickUsed = otherLeaves
+        .filter(l => 
+          l.status !== "Rejected" && 
+          l.leaveType.toUpperCase().includes("SICK") && 
+          new Date(l.fromDate) >= fyStart && new Date(l.fromDate) <= fyEnd
+        )
+        .reduce((sum, l) => sum + l.noOfDays, 0);
 
-      setFormData({
-        employeeId: data[0].employeeID,
-        employeeName: data[0].employee,
-        applicationDate: formatDate(new Date()),
-        leaveType: data[0].leaveType,
-        leaveInHand: data[0].leaveInHand,
-        fromDate: "",
-        toDate: "",
-        noOfDays: 0,
-        reason: "",
-      });
+      const casualUsed = otherLeaves
+        .filter(l => 
+          l.status !== "Rejected" && 
+          l.leaveType.toUpperCase().includes("CASUAL") && 
+          new Date(l.fromDate) >= fyStart && new Date(l.fromDate) <= fyEnd
+        )
+        .reduce((sum, l) => sum + l.noOfDays, 0);
 
-      setLeaveInHand(data[0].leaveInHand);
+      // Now usedLeaves.sick will become 0 if you pick a new year!
+      setUsedLeaves({ sick: sickUsed, casual: casualUsed });
     })
-    .catch(() => toast.error("Error fetching leave allocations"));
-}, []);
+    .catch((err) => console.error("History Fetch Error:", err));
+}, [loggedUser.employeeID, formData.applicationDate, editingData]);
 
 useEffect(() => {
-  if (!formData.fromDate || !formData.toDate) return;
+  if (!formData.leaveType || leaveTypes.length === 0 || !empStatus) return;
 
-  const from = new Date(formData.fromDate);
-  const to = new Date(formData.toDate);
+  const status = empStatus.toUpperCase();
+  const name = formData.leaveType.toUpperCase();
+  const master = leaveTypes.find(lt => lt.leaveName === formData.leaveType);
+  
+  // Note the variable name here:
+  const totalYearlyAllowed = master ? master.totalDays : 0; 
 
-  if (to < from) {
-    setFormData((prev) => ({ ...prev, noOfDays: 0 }));
-    return;
+  let calculatedInHand = 0;
+  const selectedAppDate = new Date(formData.applicationDate);
+  const fyData = getDynamicFY(formData.applicationDate);
+
+  // --- SICK LEAVE LOGIC ---
+  if (name.includes("SICK") || name === "SL") {
+    if (["T", "TEP", "P", "PD", "TR"].includes(status)) {
+      // FIX: Use totalYearlyAllowed
+      calculatedInHand = Math.max(0, totalYearlyAllowed - usedLeaves.sick); 
+    }
+  } 
+  
+  // --- CASUAL LEAVE LOGIC ---
+  else if (name.includes("CASUAL") || name === "CL") {
+    if (["P", "PD"].includes(status)) {
+      const changeDate = statusChangeDate ? new Date(statusChangeDate) : selectedAppDate;
+      const calculationStartDate = changeDate > fyData.startDate ? changeDate : fyData.startDate;
+
+      let monthsEarned = (selectedAppDate.getFullYear() - calculationStartDate.getFullYear()) * 12 + 
+                         (selectedAppDate.getMonth() - calculationStartDate.getMonth()) + 1;
+
+      const allowedSoFar = Math.min(totalYearlyAllowed, monthsEarned);
+      calculatedInHand = Math.max(0, allowedSoFar - usedLeaves.casual);
+    }
   }
 
-  const diff = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
-
-  setFormData((prev) => ({ ...prev, noOfDays: diff }));
-}, [formData.fromDate, formData.toDate]);
+  setFormData(prev => ({ ...prev, leaveInHand: calculatedInHand }));
+}, [formData.leaveType, formData.applicationDate, usedLeaves, leaveTypes, empStatus, statusChangeDate]);
 
 
-useEffect(() => {
-  if (!loggedUser || !loggedUser.employeeID) return;
+  // Auto-Calculate Days
+  useEffect(() => {
+    if (formData.fromDate && formData.toDate) {
+     const from = parseDDMMYYYY(formData.fromDate);
+      const to = parseDDMMYYYY(formData.toDate);
 
-  axios
-    .get(`http://localhost:5002/api/leave-application/leaveAllocations/employee/${loggedUser.employeeID}`)
-    .then((res) => {
-      const data = res.data;
-      if (!data.length) return;
-
-      setLeaveTypes(data);
-
-      if (editingData) {
-        setFormData({
-          employeeId: editingData.employeeId,
-          employeeName: editingData.employeeName,
-          applicationDate: formatDate(editingData.applicationDate),
-          leaveType: editingData.leaveType,
-          leaveInHand: editingData.leaveInHand,
-          fromDate: formatDate(editingData.fromDate),
-          toDate: formatDate(editingData.toDate),
-          noOfDays: editingData.noOfDays,
-          reason: editingData.reason,
-        });
-        setLeaveInHand(editingData.leaveInHand);
-        setEditingId(editingData._id);
-        setIsEditMode(true);
+      if (to >= from) {
+        const diff = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+        setFormData((prev) => ({ ...prev, noOfDays: diff }));
       } else {
-        setFormData({
-          employeeId: data[0].employeeID,
-          employeeName: data[0].employee,
-          applicationDate: formatDate(new Date()),
-          leaveType: data[0].leaveType,
-          leaveInHand: data[0].leaveInHand,
-          fromDate: "",
-          toDate: "",
-          noOfDays: 0,
-          reason: "",
-        });
-        setLeaveInHand(data[0].leaveInHand);
+        setFormData((prev) => ({ ...prev, noOfDays: 0 }));
       }
-    })
-    .catch(() => toast.error("Error fetching leave allocations"));
-}, [editingData]);
-
-
-  const handleLeaveTypeChange = (value) => {
-    const selected = leaveTypes.find((lt) => lt.leaveType === value);
-
-    setLeaveInHand(selected?.leaveInHand || 0);
-
-    setFormData((prev) => ({
-      ...prev,
-      leaveType: value,
-      leaveInHand: selected?.leaveInHand || 0,
-    }));
-  };
-
-  const calculateDays = () => {
-    if (!formData.fromDate || !formData.toDate) return;
-
-    const from = new Date(formData.fromDate);
-    const to = new Date(formData.toDate);
-
-    if (to < from) {
-      toast.error("To Date cannot be earlier than From Date");
-      return;
     }
+  }, [formData.fromDate, formData.toDate]);
 
-    const diff = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+const handleLeaveTypeChange = (value) => {
+ const status = empStatus?.toUpperCase();
+const name = value?.toUpperCase();
+ const today = new Date();
+ const currentMonth = today.getMonth(); 
 
-    setFormData((prev) => ({ ...prev, noOfDays: diff }));
+  // Get total days from Master for the selected leave
+  const masterType = leaveTypes.find(lt => lt.leaveName === value);
+  const totalAllowed = masterType ? masterType.totalDays : 0;
+
+ let monthsPassed = (currentMonth >= 3) ? (currentMonth - 3 + 1) : (currentMonth + 9 + 1);
+ let calculatedInHand = 0;
+
+ if (name.includes("SICK") || name === "SL") {
+ if (["P", "PD", "TR", "TEP"].includes(status)) {
+ calculatedInHand = Math.max(0, totalAllowed - usedLeaves.sick);
+}
+ } else if (name.includes("CASUAL") || name === "CL") {
+ if (["P", "PD"].includes(status)) {
+ calculatedInHand = Math.max(0, Math.min(totalAllowed, monthsPassed) - usedLeaves.casual);
+ }
+}
+
+ setFormData((prev) => ({
+ ...prev,
+ leaveType: value,
+ leaveInHand: calculatedInHand,
+ }));
+};
+
+
+const getDynamicFY = (inputDate) => {
+  const date = inputDate ? new Date(inputDate) : new Date();
+  const month = date.getMonth(); // 0 = Jan, 3 = April
+  const year = date.getFullYear();
+
+  // If Jan, Feb, or March, FY started the previous year
+  const fyStartYear = month < 3 ? year - 1 : year;
+  const fyEndYear = fyStartYear + 1;
+
+  return {
+    min: `${fyStartYear}-04-01`, 
+    max: `${fyEndYear}-03-31`,
+    startDate: new Date(fyStartYear, 3, 1), // April 1st for calculations
+    sessionName: `${fyStartYear}-${fyEndYear}`
   };
+};
 
-const handleSubmit = async () => {
-  try {
-    if (isEditMode) {
-      await axios.put(
-        `http://localhost:5002/api/leave-application/${editingId}`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success("Leave application updated!");
-    } else {
-      await axios.post(
-        "http://localhost:5002/api/leave-application",
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success("Leave application submitted!");
-    }
+// Locate this line in your component and update it:
+const fy = getDynamicFY(formData.applicationDate);
 
-    setFormData({
+  const handleSubmit = async () => {
+  if (formData.noOfDays <= 0) return toast.error("Invalid leave duration");
+  
+  // NEW: Check against the calculated balance
+  if (formData.noOfDays > formData.leaveInHand) {
+    return toast.error(`Insufficient balance. You only have ${formData.leaveInHand} days available.`);
+  }
+    
+    // Final security check for logic
+    if (formData.leaveInHand === 0) return toast.error("You are not eligible for this leave type");
+
+    const dataToSubmit = {
       employeeId: formData.employeeId,
       employeeName: formData.employeeName,
       applicationDate: formData.applicationDate,
-      leaveType: leaveTypes[0]?.leaveType || "",
-      leaveInHand: leaveTypes[0]?.leaveInHand || 0,
-      fromDate: "",
-      toDate: "",
-      noOfDays: 0,
-      reason: "",
-    });
-    setLeaveInHand(leaveTypes[0]?.leaveInHand || 0);
-    setIsEditMode(false);
-    setEditingId(null);
-  } catch (error) {
-    toast.error(error.response?.data?.message || "Error submitting leave");
-  }
-};
+      leaveType: formData.leaveType,
+      leaveInHand: formData.leaveInHand,
+      fromDate: formData.fromDate,
+      toDate: formData.toDate,
+      noOfDays: formData.noOfDays,
+      reason: formData.reason ? formData.reason.trim() : ""
+    };
+
+    try {
+      const url = isEditMode 
+        ? `http://localhost:5002/api/leave-application/${editingId}`
+        : "http://localhost:5002/api/leave-application";
+      
+      await axios[isEditMode ? "put" : "post"](url, dataToSubmit, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      toast.success("Submitted successfully!");
+      navigate("/EmployeeHome");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Submission failed");
+    }
+  };
+
+  const inputClass = "w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150";
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <EmployeeCornerSidebar />
+        <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
+        <EmployeeCornerSidebar />
+        
+        {/* Add mt-16 or similar if your sidebar is fixed on mobile to avoid overlap */}
+        <div className="flex-1 p-3 md:p-6"> 
+          <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg w-full mx-auto">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">
+            {isEditMode ? "Edit Leave Application" : "New Leave Application"}
+          </h2>
 
-      <div className="flex-1 border rounded-lg shadow-sm p-4 bg-white m-4">
-        <h1 className="text-xl font-bold mb-4">Leave Application</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Employee ID */}
-          <div>
-            <label className="font-semibold">Employee ID</label>
-            <input
-              type="text"
-              className="w-full pl-2 pr-1 border border-gray-300 font-medium rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all duration-150 cursor-not-allowed bg-gray-100"
-              value={formData.employeeId}
-              readOnly
-            />
-          </div>
+          {/* Status Alert for No-Leave categories */}
+          {["TP", "PB", "PDB"].includes(empStatus?.toUpperCase()) && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm italic">
+              Note: Status "{empStatus}" does not have any allocated leaves.
+            </div>
+          )}
 
-          {/* Employee Name */}
-          <div>
-            <label className="font-semibold">Employee Name</label>
-            <input
-              type="text"
-              className="w-full pl-2 pr-1 border border-gray-300 font-medium rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all duration-150 cursor-not-allowed bg-gray-100"
-              value={formData.employeeName}
-              readOnly
-            />
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-sm font-bold text-gray-700">Employee ID</label>
+              <input type="text" className={`${inputClass} bg-gray-50`} value={formData.employeeId} readOnly />
+            </div>
 
-          {/* Application Date */}
-          <div>
-            <label className="font-semibold">Application Date</label>
-            <input
-              type="date"
-              className="w-full pl-2 pr-1 border border-gray-300 font-medium rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all duration-150 cursor-not-allowed bg-gray-100"
-              value={formData.applicationDate}
-              readOnly
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-700">Employee Name</label>
+              <input type="text" className={`${inputClass} bg-gray-100`} value={formData.employeeName || "Loading..."} readOnly />
+            </div>
 
-          {/* Leave Type */}
+           <div>
+  <label className="block text-sm font-bold text-gray-700">Application Date</label>
+  <input 
+    type="date" 
+    className={inputClass} 
+    value={formData.applicationDate} 
+    onChange={(e) => {
+      // When this changes, the useEffect above will automatically recalculate CL/SL
+      setFormData(prev => ({ 
+        ...prev, 
+        applicationDate: e.target.value,
+        fromDate: "", // Reset dates to prevent session mismatch
+        toDate: "" 
+      }));
+    }}
+  />
+  <p className="text-[10px] text-blue-600 font-bold mt-1">
+    Session: {getDynamicFY(formData.applicationDate).sessionName}
+  </p>
+</div>
           <div>
-            <label className="font-semibold">Leave Type</label>
-            <select
-              className={inputClass}
-              value={formData.leaveType}
+            <label className="block text-sm font-bold text-gray-700">Leave Type</label>
+            <select 
+              className={inputClass} 
+              value={formData.leaveType} 
               onChange={(e) => handleLeaveTypeChange(e.target.value)}
             >
-              {leaveTypes.map((lt) => (
-                <option key={lt._id} value={lt.leaveType}>
-                  {lt.leaveType}
-                </option>
-              ))}
-            </select>
-          </div>
+              <option value="">-- Select Leave --</option>
+              {leaveTypes.map((lt) => {
+                const status = empStatus?.toUpperCase();
+                const name = lt.leaveName?.toUpperCase();
+                const code = lt.leaveCode?.toUpperCase();
+                
+                // 1. ELIGIBILITY CHECK
+                // P/PD can take anything. TR/TEP can ONLY take Sick Leave.
+                const isSick = name.includes("SICK") || code === "SL";
+                const isCasual = name.includes("CASUAL") || code === "CL";
 
-          {/* Leave In Hand */}
+                let isEligible = (status === "P" || status === "PD") || 
+                                ((status === "TR" || status === "TEP") && isSick);
+
+                // 2. DYNAMIC BALANCE CHECK (Using lt.totalDays from your Master Data)
+                let hasBalance = true;
+                let reason = "";
+
+                if (isSick) {
+                  // If used leaves (e.g. 6) >= Master totalDays (e.g. 6)
+                  if (usedLeaves.sick >= lt.totalDays) {
+                    hasBalance = false;
+                    reason = "(Limit Reached)";
+                  }
+                } else if (isCasual) {
+                  const today = new Date();
+                  const m = today.getMonth();
+                  // Calculate monthly accrual (April is start of FY)
+                  let monthsAccrued = (m >= 3) ? (m - 3 + 1) : (m + 9 + 1);
+                  
+                  // Cannot exceed 12 total OR the months passed so far
+                  const allowedSoFar = Math.min(lt.totalDays, monthsAccrued);
+                  
+                  if (usedLeaves.casual >= allowedSoFar) {
+                    hasBalance = false;
+                    reason = "(Limit Reached)";
+                  }
+                }
+
+            return (
+              <option 
+                key={lt._id} 
+                value={lt.leaveName} 
+                disabled={!isEligible || !hasBalance}
+                className={!hasBalance || !isEligible ? "text-gray-400 bg-gray-100" : "text-black"}
+              >
+                {lt.leaveName} {reason} {!isEligible ? "(Ineligible)" : ""}
+              </option>
+            );
+          })}
+        </select>
+      </div>
+
+
           <div>
-            <label className="font-semibold">Leave In Hand</label>
+            <label className="block text-sm font-bold text-gray-700">From Date</label>
+            <input
+              type="date"
+              className="hidden"
+              id="fromDatePicker"
+              min={fy.min} // e.g., "2025-04-01"
+              max={fy.max} // e.g., "2026-03-31"
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  fromDate: formatDDMMYYYY(e.target.value),
+                })
+              }
+            />
             <input
               type="text"
-              className={inputClass}
-              value={leaveInHand}
               readOnly
-            />
-          </div>
-
-          {/* From Date */}
-          <div>
-            <label className="font-semibold">From Date</label>
-            <input
-              type="date"
               className={inputClass}
               value={formData.fromDate}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, fromDate: e.target.value }))
-              }
-             
+              onClick={() => document.getElementById("fromDatePicker").showPicker()}
             />
           </div>
 
-          {/* To Date */}
           <div>
-            <label className="font-semibold">To Date</label>
+            <label className="block text-sm font-bold text-gray-700">To Date</label>
             <input
               type="date"
+              className="hidden"
+              id="toDatePicker"
+              min={fy.min}
+              max={fy.max}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  toDate: formatDDMMYYYY(e.target.value),
+                })
+              }
+            />
+            <input
+              type="text"
+              readOnly
               className={inputClass}
               value={formData.toDate}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, toDate: e.target.value }))
-              }
-             
+              onClick={() => document.getElementById("toDatePicker").showPicker()}
             />
           </div>
-
-          {/* No of Days */}
-          <div>
-            <label className="font-semibold">No. of Days</label>
-            <input
-              type="number"
-              className="w-full pl-2 pr-1 border border-gray-300 font-medium rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all cursor-not-allowed bg-gray-100 duration-150"
-              value={formData.noOfDays}
-              readOnly
-            />
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <p className="text-blue-800 font-bold">Total Days: {formData.noOfDays}</p>
+              <p className="text-sm text-blue-600">Allocation: {formData.leaveInHand} Days</p>
+            </div>
           </div>
 
-          {/* Reason */}
-          <div>
-            <label className="font-semibold">Reason</label>
-            <textarea
-              rows={3}
-              className={inputClass}
-              value={formData.reason}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, reason: e.target.value }))
-              }
-            ></textarea>
+          <div className="mt-6">
+            <label className="block text-sm font-bold text-gray-700">Reason (Optional)</label>
+            <textarea className={`${inputClass} h-12 p-2`} value={formData.reason} onChange={(e) => setFormData({...formData, reason: e.target.value})} />
           </div>
-        </div>
 
-        <div className="flex justify-end mt-4">
-          <button
+          <div className="mt-6 flex justify-end gap-3">
+            {/* <button className="bg-gray-400 text-white px-6 py-2 rounded-lg">Cancel</button> */}
+            <button 
               onClick={handleSubmit}
-              className={`px-4 py-1 rounded ${
-                isEditMode ? "bg-yellow-500 hover:bg-yellow-600" : "bg-blue-600 hover:bg-blue-700"
-              } text-white`}
+              disabled={["TP", "PB", "PDB"].includes(empStatus?.toUpperCase())}
+              className="disabled:bg-gray-300 bg-blue-600 hover:bg-blue-700 text-white px-8 py-2 rounded-lg font-bold transition-colors"
             >
-              {isEditMode ? "Update" : "Submit"}
+              {isEditMode ? "Update Application" : "Submit Application"}
             </button>
-
+          </div>
         </div>
       </div>
     </div>

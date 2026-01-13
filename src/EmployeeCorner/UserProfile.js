@@ -72,10 +72,10 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
       <EmployeeCornerSidebar />
 
       {/* Profile Section */}
-      <div className="flex-1 p-4 w-full">
+      <div className="flex-1 p-3 w-full">
         <div className="w-full mx-auto bg-white shadow-xl rounded-2xl overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-700 to-blue-500 text-white px-8 py-2 flex justify-between items-center flex-col sm:flex-row gap-4">
+          <div className="bg-gradient-to-r from-blue-700 to-blue-500 text-white px-8 py-2 flex justify-between items-center flex-col sm:flex-row gap-3">
             <div>
               <h2 className="text-2xl font-bold">
                 {employee?.firstName} {employee?.middleName} {employee?.lastName}
@@ -103,13 +103,13 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
           </div>
 
       {/* Content */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 p-3">
 
           {/* Left Column: 3/5 */}
           <div className="col-span-1 md:col-span-3 space-y-4">
 
             {/* Personal Details */}
-            <div className="bg-white border rounded-xl p-4 shadow-sm">
+            <div className="bg-white border rounded-xl p-2 shadow-sm">
               <h3 className="font-semibold text-lg mb-3 border-b pb-1">🧍 Personal Details</h3>
               <TwoColRow label1="Employee Code" value1={employee?.employeeID} label2="Father's Name" value2={employee?.fatherName} />
               <TwoColRow label1="Spouse Name" value1={employee?.spouseName} label2="Caste" value2={employee?.caste} />
@@ -118,16 +118,16 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
             </div>
 
             {/* Service Details */}
-            <div className="bg-blue-50 border rounded-xl p-4 shadow-sm">
+            <div className="bg-blue-50 border rounded-xl p-3 shadow-sm">
               <h3 className="font-semibold text-lg mb-3 border-b pb-1">🏢 Service Details</h3>
               <TwoColRow label1="Department" value1={employee?.departmentName} label2="Designation" value2={employee?.designationName} />
               <TwoColRow label1="Date of Joining" value1={formatDate(employee?.doj)} label2="Date of Retirement" value2={formatDate(employee?.dor)} />
               <TwoColRow label1="Next Increment Date" value1={formatDate(employee?.nextIncrementDate)} label2="Eligible for Promotion" value2={employee?.eligiblePromotion} />
-              <TwoColRow label1="Employee Type" value1={employee?.employmentType} />
+              <TwoColRow label1="Employee Type" value1={employee?.employmentStatus} />
             </div>
 
             {/* Permanent Address */}
-            <div className="bg-white border rounded-xl p-4 shadow-sm">
+            <div className="bg-white border rounded-xl p-3 shadow-sm">
               <h3 className="font-semibold text-lg mb-3 border-b pb-1">📍 Permanent Address</h3>
               <TwoColRow label1="Street No. and Name" value1={employee?.permanentAddress?.street} label2="Village/Town" value2={employee?.permanentAddress?.village} />
               <TwoColRow label1="City" value1={employee?.permanentAddress?.city} label2="Post Office" value2={employee?.permanentAddress?.postOffice} />
@@ -137,7 +137,7 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
             </div>
 
             {/* Present Address */}
-            <div className="bg-white border rounded-xl p-4 shadow-sm">
+            <div className="bg-white border rounded-xl p-3 shadow-sm">
               <h3 className="font-semibold text-lg mb-3 border-b pb-1">🏠 Present Address</h3>
               <TwoColRow label1="Street No. and Name" value1={employee?.presentAddress?.street} label2="Village/Town" value2={employee?.presentAddress?.village} />
               <TwoColRow label1="City" value1={employee?.presentAddress?.city} label2="Post Office" value2={employee?.presentAddress?.postOffice} />
@@ -149,29 +149,81 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
 
           {/* Right Column: 2/5 */}
           <div className="col-span-1 md:col-span-2 space-y-4">
+              {/* Earnings Details */}
+              <div className="bg-blue-50 border rounded-xl p-2 shadow-sm">
+                <h4 className="font-semibold border-b pb-1 text-blue-700">📈 Earnings</h4>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left border-b">
+                      <th className="pb-1">Head Name</th>
+                      <th className="pb-1">Type</th>
+                      <th className="pb-1 text-right">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {employee?.earnings?.length > 0 ? (
+                      employee.earnings.map((item, idx) => (
+                        <tr key={idx} className="border-b last:border-0">
+                          <td className=" font-medium text-xs">{item.headName}</td>
+                          <td className=" text-xs">{item.headType}</td>
+                          <td className=" text-right font-semibold">₹{item.value}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan="3" className=" text-gray-400">No earnings found</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
+              {/* Deduction Details */}
+              <div className="bg-red-50 border rounded-xl p-2 shadow-sm mt-4">
+                <h5 className="font-semibold border-b pb-1 text-red-700">📉 Deductions</h5>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left border-b">
+                      <th className="pb-1">Head Name</th>
+                      <th className="pb-1">Type</th>
+                      <th className="pb-1 text-right">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {employee?.deductions?.length > 0 ? (
+                      employee.deductions.map((item, idx) => (
+                        <tr key={idx} className="border-b last:border-0">
+                          <td className=" font-medium text-xs">{item.headName}</td>
+                          <td className=" text-xs">{item.headType}</td>
+                          <td className="text-right font-semibold text-red-600">₹{item.value}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan="3" className=" text-gray-400">No deductions found</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             {/* Pay Details */}
-            <div className="bg-green-50 border rounded-xl p-4 shadow-sm">
+            <div className="bg-green-50 border rounded-xl p-3 shadow-sm">
               <h3 className="font-semibold text-lg mb-3 border-b pb-1">💰 Pay Details</h3>
-              <TwoColRow label1="Basic Pay" value1={`₹${employee?.payDetails?.basicPay || "0"}`} />
-              <TwoColRow label1="PF Type" value1={employee?.payDetails?.pfType || "--"} />
+              {/* <TwoColRow label1="Basic Pay" value1={`₹${employee?.payDetails?.basicPay || "0"}`} />
+              <TwoColRow label1="PF Type" value1={employee?.payDetails?.pfType || "--"} /> */}
               <TwoColRow label1="Passport No." value1={employee?.payDetails?.passportNo || "--"} />
-              <TwoColRow label1="PF No." value1={employee?.payDetails?.pfNo || "--"} />
+              {/* <TwoColRow label1="PF No." value1={employee?.payDetails?.pfNo || "--"} /> */}
               <TwoColRow label1="UAN No." value1={employee?.payDetails?.uanNo || "--"} />
               <TwoColRow label1="PAN No." value1={employee?.payDetails?.panNo || "--"} />
-              <TwoColRow label1="Pay Level / Grade" value1={employee?.payDetails?.payLevel || "--"} />
+              {/* <TwoColRow label1="Pay Level / Grade" value1={employee?.payDetails?.payLevel || "--"} /> */}
               <TwoColRow label1="Aadhaar No." value1={employee?.payDetails?.aadhaarNo || "--"} />
             </div>
 
           {/* Authority Details */}
-         <div className="bg-yellow-50 border rounded-xl p-4 shadow-sm">
+         <div className="bg-yellow-50 border rounded-xl p-3 shadow-sm">
            <h3 className="font-semibold text-lg mb-3 border-b pb-1">🧾 Authority Details</h3>
               <TwoColRow  label1="Reporting Authority" value1={employee?.reportingAuthority || "--"} />
               <TwoColRow label1="Leave Sanction Authority" value1={employee?.leaveAuthority || "--"} />
             </div>
             
            {/* Bank Details */}
-                <div className="bg-orange-50 border rounded-xl p-4 shadow-sm">
+                <div className="bg-orange-50 border rounded-xl p-3 shadow-sm">
                   <h3 className="font-semibold text-lg mb-3 border-b pb-1">🏦 Bank Details</h3>
 
                   <TwoColRow

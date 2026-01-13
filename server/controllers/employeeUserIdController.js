@@ -1,7 +1,15 @@
 const EmployeeUserId = require("../models/EmployeeUserId");
 const Employee = require("../models/Employee");
+const LeaveType = require("../models/LeaveType");
 
-
+exports.getAllLeaveTypes = async (req, res) => {
+  try {
+    const types = await LeaveType.find().sort({ leaveName: 1 });
+    res.json(types);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 // Get all EmployeeUserIds
 exports.getAllEmployeeUserIds = async (req, res) => {
   try {
@@ -73,6 +81,7 @@ exports.employeeLogin = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 exports.getEmployeeDetails = async (req, res) => {
   try {

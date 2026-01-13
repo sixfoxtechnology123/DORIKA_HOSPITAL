@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { FaCalendarAlt,FaClock } from "react-icons/fa"; 
 import {
   LayoutDashboard,
   Users,
@@ -51,24 +52,40 @@ const Sidebar = () => {
 
     },
     {
+          name: "Leave Management",
+          icon: FaCalendarAlt,
+          permission:"",
+          submenus: [
+            //{ name: "Dashboard", path: "/LeaveDashboard" },
+            { name: "Manage Leave Type", path: "/LeaveTypeList" },
+            // { name: "Leave Rule", path: "/LeaveRuleList" },
+            // { name: "Leave Allocation", path: "/LeaveAllocationList" },
+          ],
+        },
+        {
+          name:"Shift Management",
+          icon:Clock,
+          permission:"",
+          submenus:[
+            {
+              name:"Manage Shift Time", path:"/ShiftList"
+            },
+            {
+              name:"Duty Roaster", path:"/ShiftManagement"
+            },
+          ]
+        },
+    {
       name: "Master",
       icon: Building2,
       permission: "Master_View",
       submenus: [
         { name: "Departments", path: "/DepartmentList" },
         { name: "Designations", path: "/DesignationList" },
-        {
-          name: "Leave Management",
-          submenus: [
-            { name: "Dashboard", path: "/LeaveDashboard" },
-            { name: "Manage Leave Type", path: "/LeaveTypeList" },
-            // { name: "Leave Rule", path: "/LeaveRuleList" },
-            // { name: "Leave Allocation", path: "/LeaveAllocationList" },
-          ],
-        },
+        
         { name: "Holidays", path: "/HolidayList" },
-         { name: "Shifts Manage", path: "/ShiftList" },
-        { name: "Duty Roaster", path: "/ShiftManagement" },
+        //  { name: "Shifts Manage", path: "/ShiftList" },
+        // { name: "Duty Roaster", path: "/ShiftManagement" },
         { name: "Policies", path: "/PolicyList" },
         { name: "Locations", path: "/LocationList" },
         { name: "Payroll", path: "/PayrollComponentList" },

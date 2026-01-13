@@ -57,13 +57,14 @@ const [designationID, setDesignationID] = useState("");
   const [caste, setCaste] = useState("");
   const [subCaste, setSubCaste] = useState("");
   const [religion, setReligion] = useState("");
+  const [gender, setGender] = useState("");
   const [maritalStatus, setMaritalStatus] = useState("");
   const [designationName, setDesignationName] = useState(null);
 
   const [dob, setDob] = useState("");
   const [dor, setDor] = useState("");
   const [doj, setDoj] = useState("");
-  const [statusChangeDate, setStatusChangeDate] = useState("");
+ const [statusChangeDate, setStatusChangeDate] = useState(new Date().toISOString().split("T")[0]);
   const [confirmationDate, setConfirmationDate] = useState("");
   const [nextIncrementDate, setNextIncrementDate] = useState("");
   const [eligiblePromotion, setEligiblePromotion] = useState("");
@@ -240,20 +241,13 @@ useEffect(() => {
 
 
 useEffect(() => {
+  // Only proceed if employee data is available
   if (employee) {
+    // 1. Basic Info
     setEmployeeID(employee.employeeID || "");
-setInitialEmploymentStatus(employee.employmentStatus);
-
-  }
-  //  else {
-  //   // only generate new ID when adding new employee
-  //   fetchNextEmployeeID();
-  // }
-
-  if (employee) {
+    setInitialEmploymentStatus(employee.employmentStatus);
     setEmploymentStatus(employee.employmentStatus);
-    setGovernmentRegistrationNumber(employee.governmentRegistrationNumber);
-
+    setGovernmentRegistrationNumber(employee.governmentRegistrationNumber || "");
     setSalutation(employee.salutation || "");
     setFirstName(employee.firstName || "");
     setMiddleName(employee.middleName || "");
@@ -264,42 +258,74 @@ setInitialEmploymentStatus(employee.employmentStatus);
     setSubCaste(employee.subCaste || "");
     setReligion(employee.religion || "");
     setMaritalStatus(employee.maritalStatus || "");
+    setGender(employee.gender || "");
 
-setDepartmentName(
-  employee.departmentName
-    ? { value: employee.departmentID, label: employee.departmentName }
-    : null
-);
+    // 2. Department & Designation Prefill (Matching by Name)
+    if (departments.length > 0) {
+      const foundDept = departments.find(d => d.label === employee.departmentName);
+      if (foundDept) {
+        setDepartmentID(foundDept.value);
+        setSelectedDepartmentName(foundDept.label);
+      }
+    }
 
-setDesignationName(
-  employee.designationName
-    ? { value: employee.designationID, label: employee.designationName }
-    : null
-);
+    if (designations.length > 0) {
+      const foundDesig = designations.find(d => d.label === employee.designationName);
+      if (foundDesig) {
+        setDesignationID(foundDesig.value);
+      }
+    }
 
+    // 3. Authority Prefill (Matching Full Name string to ObjectID)
+    if (employees.length > 0) {
+      const findIdByName = (fullNameStr) => {
+        if (!fullNameStr) return "";
+        const found = employees.find(e => {
+          const full = `${e.firstName || ""} ${e.middleName || ""} ${e.lastName || ""}`
+            .replace(/\s+/g, ' ')
+            .trim();
+          return full === fullNameStr;
+        });
+        return found ? found._id : "";
+      };
 
+      setReportingAuthority(findIdByName(employee.reportingAuthority));
+      setLeaveAuthority(findIdByName(employee.leaveAuthority));
+    }
 
+// 4. Dates & Employment
     setDob(employee.dob || "");
     setDor(employee.dor || "");
     setDoj(employee.doj || "");
+    
+    // ALWAYS show current date, even when editing
+    setStatusChangeDate(new Date().toISOString().split("T")[0]);
+
     setConfirmationDate(employee.confirmationDate || "");
     setNextIncrementDate(employee.nextIncrementDate || "");
     setEligiblePromotion(employee.eligiblePromotion || "");
     setEmploymentType(employee.employmentType || "");
     setProfileImage(employee.profileImage || null);
-    setReportingAuthority(employee.reportingAuthority || "");
-    setLeaveAuthority(employee.leaveAuthority || "");
+    setConfirmationDate(employee.confirmationDate || "");
+    setNextIncrementDate(employee.nextIncrementDate || "");
+    setEligiblePromotion(employee.eligiblePromotion || "");
+    setEmploymentType(employee.employmentType || "");
+    setProfileImage(employee.profileImage || null);
+
+    // 5. Education & Nominees
     setEducationDetails(employee.educationDetails || []);
     setNomineeDetails(
       (employee.nominees || []).map((n) => ({
         name: n.name || "",
-        relation: n.relationship || "", // map backend field
+        relation: n.relationship || "",
         share: n.share || "",
         age: n.age || "",
         address: n.address || "",
-         dob: n.dob || "", 
+        dob: n.dob || "",
       }))
     );
+
+    // 6. Medical Details
     setBloodGroup(employee.medical?.bloodGroup || "");
     setEyeSightLeft(employee.medical?.eyeSightLeft || "");
     setEyeSightRight(employee.medical?.eyeSightRight || "");
@@ -310,8 +336,12 @@ setDesignationName(
     setIdentificationMark1(employee.medical?.identification1 || "");
     setIdentificationMark2(employee.medical?.identification2 || "");
     setPhysicallyChallenged(employee.medical?.physicallyChallenged || "");
+
+    // 7. Address
     setPermanentAddress(employee.permanentAddress || {});
     setPresentAddress(employee.presentAddress || {});
+
+    // 8. Pay Details
     setBasicPay(employee.payDetails?.basicPay || "");
     setPfType(employee.payDetails?.pfType || "");
     setPassportNo(employee.payDetails?.passportNo || "");
@@ -326,37 +356,24 @@ setDesignationName(
     setAadhaarNo(employee.payDetails?.aadhaarNo || "");
     setEarningDetails(employee.earnings || []);
     setDeductionDetails(employee.deductions || []);
+
+    // 9. Document Checkboxes
+    const hardCopyDocsObj = {};
+    const docKeys = [
+      "aadhaar", "pan", "bank", "photograph", "addressProof", "educationCertificates",
+      "experienceLetters", "relievingLetter", "salarySlips", "medicalFitness",
+      "policeVerification", "vaccinationCertificate", "bloodGroupProof", "pfForm", "esiForm", "nda"
+    ];
+    docKeys.forEach(key => {
+      hardCopyDocsObj[key] = employee.hardCopyDocuments?.includes(key) || false;
+    });
+
+    setEmployeeData(prev => ({
+      ...prev,
+      hardCopyDocuments: hardCopyDocsObj,
+    }));
   }
-// Convert hardCopyDocuments array → object for checkboxes
-const hardCopyDocsObj = {};
-[
-  "aadhaar",
-  "pan",
-  "bank",
-  "photograph",
-  "addressProof",
-  "educationCertificates",
-  "experienceLetters",
-  "relievingLetter",
-  "salarySlips",
-  "medicalFitness",
-  "policeVerification",
-  "vaccinationCertificate",
-  "bloodGroupProof",
-  "pfForm",
-  "esiForm",
-  "nda",
-].forEach(key => {
-  hardCopyDocsObj[key] = employee?.hardCopyDocuments?.includes(key) || false;
-});
-
-setEmployeeData(prev => ({
-  ...prev,
-  hardCopyDocuments: hardCopyDocsObj,
-}));
-
-
-}, [employee]);
+}, [employee, departments, designations, employees]);
 
 
 
@@ -492,6 +509,7 @@ const payload = {
   caste,
   subCaste,
   religion,
+  gender,
   maritalStatus,
 
 
@@ -503,14 +521,14 @@ designationID: designationID,
   dob,
   dor,
   doj,
-    ...(statusChangeDate ? { statusChangeDate } : { statusChangeDate: doj }),
+  statusChangeDate: statusChangeDate,
   confirmationDate,
   nextIncrementDate,
   eligiblePromotion,
   employmentType,
   profileImage,
-reportingAuthority: getEmployeeName(reportingAuthority),
-leaveAuthority: getEmployeeName(leaveAuthority),
+  reportingAuthority: getEmployeeName(reportingAuthority),
+  leaveAuthority: getEmployeeName(leaveAuthority),
   educationDetails,
   nominees: nomineeDetails.map(n => ({
   name: n.name,
@@ -719,6 +737,12 @@ const handleSubmit = async (e) => {
                     "ST",
                     "Other",
                   ]}
+                />
+                <Select
+                  label="Gender *"
+                  value={gender}
+                  onChange={setGender}
+                  options={["Male", "Female", "Transgender", "Other"]}
                 />
                 <Select
                   label="Religion"
@@ -1695,13 +1719,13 @@ const handleSubmit = async (e) => {
                     ]}
                 />
 
-                <Select
-                  label="Branch (*)"
-                  value={branch}
-                  onChange={setBranch}
-                  options={["MAIN BRANCH", "SUB BRANCH"]}
-                />
-
+             <Input 
+                label="Branch (*)" 
+                placeholder="Enter Branch Name" 
+                value={branch} 
+                // Change '(e) => ... e.target.value' to 'val => ... val'
+                onChange={(val) => setBranch(val.toUpperCase())} 
+              />
                 <Input label="IFSC Code (*)" value={ifscCode} onChange={setIfscCode} />
                 <Input label="Account No. (*)" value={accountNo} onChange={setAccountNo} />
 

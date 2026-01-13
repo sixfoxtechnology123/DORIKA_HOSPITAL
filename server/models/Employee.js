@@ -107,6 +107,7 @@ employeeID: { type: String, required: true, unique: true },
     caste: { type: String, default: "" },
     subCaste: { type: String, default: "" },
     religion: { type: String, default: "" },
+    gender: { type: String, default: "" },
     maritalStatus: { type: String, default: "No" },
 
     departmentName: { type: String, default: "" }, // store department name
