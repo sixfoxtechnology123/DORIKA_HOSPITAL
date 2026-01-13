@@ -276,39 +276,40 @@ const fy = getDynamicFY(formData.applicationDate);
     }
   };
 
-  const inputClass = "w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150";
+  const inputClass =
+  "w-full pl-2 pr-2 py-1.5 sm:py-1 border border-gray-300 rounded text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150";
 
   return (
         <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
         <EmployeeCornerSidebar />
         
         {/* Add mt-16 or similar if your sidebar is fixed on mobile to avoid overlap */}
-        <div className="flex-1 p-3 md:p-6"> 
-          <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg w-full mx-auto">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">
+        <div className="flex-1 p-2 sm:p-3 md:p-6"> 
+          <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-lg w-full mx-auto">
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 border-b pb-2">
             {isEditMode ? "Edit Leave Application" : "New Leave Application"}
           </h2>
 
           {/* Status Alert for No-Leave categories */}
           {["TP", "PB", "PDB"].includes(empStatus?.toUpperCase()) && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm italic">
+            <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs sm:text-sm italic">
               Note: Status "{empStatus}" does not have any allocated leaves.
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
             <div>
-              <label className="block text-sm font-bold text-gray-700">Employee ID</label>
+              <label className="block text-xs sm:text-sm font-bold text-gray-700">Employee ID</label>
               <input type="text" className={`${inputClass} bg-gray-50`} value={formData.employeeId} readOnly />
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700">Employee Name</label>
+              <label className="block text-xs sm:text-sm font-bold text-gray-700">Employee Name</label>
               <input type="text" className={`${inputClass} bg-gray-100`} value={formData.employeeName || "Loading..."} readOnly />
             </div>
 
            <div>
-  <label className="block text-sm font-bold text-gray-700">Application Date</label>
+  <label className="block text-xs sm:text-sm font-bold text-gray-700">Application Date</label>
   <input 
     type="date" 
     className={inputClass} 
@@ -323,12 +324,12 @@ const fy = getDynamicFY(formData.applicationDate);
       }));
     }}
   />
-  <p className="text-[10px] text-blue-600 font-bold mt-1">
+  <p className="text-[10px] sm:text-xs text-blue-600 font-bold mt-1">
     Session: {getDynamicFY(formData.applicationDate).sessionName}
   </p>
 </div>
           <div>
-            <label className="block text-sm font-bold text-gray-700">Leave Type</label>
+            <label className="block text-xs sm:text-sm font-bold text-gray-700">Leave Type</label>
             <select 
               className={inputClass} 
               value={formData.leaveType} 
@@ -389,7 +390,7 @@ const fy = getDynamicFY(formData.applicationDate);
 
 
           <div>
-            <label className="block text-sm font-bold text-gray-700">From Date</label>
+            <label className="block text-xs sm:text-sm font-bold text-gray-700">From Date</label>
             <input
               type="date"
               className="hidden"
@@ -413,7 +414,7 @@ const fy = getDynamicFY(formData.applicationDate);
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-gray-700">To Date</label>
+            <label className="block text-xs sm:text-sm font-bold text-gray-700">To Date</label>
             <input
               type="date"
               className="hidden"
@@ -435,23 +436,23 @@ const fy = getDynamicFY(formData.applicationDate);
               onClick={() => document.getElementById("toDatePicker").showPicker()}
             />
           </div>
-            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+            <div className="bg-blue-50 p-2 sm:p-3 rounded-lg border border-blue-200 text-sm">
               <p className="text-blue-800 font-bold">Total Days: {formData.noOfDays}</p>
               <p className="text-sm text-blue-600">Allocation: {formData.leaveInHand} Days</p>
             </div>
           </div>
 
           <div className="mt-6">
-            <label className="block text-sm font-bold text-gray-700">Reason (Optional)</label>
-            <textarea className={`${inputClass} h-12 p-2`} value={formData.reason} onChange={(e) => setFormData({...formData, reason: e.target.value})} />
+            <label className="block text-xs sm:text-sm font-bold text-gray-700">Reason (Optional)</label>
+            <textarea className={`${inputClass} h-16 sm:h-12 p-2`} value={formData.reason} onChange={(e) => setFormData({...formData, reason: e.target.value})} />
           </div>
 
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3">
             {/* <button className="bg-gray-400 text-white px-6 py-2 rounded-lg">Cancel</button> */}
             <button 
               onClick={handleSubmit}
               disabled={["TP", "PB", "PDB"].includes(empStatus?.toUpperCase())}
-              className="disabled:bg-gray-300 bg-blue-600 hover:bg-blue-700 text-white px-8 py-2 rounded-lg font-bold transition-colors"
+              className="disabled:bg-gray-300 bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-2 rounded-lg font-bold transition-colors"
             >
               {isEditMode ? "Update Application" : "Submit Application"}
             </button>

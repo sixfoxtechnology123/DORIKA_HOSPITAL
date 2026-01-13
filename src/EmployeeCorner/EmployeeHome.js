@@ -71,10 +71,10 @@ const deleteLeaveApplication = async (id) => {
       {/* Sidebar */}
       <EmployeeCornerSidebar />
 
-      <div className="flex-1 overflow-y-auto p-3">
-        <div className="bg-white shadow-md rounded-md p-3">
-          <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-dorika-blue">Leave Applications</h2>
+      <div className="flex-1 overflow-y-auto p-2 sm:p-3">
+        <div className="bg-white shadow-md rounded-md p-2 sm:p-3">
+          <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between sm:items-center">
+            <h2 className="text-base sm:text-xl font-bold text-dorika-blue text-center sm:text-left">Leave Applications</h2>
             <div className="flex gap-2">
               <BackButton />
               {/* <button
@@ -85,41 +85,41 @@ const deleteLeaveApplication = async (id) => {
               </button> */}
             </div>
           </div>
-
-          <table className="w-full table-auto border border-dorika-blue text-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full table-auto border border-dorika-blue text-xs sm:text-sm">
             <thead className="bg-dorika-blue text-white">
               <tr>
-                <th className="border border-dorika-blue px-2 py-1">S.No</th>
-                <th className="border border-dorika-blue px-2 py-1">Employee ID</th>
-                <th className="border border-dorika-blue px-2 py-1">Employee Name</th>
-                <th className="border border-dorika-blue px-2 py-1">Leave Apply</th>
-                <th className="border border-dorika-blue px-2 py-1">Leave Type</th>
-                <th className="border border-dorika-blue px-2 py-1">From</th>
-                <th className="border border-dorika-blue px-2 py-1">To</th>
-                <th className="border border-dorika-blue px-2 py-1">No. of Days</th>
-                <th className="border border-dorika-blue px-2 py-1">Reason</th>
-                <th className="border border-dorika-blue px-2 py-1">Status</th>
-                <th className="border border-dorika-blue px-2 py-1">Action</th>
+                <th className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">S.No</th>
+                <th className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">Employee ID</th>
+                <th className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">Employee Name</th>
+                <th className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">Leave Apply</th>
+                <th className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">Leave Type</th>
+                <th className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">From</th>
+                <th className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">To</th>
+                <th className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">No. of Days</th>
+                <th className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">Reason</th>
+                <th className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">Status</th>
+                <th className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody className="text-center">
               {leaveApplications.length > 0 ? (
                 leaveApplications.map((leave, index) => (
-                  <tr key={leave._id} className="hover:bg-dorika-blueLight transition">
-                    <td className="border border-dorika-blue px-2 py-1">{index + 1}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{leave.employeeId}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{leave.employeeName}</td>
-                    <td className="border border-dorika-blue px-2 py-1">
+                  <tr key={leave._id} className="hover:bg-dorika-blueLight transition h-8 sm:h-auto">
+                    <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">{index + 1}</td>
+                    <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">{leave.employeeId}</td>
+                    <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">{leave.employeeName}</td>
+                    <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">
                             {formatDDMMYYYY(leave.applicationDate)}
                           </td>
-                    <td className="border border-dorika-blue px-2 py-1">{leave.leaveType || "-"}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{formatDDMMYYYY(leave.fromDate)}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{formatDDMMYYYY(leave.toDate)}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{leave.noOfDays || "-"}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{leave.reason || "-"}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{leave.status}</td>
-                    <td className="border border-dorika-blue px-2 py-1">
-                      <div className="flex justify-center gap-4">
+                    <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">{leave.leaveType || "-"}</td>
+                    <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">{formatDDMMYYYY(leave.fromDate)}</td>
+                    <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">{formatDDMMYYYY(leave.toDate)}</td>
+                    <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">{leave.noOfDays || "-"}</td>
+                    <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">{leave.reason || "-"}</td>
+                    <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">{leave.status}</td>
+                    <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">
+                      <div className="flex justify-center gap-2 sm:gap-4">
                        {/* <button
                        
                           onClick={() => navigate("/EmployeeLeaveApplication", { state: { editingData: leave } })}
@@ -132,7 +132,8 @@ const deleteLeaveApplication = async (id) => {
                           onClick={() => deleteLeaveApplication(leave._id)}
                           className="text-dorika-orange hover:text-red-700"
                         >
-                          <FaTrash />
+                          <FaTrash className="text-sm sm:text-base" />
+
                         </button>
                       </div>
                     </td>
@@ -140,13 +141,14 @@ const deleteLeaveApplication = async (id) => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="10" className="text-center py-4 text-gray-500">
+                  <td colSpan="11" className="text-center py-3 sm:py-4 text-gray-500 text-sm">
                     No leave applications found.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>
