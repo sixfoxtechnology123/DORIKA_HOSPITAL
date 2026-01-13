@@ -70,8 +70,8 @@ const [designationID, setDesignationID] = useState("");
   const [eligiblePromotion, setEligiblePromotion] = useState("");
   const [employmentType, setEmploymentType] = useState("");
   const [profileImage, setProfileImage] = useState(null);
-  const [reportingAuthority, setReportingAuthority] = useState("");
-  const [leaveAuthority, setLeaveAuthority] = useState("");
+  const [reportingManager, setReportingManager] = useState("");
+  const [departmentHead, setdepartmentHead] = useState("");
 
   const [departments, setDepartments] = useState([]);
   const [designations, setDesignations] = useState([]);
@@ -289,8 +289,8 @@ useEffect(() => {
         return found ? found._id : "";
       };
 
-      setReportingAuthority(findIdByName(employee.reportingAuthority));
-      setLeaveAuthority(findIdByName(employee.leaveAuthority));
+      setReportingManager(findIdByName(employee.reportingManager));
+      setdepartmentHead(findIdByName(employee.departmentHead));
     }
 
 // 4. Dates & Employment
@@ -527,8 +527,8 @@ designationID: designationID,
   eligiblePromotion,
   employmentType,
   profileImage,
-  reportingAuthority: getEmployeeName(reportingAuthority),
-  leaveAuthority: getEmployeeName(leaveAuthority),
+  reportingManager: getEmployeeName(reportingManager),
+  departmentHead: getEmployeeName(departmentHead),
   educationDetails,
   nominees: nomineeDetails.map(n => ({
   name: n.name,
@@ -851,9 +851,9 @@ const handleSubmit = async (e) => {
                   />
                 </div> */}
                <Select
-                  label="Reporting Authority"
-                  value={reportingAuthority}
-                  onChange={(value) => setReportingAuthority(value)}
+                  label="Reporting Manager"
+                  value={reportingManager}
+                  onChange={(value) => setReportingManager(value)}
                   options={employees.map((e) => ({
                     value: e._id,
                     label: `${e.salutation || ""} ${e.firstName || ""} ${e.middleName || ""} ${e.lastName || ""} - ${e.employeeID}`.trim(),
@@ -861,9 +861,9 @@ const handleSubmit = async (e) => {
                 />
 
                 <Select
-                  label="Leave Sanctioning Authority"
-                  value={leaveAuthority}
-                  onChange={(value) => setLeaveAuthority(value)}
+                  label="Department Head"
+                  value={departmentHead}
+                  onChange={(value) => setdepartmentHead(value)}
                   options={employees.map((e) => ({
                     value: e._id,
                     label: `${e.salutation || ""} ${e.firstName || ""} ${e.middleName || ""} ${e.lastName || ""} - ${e.employeeID}`.trim(),

@@ -83,12 +83,12 @@ const Sidebar = () => {
         { name: "Departments", path: "/DepartmentList" },
         { name: "Designations", path: "/DesignationList" },
         
-        { name: "Holidays", path: "/HolidayList" },
+        // { name: "Holidays", path: "/HolidayList" },
         //  { name: "Shifts Manage", path: "/ShiftList" },
         // { name: "Duty Roaster", path: "/ShiftManagement" },
-        { name: "Policies", path: "/PolicyList" },
-        { name: "Locations", path: "/LocationList" },
-        { name: "Payroll", path: "/PayrollComponentList" },
+        // { name: "Policies", path: "/PolicyList" },
+        // { name: "Locations", path: "/LocationList" },
+        // { name: "Payroll", path: "/PayrollComponentList" },
       ],
     },
     {

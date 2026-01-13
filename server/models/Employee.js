@@ -127,8 +127,8 @@ employeeID: { type: String, required: true, unique: true },
     contentType: String
   },
 
-    reportingAuthority: { type: String, default: "" },
-    leaveAuthority: { type: String, default: "" },
+    reportingManager: { type: String, default: "" },
+    departmentHead: { type: String, default: "" },
 
 
     educationDetails: { type: [EducationSchema], default: [] },

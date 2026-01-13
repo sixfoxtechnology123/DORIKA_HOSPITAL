@@ -22,7 +22,7 @@ const EmployeeCornerSidebar = () => {
   const location = useLocation();
 
   const menus = [
-    { name: "Dashboard", path: "/employeeHome", icon: LayoutDashboard },
+    { name: "Home", path: "/employeeHome", icon: LayoutDashboard },
     {
       name: "Employee Access",
       icon: Users,

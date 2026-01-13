@@ -309,26 +309,26 @@ const fy = getDynamicFY(formData.applicationDate);
             </div>
 
            <div>
-  <label className="block text-xs sm:text-sm font-bold text-gray-700">Application Date</label>
-  <input 
-    type="date" 
-    className={inputClass} 
-    value={formData.applicationDate} 
-    onChange={(e) => {
-      // When this changes, the useEffect above will automatically recalculate CL/SL
-      setFormData(prev => ({ 
-        ...prev, 
-        applicationDate: e.target.value,
-        fromDate: "", // Reset dates to prevent session mismatch
-        toDate: "" 
-      }));
-    }}
-  />
-  <p className="text-[10px] sm:text-xs text-blue-600 font-bold mt-1">
-    Session: {getDynamicFY(formData.applicationDate).sessionName}
-  </p>
-</div>
-          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-700">Application Date</label>
+            <input 
+              type="date" 
+              className={inputClass} 
+              value={formData.applicationDate} 
+              onChange={(e) => {
+                // When this changes, the useEffect above will automatically recalculate CL/SL
+                setFormData(prev => ({ 
+                  ...prev, 
+                  applicationDate: e.target.value,
+                  fromDate: "", // Reset dates to prevent session mismatch
+                  toDate: "" 
+                }));
+              }}
+            />
+            {/* <p className="text-[10px] sm:text-xs text-blue-600 font-bold mt-1">
+              Session: {getDynamicFY(formData.applicationDate).sessionName}
+            </p> */}
+          </div>
+                    <div>
             <label className="block text-xs sm:text-sm font-bold text-gray-700">Leave Type</label>
             <select 
               className={inputClass} 
