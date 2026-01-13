@@ -218,8 +218,8 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
           {/* Authority Details */}
          <div className="bg-yellow-50 border rounded-xl p-3 shadow-sm">
            <h3 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3">🧾 Authority Details</h3>
-              <TwoColRow  label1="Reporting Authority" value1={employee?.reportingAuthority || "--"} />
-              <TwoColRow label1="Leave Sanction Authority" value1={employee?.leaveAuthority || "--"} />
+              <TwoColRow  label1="Reporting Authority" value1={employee?.reportingManager || "--"} />
+              <TwoColRow label1="Leave Sanction Authority" value1={employee?.departmentHead || "--"} />
             </div>
             
            {/* Bank Details */}

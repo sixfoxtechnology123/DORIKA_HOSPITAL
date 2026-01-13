@@ -62,7 +62,7 @@ export const applyLeave = async (req, res) => {
     // 4. Validation
     if (remaining <= 0) return res.status(400).json({ message: "Leave limit exhausted for this session" });
     if (noOfDays > remaining) return res.status(400).json({ message: `Only ${remaining} days remaining for this session` });
-
+    const empMaster = await Employee.findOne({ employeeID: employeeId });
     // 5. Create new application
     const newLeave = new LeaveApplication({
       employeeId,
@@ -74,7 +74,9 @@ export const applyLeave = async (req, res) => {
       noOfDays,
       reason,
       leaveInHand: remaining - noOfDays,
-      status: "PENDING"
+      status: "PENDING",
+      reportingManager: empMaster?.reportingAuthority || null, 
+      departmentHead: empMaster?.leaveAuthority || null
     });
 
     await newLeave.save();

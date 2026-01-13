@@ -29,6 +29,9 @@ const leaveApplicationSchema = new mongoose.Schema(
       enum: ["PENDING", "APPROVED", "REJECTED"],
       default: "PENDING",
     },
+    // Inside LeaveApplication Schema
+      reportingManager: { type: String },
+      departmentHead: { type: String },
   },
   { timestamps: true }
 );
