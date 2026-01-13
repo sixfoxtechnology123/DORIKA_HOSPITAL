@@ -10,10 +10,13 @@ import { useLocation } from "react-router-dom";
 const EmployeeMaster = () => {
   const location = useLocation();
   const { employee, id } = location.state || {};
+  const [employeeSerialNumber, setEmployeeSerialNumber] = useState("");
   const isEditMode = Boolean(employee?._id);
   const [initialEmploymentStatus, setInitialEmploymentStatus] = useState("");
   const [filteredDesignations, setFilteredDesignations] = useState([]);
   const [selectedDepartmentName, setSelectedDepartmentName] = useState("");
+  const [reportingManagerEmpID, setReportingManagerEmpID] = useState("");
+  const [departmentHeadEmpID, setDepartmentHeadEmpID] = useState("");
   
 const [departmentID, setDepartmentID] = useState("");
 const [departmentName, setDepartmentName] = useState("");
@@ -197,7 +200,10 @@ useEffect(() => {
       .get("http://localhost:5002/api/employees/next-id", {
         params: { employmentStatus },
       })
-      .then(res => setEmployeeID(res.data.employeeID || ""));
+      .then(res => {
+        setEmployeeID(res.data.employeeID || "");
+        setEmployeeSerialNumber(res.data.employeeSerialNumber || "");
+      });
     return;
   }
 
@@ -245,6 +251,7 @@ useEffect(() => {
   if (employee) {
     // 1. Basic Info
     setEmployeeID(employee.employeeID || "");
+    setEmployeeSerialNumber(employee.employeeSerialNumber || "");
     setInitialEmploymentStatus(employee.employmentStatus);
     setEmploymentStatus(employee.employmentStatus);
     setGovernmentRegistrationNumber(employee.governmentRegistrationNumber || "");
@@ -292,7 +299,8 @@ useEffect(() => {
       setReportingManager(findIdByName(employee.reportingManager));
       setdepartmentHead(findIdByName(employee.departmentHead));
     }
-
+    setReportingManagerEmpID(employee.reportingManagerEmpID || "");
+    setDepartmentHeadEmpID(employee.departmentHeadEmpID || "");
 // 4. Dates & Employment
     setDob(employee.dob || "");
     setDor(employee.dor || "");
@@ -497,6 +505,7 @@ const getEmployeeName = (id) => {
 
 const payload = {
   employeeID,
+  employeeSerialNumber,
   employmentStatus,
   governmentRegistrationNumber,
 
@@ -528,7 +537,9 @@ designationID: designationID,
   employmentType,
   profileImage,
   reportingManager: getEmployeeName(reportingManager),
+  reportingManagerEmpID: reportingManagerEmpID,
   departmentHead: getEmployeeName(departmentHead),
+  departmentHeadEmpID: departmentHeadEmpID,
   educationDetails,
   nominees: nomineeDetails.map(n => ({
   name: n.name,
@@ -681,6 +692,11 @@ const handleSubmit = async (e) => {
                   />
 
                  <Input label="Employee ID" value={employeeID} readOnly />
+                 <Input 
+                    label="Employee Serial Number" 
+                    value={employeeSerialNumber} 
+                    readOnly={true} 
+                />
 
                 <Input
                   label="Government Registration Number"
@@ -850,24 +866,37 @@ const handleSubmit = async (e) => {
                     className="w-full text-sm border border-gray-300 rounded p-1"
                   />
                 </div> */}
-               <Select
+              <Select
                   label="Reporting Manager"
-                  value={reportingManager}
-                  onChange={(value) => setReportingManager(value)}
+                  value={reportingManagerEmpID} // Bind to ID
+                  onChange={(val) => {
+                    setReportingManagerEmpID(val);
+                    const emp = employees.find((e) => e.employeeID === val);
+                    if (emp) {
+                      setReportingManager(`${emp.firstName} ${emp.lastName}`.trim());
+                    }
+                  }}
                   options={employees.map((e) => ({
-                    value: e._id,
-                    label: `${e.salutation || ""} ${e.firstName || ""} ${e.middleName || ""} ${e.lastName || ""} - ${e.employeeID}`.trim(),
+                    value: e.employeeID,
+                    label: `${e.firstName} ${e.lastName} (${e.employeeID})`,
                   }))}
                 />
 
                 <Select
                   label="Department Head"
-                  value={departmentHead}
-                  onChange={(value) => setdepartmentHead(value)}
+                  value={departmentHeadEmpID} // Bind to ID
+                  onChange={(val) => {
+                    setDepartmentHeadEmpID(val);
+                    const emp = employees.find((e) => e.employeeID === val);
+                    if (emp) {
+                      setdepartmentHead(`${emp.firstName} ${emp.lastName}`.trim());
+                    }
+                  }}
                   options={employees.map((e) => ({
-                    value: e._id,
-                    label: `${e.salutation || ""} ${e.firstName || ""} ${e.middleName || ""} ${e.lastName || ""} - ${e.employeeID}`.trim(),
-                  }))}/>
+                    value: e.employeeID,
+                    label: `${e.firstName} ${e.lastName} (${e.employeeID})`,
+                  }))}
+                />
                 <div className="col-span-full flex justify-between mt-4">
                   <BackButton />
                   <button

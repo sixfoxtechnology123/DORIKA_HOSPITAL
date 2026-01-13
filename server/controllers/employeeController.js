@@ -2,24 +2,26 @@ const Employee = require("../models/Employee");
 const Activity = require("../models/Activity");
 const Department = require("../models/Department");
 const Designation = require("../models/Designation");
+const EmployeeUserId = require("../models/EmployeeUserId");
 
-// Auto-generate EmployeeID: EMP1, EMP2, EMP3...
-// const generateEmployeeID = async () => {
-//   try {
-//     const lastEmp = await Employee.findOne().sort({ createdAt: -1 }).lean();
-//     let next = 1;
+const generateEmployeeSerialNumber = async () => {
+  try {
+    // Find the last employee created
+    const lastEmp = await Employee.findOne().sort({ createdAt: -1 }).lean();
+    let next = 1;
 
-//     if (lastEmp?.employeeID) {
-//       const match = lastEmp.employeeID.match(/EMP(\d+)/);
-//       if (match) next = parseInt(match[1], 10) + 1;
-//     }
+    // Check the dedicated serial field, NOT the employeeID
+    if (lastEmp?.employeeSerialNumber) {
+      const match = lastEmp.employeeSerialNumber.match(/EMP(\d+)/);
+      if (match) next = parseInt(match[1], 10) + 1;
+    } 
 
-//     return `EMP${next}`;
-//   } catch (err) {
-//     console.error("Error generating employeeID:", err);
-//     return "EMP1";
-//   }
-// };
+    return `EMP${next}`;
+  } catch (err) {
+    console.error("Error generating serial number:", err);
+    return "EMP1";
+  }
+};
 
 
 // Auto-generate EmployeeID with continuous serial and prefix
@@ -50,36 +52,48 @@ const generateEmployeeID = async (employmentStatus) => {
 exports.getNextEmployeeID = async (req, res) => {
   try {
 const employeeID = await generateEmployeeID(req.query.employmentStatus);
+const employeeSerialNumber = await generateEmployeeSerialNumber();
 
-    res.json({ employeeID });
+    res.json({ employeeID,employeeSerialNumber });
+    
   } catch (err) {
     res.status(500).json({ error: "Failed to generate employee ID" });
   }
 };
 
-// POST /api/employees
 exports.createEmployee = async (req, res) => {
   try {
     if (!req.body) req.body = {};
- if (!req.body.employmentStatus) {
-  return res.status(400).json({ error: "Please select Employment Status" });
-}
+    if (!req.body.employmentStatus) {
+      return res.status(400).json({ error: "Please select Employment Status" });
+    }
 
-    // Auto-generate employeeID if not provided
+    // --- ADD THIS: LOOKUP NAMES FOR THE IDs ---
+    if (req.body.reportingManagerEmpID) {
+      const mgr = await Employee.findOne({ employeeID: req.body.reportingManagerEmpID }).lean();
+      if (mgr) req.body.reportingManager = `${mgr.firstName} ${mgr.lastName}`.trim();
+    }
+    if (req.body.departmentHeadEmpID) {
+      const head = await Employee.findOne({ employeeID: req.body.departmentHeadEmpID }).lean();
+      if (head) req.body.departmentHead = `${head.firstName} ${head.lastName}`.trim();
+    }
+    // ------------------------------------------
+
     if (!req.body.employeeID) {
-    req.body.employeeID = await generateEmployeeID(req.body.employmentStatus);
-
+      req.body.employeeID = await generateEmployeeID(req.body.employmentStatus);
+    }
+    if (!req.body.employeeSerialNumber) {
+      req.body.employeeSerialNumber = await generateEmployeeSerialNumber();
     }
 
     const { departmentID, designationID } = req.body;
-
-    // Fetch department and designation names
     const department = departmentID ? await Department.findById(departmentID).lean() : null;
     const designation = designationID ? await Designation.findById(designationID).lean() : null;
+
     if (req.body.hardCopyDocuments) {
-  req.body.hardCopyDocuments = Object.keys(req.body.hardCopyDocuments)
-    .filter(k => req.body.hardCopyDocuments[k] === true);
-}
+      req.body.hardCopyDocuments = Object.keys(req.body.hardCopyDocuments)
+        .filter(k => req.body.hardCopyDocuments[k] === true);
+    }
 
     const emp = new Employee({
       ...req.body,
@@ -89,14 +103,9 @@ exports.createEmployee = async (req, res) => {
 
     const saved = await emp.save();
 
-    // Log activity
-    try {
-      await Activity.create({
-        text: `Employee Added: ${saved.firstName} ${saved.lastName} (${saved.employeeID})`,
-      });
-    } catch (logErr) {
-      console.error("Activity log error (createEmployee):", logErr);
-    }
+    await Activity.create({
+      text: `Employee Added: ${saved.firstName} ${saved.lastName} (${saved.employeeID})`,
+    });
 
     res.status(201).json(saved);
   } catch (err) {
@@ -130,6 +139,16 @@ exports.updateEmployee = async (req, res) => {
   try {
     const { departmentID, designationID } = req.body;
 
+    // 1. If Manager IDs are provided, look up their new names to store them
+    if (req.body.reportingManagerEmpID) {
+      const mgr = await Employee.findOne({ employeeID: req.body.reportingManagerEmpID }).lean();
+      if (mgr) req.body.reportingManager = `${mgr.firstName} ${mgr.lastName}`.trim();
+    }
+    if (req.body.departmentHeadEmpID) {
+      const head = await Employee.findOne({ employeeID: req.body.departmentHeadEmpID }).lean();
+      if (head) req.body.departmentHead = `${head.firstName} ${head.lastName}`.trim();
+    }
+
     if (departmentID) {
       const department = await Department.findById(departmentID).lean();
       req.body.departmentName = department ? department.deptName : "";
@@ -139,45 +158,60 @@ exports.updateEmployee = async (req, res) => {
       const designation = await Designation.findById(designationID).lean();
       req.body.designationName = designation ? designation.designationName : "";
     }
+
     if (req.body.hardCopyDocuments) {
-  req.body.hardCopyDocuments = Object.keys(req.body.hardCopyDocuments)
-    .filter(k => req.body.hardCopyDocuments[k] === true);
-}
+      req.body.hardCopyDocuments = Object.keys(req.body.hardCopyDocuments)
+        .filter(k => req.body.hardCopyDocuments[k] === true);
+    }
 
-   const employee = await Employee.findById(req.params.id);
-if (!employee) return res.status(404).json({ message: "Employee not found" });
+    const employee = await Employee.findById(req.params.id);
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+    
+    const oldEmployeeID = employee.employeeID;
 
-if (
-  req.body.employmentStatus &&
-  employee.employmentStatus !== req.body.employmentStatus
-) {
-  // last history currentDate (if exists)
-  const lastHistory =
-    employee.statusHistory.length > 0
-      ? employee.statusHistory[employee.statusHistory.length - 1]
-      : null;
+    // Handle Status/ID Prefix change history
+    if (req.body.employmentStatus && employee.employmentStatus !== req.body.employmentStatus) {
+      const lastHistory = employee.statusHistory.length > 0
+          ? employee.statusHistory[employee.statusHistory.length - 1]
+          : null;
 
-  const beforeDate =
-    lastHistory?.currentDate ||
-    employee.statusChangeDate ||
-    employee.createdAt;
+      const beforeDate = lastHistory?.currentDate || employee.statusChangeDate || employee.createdAt;
 
-  employee.statusHistory.push({
-    beforeStatus: employee.employmentStatus,
-    beforeDate: beforeDate,                 // ← previous currentDate
-    currentStatus: req.body.employmentStatus,
-    currentDate: req.body.statusChangeDate, // ← FROM FRONTEND ONLY
-  });
+      employee.statusHistory.push({
+        beforeStatus: employee.employmentStatus,
+        beforeDate: beforeDate,
+        currentStatus: req.body.employmentStatus,
+        currentDate: req.body.statusChangeDate,
+      });
 
-  employee.statusChangeDate = req.body.statusChangeDate;
-}
+      employee.statusChangeDate = req.body.statusChangeDate;
+    }
 
+    // Apply all updates from req.body
+    Object.assign(employee, req.body);
+    const updated = await employee.save();
 
-// APPLY ALL UPDATES
-Object.assign(employee, req.body);
+    // 2. IMPORTANT: If THIS employee's ID changed (prefix change), 
+    // update everyone who reports to them so they don't get a blank manager field.
+    if (oldEmployeeID !== updated.employeeID) {
+      // Update Login Table
+      await EmployeeUserId.findOneAndUpdate(
+        { employeeId: oldEmployeeID }, 
+        { employeeId: updated.employeeID }
+      );
 
-const updated = await employee.save();
-    if (!updated) return res.status(404).json({ message: "Employee not found" });
+      // Update Reporting Manager ID for all subordinates
+      await Employee.updateMany(
+        { reportingManagerEmpID: oldEmployeeID },
+        { reportingManagerEmpID: updated.employeeID }
+      );
+
+      // Update Department Head ID for all subordinates
+      await Employee.updateMany(
+        { departmentHeadEmpID: oldEmployeeID },
+        { departmentHeadEmpID: updated.employeeID }
+      );
+    }
 
     try {
       await Activity.create({
@@ -221,48 +255,15 @@ exports.getEmployeeById = async (req, res) => {
 
     if (!emp) return res.status(404).json({ message: "Employee not found" });
 
-    // Find reporting authority by full name
-    let reportingAuthorityId = null;
-    if (emp.reportingAuthority) {
-      const rep = await Employee.findOne({
-        $expr: {
-          $regexMatch: {
-            input: { $concat: ["$firstName", " ", "$middleName", " ", "$lastName"] },
-            regex: emp.reportingAuthority,
-            options: "i",
-          },
-        },
-      });
-      if (rep) reportingAuthorityId = rep._id;
-    }
-
-    // Find leave authority by full name
-    let leaveAuthorityId = null;
-    if (emp.leaveAuthority) {
-      const lev = await Employee.findOne({
-        $expr: {
-          $regexMatch: {
-            input: { $concat: ["$firstName", " ", "$middleName", " ", "$lastName"] },
-            regex: emp.leaveAuthority,
-            options: "i",
-          },
-        },
-      });
-      if (lev) leaveAuthorityId = lev._id;
-    }
-
     res.json({
       ...emp.toObject(),
       departmentID: emp.departmentID?._id || null,
       designationID: emp.designationID?._id || null,
-      reportingAuthorityId,
-      leaveAuthorityId,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-
 // Delete a single status history entry
 exports.deleteEmployeeHistory = async (req, res) => {
   try {

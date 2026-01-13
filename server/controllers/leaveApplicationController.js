@@ -1,5 +1,6 @@
 import LeaveApplication from "../models/LeaveApplication.js";
 import LeaveType from "../models/LeaveType.js";
+import Employee from "../models/Employee.js";
 
 // Helper to convert DD-MM-YYYY string to Date Object
 const parseDate = (dateStr) => {
@@ -67,16 +68,17 @@ export const applyLeave = async (req, res) => {
     const newLeave = new LeaveApplication({
       employeeId,
       employeeName,
-      applicationDate: applicationDate ? new Date(applicationDate) : new Date(),
+      applicationDate: applicationDate || new Date().toISOString().split("T")[0],
       leaveType,
-      fromDate: leaveStartDate,
-      toDate: parseDate(toDate),
+     fromDate: leaveStartDate.toISOString().split("T")[0], 
+      toDate: parseDate(toDate).toISOString().split("T")[0],
       noOfDays,
       reason,
       leaveInHand: remaining - noOfDays,
       status: "PENDING",
-      reportingManager: empMaster?.reportingAuthority || null, 
-      departmentHead: empMaster?.leaveAuthority || null
+      reportingManager: empMaster?.reportingManager || null, 
+      departmentHead: empMaster?.departmentHead
+ || null
     });
 
     await newLeave.save();

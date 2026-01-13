@@ -308,27 +308,36 @@ const fy = getDynamicFY(formData.applicationDate);
               <input type="text" className={`${inputClass} bg-gray-100`} value={formData.employeeName || "Loading..."} readOnly />
             </div>
 
-           <div>
+          <div>
             <label className="block text-xs sm:text-sm font-bold text-gray-700">Application Date</label>
+            {/* The real (hidden) picker that stores YYYY-MM-DD in state */}
             <input 
               type="date" 
-              className={inputClass} 
+              id="appDatePicker"
+              className="hidden" 
               value={formData.applicationDate} 
               onChange={(e) => {
-                // When this changes, the useEffect above will automatically recalculate CL/SL
                 setFormData(prev => ({ 
                   ...prev, 
                   applicationDate: e.target.value,
-                  fromDate: "", // Reset dates to prevent session mismatch
+                  fromDate: "", 
                   toDate: "" 
                 }));
               }}
+            />
+            {/* The visible text box showing DD/MM/YYYY */}
+            <input
+              type="text"
+              readOnly
+              className={inputClass}
+              value={formatDDMMYYYY(formData.applicationDate)} // Displays with slashes
+              onClick={() => document.getElementById("appDatePicker").showPicker()}
             />
             {/* <p className="text-[10px] sm:text-xs text-blue-600 font-bold mt-1">
               Session: {getDynamicFY(formData.applicationDate).sessionName}
             </p> */}
           </div>
-                    <div>
+            <div>
             <label className="block text-xs sm:text-sm font-bold text-gray-700">Leave Type</label>
             <select 
               className={inputClass} 

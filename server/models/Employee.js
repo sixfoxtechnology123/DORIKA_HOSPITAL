@@ -93,6 +93,7 @@ statusHistory: [
 
 
 employeeID: { type: String, required: true, unique: true },
+employeeSerialNumber: { type: String, unique: true },
   governmentRegistrationNumber: {
     type: String,
     default: '',
@@ -110,8 +111,10 @@ employeeID: { type: String, required: true, unique: true },
     gender: { type: String, default: "" },
     maritalStatus: { type: String, default: "No" },
 
-    departmentName: { type: String, default: "" }, // store department name
-  designationName: { type: String, default: "" },
+    departmentName: { type: String, default: "" }, 
+    designationName: { type: String, default: "" },
+   
+   
 
     dob: { type: String, default: "" },
     dor: { type: String, default: "" },
@@ -128,7 +131,9 @@ employeeID: { type: String, required: true, unique: true },
   },
 
     reportingManager: { type: String, default: "" },
+    reportingManagerEmpID: { type: String },
     departmentHead: { type: String, default: "" },
+    departmentHeadEmpID: { type: String },
 
 
     educationDetails: { type: [EducationSchema], default: [] },

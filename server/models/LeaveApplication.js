@@ -1,4 +1,5 @@
-const mongoose = require("mongoose"); // ✅ ADD THIS LINE
+const mongoose = require("mongoose"); 
+const Employee = require("../models/Employee");
 
 const leaveApplicationSchema = new mongoose.Schema(
   {
@@ -6,7 +7,7 @@ const leaveApplicationSchema = new mongoose.Schema(
     employeeName: { type: String, required: true },
 
     applicationDate: {
-      type: Date,
+      type: String,
       default: Date.now,
     },
 
@@ -17,8 +18,8 @@ const leaveApplicationSchema = new mongoose.Schema(
       default: 0,
     },
 
-    fromDate: { type: Date, required: true },
-    toDate: { type: Date, required: true },
+    fromDate: { type: String, required: true }, // Change from Date to String
+    toDate: { type: String, required: true },
 
     noOfDays: { type: Number, required: true },
 
@@ -30,8 +31,8 @@ const leaveApplicationSchema = new mongoose.Schema(
       default: "PENDING",
     },
     // Inside LeaveApplication Schema
-      reportingManager: { type: String },
-      departmentHead: { type: String },
+    reportingManager: { type: String },
+    departmentHead: { type: String },
   },
   { timestamps: true }
 );
