@@ -38,6 +38,7 @@ const EmployeeLeaveApplication = () => {
 
   const [formData, setFormData] = useState({
     employeeId: loggedUser.employeeID || "",
+    employeeUserId: loggedUser.employeeUserId || "",
     employeeName: `${loggedUser.firstName || ""} ${loggedUser.lastName || ""}`.trim(),
     applicationDate: new Date().toISOString().split("T")[0],
     leaveType: "",
@@ -59,9 +60,16 @@ axios
   .then((profileRes) => {
     const emp = profileRes.data;
     setEmpStatus(emp.employmentStatus || "");
-    setStatusChangeDate(emp.statusChangeDate); // <--- SAVE THE DATE HERE
+    setStatusChangeDate(emp.statusChangeDate);
+    
     const fullName = `${emp.firstName || ""} ${emp.middleName || ""} ${emp.lastName || ""}`.trim();
-    setFormData((prev) => ({ ...prev, employeeName: fullName }));
+    
+    setFormData((prev) => ({ 
+      ...prev, 
+      employeeName: fullName,
+      // CRITICAL FIX: This ensures employeeUserId (e.g., EMP8) is added to the form
+      employeeUserId: emp.employeeUserId || prev.employeeUserId 
+    }));
   })
   .catch((err) => console.error("Profile Fetch Error:", err));
 
@@ -94,17 +102,17 @@ axios
 
 // This block ensures Sick and Casual history updates when you change the date
 useEffect(() => {
-  if (!loggedUser?.employeeID || !formData.applicationDate) return;
+  // CHANGE: Check for employeeUserId instead of employeeID
+  if (!formData.employeeUserId || !formData.applicationDate) return;
 
-  // 1. Calculate the Session window based on the SELECTED Application Date
   const appDate = new Date(formData.applicationDate);
   const fyYear = appDate.getMonth() < 3 ? appDate.getFullYear() - 1 : appDate.getFullYear();
   const fyStart = new Date(fyYear, 3, 1);  // April 1st
   const fyEnd = new Date(fyYear + 1, 2, 31); // March 31st
 
-  // 2. Fetch history and filter strictly for THIS session
+  // CHANGE: Fetch history using employeeUserId ("EMP1")
   axios
-    .get(`http://localhost:5002/api/leave-application/employee/${loggedUser.employeeID}`)
+    .get(`http://localhost:5002/api/leave-application/employee/${formData.employeeUserId}`)
     .then((res) => {
       const allLeaves = res.data || [];
       const otherLeaves = editingData ? allLeaves.filter(l => l._id !== editingData._id) : allLeaves;
@@ -125,11 +133,12 @@ useEffect(() => {
         )
         .reduce((sum, l) => sum + l.noOfDays, 0);
 
-      // Now usedLeaves.sick will become 0 if you pick a new year!
       setUsedLeaves({ sick: sickUsed, casual: casualUsed });
     })
     .catch((err) => console.error("History Fetch Error:", err));
-}, [loggedUser.employeeID, formData.applicationDate, editingData]);
+
+  // CHANGE: Added formData.employeeUserId to dependencies
+}, [formData.employeeUserId, formData.applicationDate, editingData]);
 
 useEffect(() => {
   if (!formData.leaveType || leaveTypes.length === 0 || !empStatus) return;
@@ -250,6 +259,7 @@ const fy = getDynamicFY(formData.applicationDate);
 
     const dataToSubmit = {
       employeeId: formData.employeeId,
+      employeeUserId: formData.employeeUserId,
       employeeName: formData.employeeName,
       applicationDate: formData.applicationDate,
       leaveType: formData.leaveType,

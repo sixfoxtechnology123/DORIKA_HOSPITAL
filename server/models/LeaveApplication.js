@@ -5,7 +5,7 @@ const leaveApplicationSchema = new mongoose.Schema(
   {
     employeeId: { type: String, required: true },
     employeeName: { type: String, required: true },
-
+    employeeUserId: { type: String, required: true },
     applicationDate: {
       type: String,
       default: Date.now,

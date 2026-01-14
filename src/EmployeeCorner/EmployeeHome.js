@@ -36,12 +36,15 @@ useEffect(() => {
   const fetchLeaveApplications = async () => {
     try {
       const employeeData = JSON.parse(localStorage.getItem("employeeUser"));
-      const employeeId = employeeData?.employeeID;
+      
+      // CHANGE HERE: Get employeeUserId instead of employeeID
+      const userId = employeeData?.employeeUserId; 
 
-      if (!employeeId) return setLeaveApplications([]); // no ID, show empty
+      if (!userId) return setLeaveApplications([]);
 
+      // CHANGE HERE: Pass userId to the URL
       const res = await axios.get(
-        `http://localhost:5002/api/leave-application/employee/${employeeId}`
+        `http://localhost:5002/api/leave-application/employee/${userId}`
       );
       setLeaveApplications(res.data);
     } catch (err) {

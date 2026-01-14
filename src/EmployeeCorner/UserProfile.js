@@ -123,7 +123,7 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
               <TwoColRow label1="Department" value1={employee?.departmentName} label2="Designation" value2={employee?.designationName} />
               <TwoColRow label1="Date of Joining" value1={formatDate(employee?.doj)} label2="Date of Retirement" value2={formatDate(employee?.dor)} />
               <TwoColRow label1="Next Increment Date" value1={formatDate(employee?.nextIncrementDate)} label2="Eligible for Promotion" value2={employee?.eligiblePromotion} />
-              <TwoColRow label1="Employee Type" value1={employee?.employmentStatus} />
+              <TwoColRow label1="Employee Type" value1={employee?.employmentStatus} label2="User ID" value2={employee?.employeeUserId} />
             </div>
 
             {/* Permanent Address */}

@@ -23,11 +23,21 @@ exports.getAllEmployeeUserIds = async (req, res) => {
 // Create new EmployeeUserId
 exports.createEmployeeUserId = async (req, res) => {
   try {
-    const { employeeId, name, email, password } = req.body;
+    // 1. ADD 'employeeUserId' HERE in the destructuring
+    const { employeeId, name, email, employeeUserId, password } = req.body; 
+    
     const existing = await EmployeeUserId.findOne({ employeeId });
     if (existing) return res.status(400).json({ message: "Employee ID already exists" });
 
-    const newUser = new EmployeeUserId({ employeeId, name, email, password });
+    // 2. PASS IT into the new model instance
+    const newUser = new EmployeeUserId({ 
+      employeeId, 
+      name, 
+      email, 
+      employeeUserId, // Now the variable exists!
+      password 
+    });
+
     await newUser.save();
     res.json({ message: "Employee ID created", user: newUser });
   } catch (err) {
@@ -68,7 +78,7 @@ exports.employeeLogin = async (req, res) => {
       return res.status(400).json({ message: "Please provide userId and password" });
     }
 
-    const user = await EmployeeUserId.findOne({ employeeId: userId.toUpperCase() });
+    const user = await EmployeeUserId.findOne({ employeeUserId: userId });
 
     if (!user || user.password !== password) {
       return res.status(400).json({ message: "Invalid userId or password" });

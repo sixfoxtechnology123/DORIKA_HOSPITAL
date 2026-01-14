@@ -1,4 +1,3 @@
-// src/pages/EmployeeUserIdCreated.js
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Sidebar from "../component/Sidebar";
@@ -16,6 +15,7 @@ const EmployeeUserIdCreated = () => {
     employeeId: "",
     name: "",
     email: "",
+    employeeUserId: "", // New field added to state
     password: "",
   });
 
@@ -28,7 +28,6 @@ const EmployeeUserIdCreated = () => {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setEmployees(res.data))
-      
       .catch((err) => console.error(err));
   }, [token]);
 
@@ -46,28 +45,33 @@ const EmployeeUserIdCreated = () => {
     fetchEmployeeIds();
   }, [token]);
 
-  // Auto fill name and email on Enter
+// Auto fill name, email, and User ID from Employee Master on Enter
   const handleFetchEmployee = (id) => {
     if (!id) return;
 
+    // 1. Find the employee in the master list
     const emp = employees.find((e) => e.employeeID?.toUpperCase() === id.toUpperCase());
 
     if (emp) {
       const fullName = [emp.firstName, emp.middleName, emp.lastName].filter(Boolean).join(" ");
       const email = emp.permanentAddress?.email || "";
+      
       setFormData((prev) => ({
         ...prev,
         name: fullName,
         email: email,
+        // 2. Fetch the existing employeeUserId from the master record
+        employeeUserId: emp.employeeUserId || "", 
       }));
     } else {
       toast.error("Employee ID not found!");
-      setFormData((prev) => ({ ...prev, name: "", email: "" }));
+      setFormData((prev) => ({ ...prev, name: "", email: "", employeeUserId: "" }));
     }
   };
 
   // Save or update Employee ID
   const saveEmployeeId = async () => {
+    // Included employeeUserId in validation
     if (!formData.employeeId || !formData.name || !formData.email || !formData.password) {
       return toast.error("Please fill all fields");
     }
@@ -90,7 +94,7 @@ const EmployeeUserIdCreated = () => {
       }
       fetchEmployeeIds();
       setEditingId(null);
-      setFormData({ employeeId: "", name: "", email: "", password: "" });
+      setFormData({ employeeId: "", name: "", email: "", employeeUserId: "", password: "" });
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || "Error saving Employee ID");
@@ -105,6 +109,7 @@ const EmployeeUserIdCreated = () => {
       employeeId: emp.employeeId,
       name: emp.name,
       email: emp.email,
+      employeeUserId: emp.employeeUserId || "", // Populate from record
       password: emp.password,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -142,11 +147,12 @@ const EmployeeUserIdCreated = () => {
               {editingId ? "Update Employee ID" : "Create Employee ID"}
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Changed grid to 5 columns to accommodate the new field */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-medium text-dorika-blue">Employee ID</label>
                 <input
-                  placeholder="Enter Employee ID and press Enter"
+                  placeholder="Enter ID and press Enter"
                   value={formData.employeeId}
                   onChange={(e) =>
                     setFormData({ ...formData, employeeId: e.target.value.toUpperCase() })
@@ -172,6 +178,17 @@ const EmployeeUserIdCreated = () => {
                 <input
                   value={formData.email}
                   readOnly
+                  className="border border-dorika-blue p-0 pl-2 rounded w-full bg-gray-100"
+                />
+              </div>
+
+              {/* Added Employee User ID Field (Disabled/ReadOnly) */}
+              <div>
+                <label className="block text-sm font-medium text-dorika-blue">Employee User ID</label>
+                <input
+                  value={formData.employeeUserId}
+                  readOnly
+                  placeholder="Auto-generated"
                   className="border border-dorika-blue p-0 pl-2 rounded w-full bg-gray-100"
                 />
               </div>
@@ -218,6 +235,7 @@ const EmployeeUserIdCreated = () => {
               <thead className="bg-blue-100 text-dorika-blue">
                 <tr>
                   <th className="border border-dorika-blue px-2 py-1">Employee ID</th>
+                  <th className="border border-dorika-blue px-2 py-1">User ID</th>
                   <th className="border border-dorika-blue px-2 py-1">Name</th>
                   <th className="border border-dorika-blue px-2 py-1">Email</th>
                   <th className="border border-dorika-blue px-2 py-1">Action</th>
@@ -228,6 +246,7 @@ const EmployeeUserIdCreated = () => {
                   employeeIds.map((emp) => (
                     <tr key={emp._id} className="hover:bg-dorika-blueLight">
                       <td className="border border-dorika-blue px-2 py-1">{emp.employeeId}</td>
+                      <td className="border border-dorika-blue px-2 py-1 font-semibold">{emp.employeeUserId}</td>
                       <td className="border border-dorika-blue px-2 py-1">{emp.name}</td>
                       <td className="border border-dorika-blue px-2 py-1">{emp.email}</td>
                       <td className="border border-dorika-blue px-2 py-1">
@@ -250,7 +269,7 @@ const EmployeeUserIdCreated = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" className="py-4 text-gray-500 font-medium">
+                    <td colSpan="5" className="py-4 text-gray-500 font-medium">
                       No Employee IDs created yet.
                     </td>
                   </tr>

@@ -47,7 +47,8 @@ const AdminLogin = () => {
   localStorage.setItem(
     "employeeUser",
     JSON.stringify({
-      employeeID: user.employeeID || user.employeeId, // match backend field exactly
+      employeeID: user.employeeID || user.employeeId, 
+      employeeUserId: user.employeeUserId,
       firstName: user.firstName,
       lastName: user.lastName,
       designation: user.designation,

@@ -16,7 +16,7 @@ const parseDate = (dateStr) => {
 
 export const applyLeave = async (req, res) => {
   try {
-    const { employeeId, leaveType, fromDate, noOfDays, applicationDate, employeeName, toDate, reason } = req.body;
+    const { employeeId,employeeUserId, leaveType, fromDate, noOfDays, applicationDate, employeeName, toDate, reason } = req.body;
 
     // 1. Find Leave Master Data
     const leaveMaster = await LeaveType.findOne({
@@ -67,6 +67,7 @@ export const applyLeave = async (req, res) => {
     // 5. Create new application
     const newLeave = new LeaveApplication({
       employeeId,
+      employeeUserId,
       employeeName,
       applicationDate: applicationDate || new Date().toISOString().split("T")[0],
       leaveType,
@@ -89,10 +90,18 @@ export const applyLeave = async (req, res) => {
   }
 };
 
+// Updated Backend Controller Function
 export const getEmployeeLeaves = async (req, res) => {
   try {
-    const employeeId = req.params.employeeId;
-    const leaves = await LeaveApplication.find({ employeeId }).sort({ createdAt: 1 });
+    // The param comes from the URL (:employeeId) 
+    // but now it will contain the value "EMP1"
+    const userIdFromParams = req.params.employeeId; 
+
+    // CHANGE HERE: Search by the field 'employeeUserId'
+    const leaves = await LeaveApplication.find({ 
+      employeeUserId: userIdFromParams 
+    }).sort({ createdAt: 1 });
+    
     res.status(200).json(leaves);
   } catch (error) {
     res.status(500).json({ message: error.message });
