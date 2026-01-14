@@ -4,15 +4,15 @@ const Department = require("../models/Department");
 const Designation = require("../models/Designation");
 const EmployeeUserId = require("../models/EmployeeUserId");
 
-const generateEmployeeSerialNumber = async () => {
+const generateEmployeeUserId = async () => {
   try {
     // Find the last employee created
     const lastEmp = await Employee.findOne().sort({ createdAt: -1 }).lean();
     let next = 1;
 
     // Check the dedicated serial field, NOT the employeeID
-    if (lastEmp?.employeeSerialNumber) {
-      const match = lastEmp.employeeSerialNumber.match(/EMP(\d+)/);
+    if (lastEmp?.employeeUserId) {
+      const match = lastEmp.employeeUserId.match(/EMP(\d+)/);
       if (match) next = parseInt(match[1], 10) + 1;
     } 
 
@@ -52,9 +52,9 @@ const generateEmployeeID = async (employmentStatus) => {
 exports.getNextEmployeeID = async (req, res) => {
   try {
 const employeeID = await generateEmployeeID(req.query.employmentStatus);
-const employeeSerialNumber = await generateEmployeeSerialNumber();
+const employeeUserId = await generateEmployeeUserId();
 
-    res.json({ employeeID,employeeSerialNumber });
+    res.json({ employeeID,employeeUserId });
     
   } catch (err) {
     res.status(500).json({ error: "Failed to generate employee ID" });
@@ -82,8 +82,8 @@ exports.createEmployee = async (req, res) => {
     if (!req.body.employeeID) {
       req.body.employeeID = await generateEmployeeID(req.body.employmentStatus);
     }
-    if (!req.body.employeeSerialNumber) {
-      req.body.employeeSerialNumber = await generateEmployeeSerialNumber();
+    if (!req.body.employeeUserId) {
+      req.body.employeeUserId = await generateEmployeeUserId();
     }
 
     const { departmentID, designationID } = req.body;

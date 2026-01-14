@@ -93,7 +93,7 @@ statusHistory: [
 
 
 employeeID: { type: String, required: true, unique: true },
-employeeSerialNumber: { type: String, unique: true },
+employeeUserId: { type: String, unique: true },
   governmentRegistrationNumber: {
     type: String,
     default: '',

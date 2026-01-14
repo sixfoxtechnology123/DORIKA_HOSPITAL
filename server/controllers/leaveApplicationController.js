@@ -70,15 +70,16 @@ export const applyLeave = async (req, res) => {
       employeeName,
       applicationDate: applicationDate || new Date().toISOString().split("T")[0],
       leaveType,
-     fromDate: leaveStartDate.toISOString().split("T")[0], 
+      fromDate: leaveStartDate.toISOString().split("T")[0], 
       toDate: parseDate(toDate).toISOString().split("T")[0],
       noOfDays,
       reason,
       leaveInHand: remaining - noOfDays,
       status: "PENDING",
       reportingManager: empMaster?.reportingManager || null, 
-      departmentHead: empMaster?.departmentHead
- || null
+      reportingManagerEmpID: empMaster?.reportingManagerEmpID || null, 
+      departmentHead: empMaster?.departmentHead|| null,
+      departmentHeadEmpID: empMaster?.departmentHeadEmpID|| null,
     });
 
     await newLeave.save();
