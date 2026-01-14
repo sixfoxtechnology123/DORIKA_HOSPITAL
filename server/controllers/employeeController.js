@@ -71,11 +71,17 @@ exports.createEmployee = async (req, res) => {
     // --- ADD THIS: LOOKUP NAMES FOR THE IDs ---
     if (req.body.reportingManagerEmpID) {
       const mgr = await Employee.findOne({ employeeID: req.body.reportingManagerEmpID }).lean();
-      if (mgr) req.body.reportingManager = `${mgr.firstName} ${mgr.lastName}`.trim();
+      if (mgr) {
+        req.body.reportingManager = `${mgr.firstName} ${mgr.lastName}`.trim();
+        req.body.reportingManagerEmployeeUserId = mgr.employeeUserId;
+      }
     }
     if (req.body.departmentHeadEmpID) {
       const head = await Employee.findOne({ employeeID: req.body.departmentHeadEmpID }).lean();
-      if (head) req.body.departmentHead = `${head.firstName} ${head.lastName}`.trim();
+      if (head) {
+        req.body.departmentHead = `${head.firstName} ${head.lastName}`.trim();
+        req.body.departmentHeadEmployeeUserId = head.employeeUserId;
+      }
     }
     // ------------------------------------------
 
@@ -142,11 +148,18 @@ exports.updateEmployee = async (req, res) => {
     // 1. If Manager IDs are provided, look up their new names to store them
     if (req.body.reportingManagerEmpID) {
       const mgr = await Employee.findOne({ employeeID: req.body.reportingManagerEmpID }).lean();
-      if (mgr) req.body.reportingManager = `${mgr.firstName} ${mgr.lastName}`.trim();
+      if (mgr) {
+        req.body.reportingManager = `${mgr.firstName} ${mgr.lastName}`.trim();
+        req.body.reportingManagerEmployeeUserId = mgr.employeeUserId;
+      }
     }
     if (req.body.departmentHeadEmpID) {
       const head = await Employee.findOne({ employeeID: req.body.departmentHeadEmpID }).lean();
-      if (head) req.body.departmentHead = `${head.firstName} ${head.lastName}`.trim();
+      if (head) 
+        {
+          req.body.departmentHead = `${head.firstName} ${head.lastName}`.trim();
+          req.body.departmentHeadEmployeeUserId = head.employeeUserId;
+        }
     }
 
     if (departmentID) {

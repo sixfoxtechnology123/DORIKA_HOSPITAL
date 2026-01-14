@@ -17,6 +17,8 @@ const EmployeeMaster = () => {
   const [selectedDepartmentName, setSelectedDepartmentName] = useState("");
   const [reportingManagerEmpID, setReportingManagerEmpID] = useState("");
   const [departmentHeadEmpID, setDepartmentHeadEmpID] = useState("");
+  const [reportingManagerEmployeeUserId, setReportingManagerEmployeeUserId] = useState("");
+  const [departmentHeadEmployeeUserId, setDepartmentHeadEmployeeUserId] = useState("");
   
 const [departmentID, setDepartmentID] = useState("");
 const [departmentName, setDepartmentName] = useState("");
@@ -301,6 +303,8 @@ useEffect(() => {
     }
     setReportingManagerEmpID(employee.reportingManagerEmpID || "");
     setDepartmentHeadEmpID(employee.departmentHeadEmpID || "");
+    setReportingManagerEmployeeUserId(employee.reportingManagerEmployeeUserId || "");
+    setDepartmentHeadEmployeeUserId(employee.departmentHeadEmployeeUserId || "");
 // 4. Dates & Employment
     setDob(employee.dob || "");
     setDor(employee.dor || "");
@@ -520,13 +524,8 @@ const payload = {
   religion,
   gender,
   maritalStatus,
-
-
-departmentID: departmentID,
-designationID: designationID,
-
-
-
+  departmentID: departmentID,
+  designationID: designationID,
   dob,
   dor,
   doj,
@@ -538,8 +537,10 @@ designationID: designationID,
   profileImage,
   reportingManager: getEmployeeName(reportingManager),
   reportingManagerEmpID: reportingManagerEmpID,
+  reportingManagerEmployeeUserId: reportingManagerEmployeeUserId,
   departmentHead: getEmployeeName(departmentHead),
   departmentHeadEmpID: departmentHeadEmpID,
+  departmentHeadEmployeeUserId: departmentHeadEmployeeUserId,
   educationDetails,
   nominees: nomineeDetails.map(n => ({
   name: n.name,
@@ -874,6 +875,7 @@ const handleSubmit = async (e) => {
                     const emp = employees.find((e) => e.employeeID === val);
                     if (emp) {
                       setReportingManager(`${emp.firstName} ${emp.lastName}`.trim());
+                      setReportingManagerEmployeeUserId(emp.employeeUserId);
                     }
                   }}
                   options={employees.map((e) => ({
@@ -890,6 +892,7 @@ const handleSubmit = async (e) => {
                     const emp = employees.find((e) => e.employeeID === val);
                     if (emp) {
                       setdepartmentHead(`${emp.firstName} ${emp.lastName}`.trim());
+                      setDepartmentHeadEmployeeUserId(emp.employeeUserId);
                     }
                   }}
                   options={employees.map((e) => ({

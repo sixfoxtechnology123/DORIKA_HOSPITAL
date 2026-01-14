@@ -92,8 +92,8 @@ statusHistory: [
 ,
 
 
-employeeID: { type: String, required: true, unique: true },
-employeeUserId: { type: String, unique: true }, 
+  employeeID: { type: String, required: true, unique: true },
+  employeeUserId: { type: String, unique: true }, 
   governmentRegistrationNumber: {
     type: String,
     default: '',
@@ -132,8 +132,10 @@ employeeUserId: { type: String, unique: true },
 
     reportingManager: { type: String, default: "" },
     reportingManagerEmpID: { type: String },
+    reportingManagerEmployeeUserId: { type: String },
     departmentHead: { type: String, default: "" },
     departmentHeadEmpID: { type: String },
+    departmentHeadEmployeeUserId: { type: String },
 
 
     educationDetails: { type: [EducationSchema], default: [] },
