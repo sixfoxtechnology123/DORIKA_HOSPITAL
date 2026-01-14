@@ -10,7 +10,7 @@ import { useLocation } from "react-router-dom";
 const EmployeeMaster = () => {
   const location = useLocation();
   const { employee, id } = location.state || {};
-  const [employeeUserId, setemployeeUserId] = useState("");
+  const [employeeUserId, setEmployeeUserId] = useState("");
   const isEditMode = Boolean(employee?._id);
   const [initialEmploymentStatus, setInitialEmploymentStatus] = useState("");
   const [filteredDesignations, setFilteredDesignations] = useState([]);
@@ -202,7 +202,7 @@ useEffect(() => {
       })
       .then(res => {
         setEmployeeID(res.data.employeeID || "");
-        setemployeeUserId(res.data.employeeUserId || "");
+        setEmployeeUserId(res.data.employeeUserId || "");
       });
     return;
   }
@@ -251,7 +251,7 @@ useEffect(() => {
   if (employee) {
     // 1. Basic Info
     setEmployeeID(employee.employeeID || "");
-    setemployeeUserId(employee.employeeUserId || "");
+    setEmployeeUserId(employee.employeeUserId || "");
     setInitialEmploymentStatus(employee.employmentStatus);
     setEmploymentStatus(employee.employmentStatus);
     setGovernmentRegistrationNumber(employee.governmentRegistrationNumber || "");
@@ -505,7 +505,7 @@ const getEmployeeName = (id) => {
 
 const payload = {
   employeeID,
-  employeeUserId,
+ employeeUserId,
   employmentStatus,
   governmentRegistrationNumber,
 
@@ -692,11 +692,11 @@ const handleSubmit = async (e) => {
                   />
 
                  <Input label="Employee ID" value={employeeID} readOnly />
-                 <Input 
+                <Input 
                     label="Employee UserID" 
                     value={employeeUserId} 
                     readOnly={true} 
-                />
+                  />
 
                 <Input
                   label="Government Registration Number"

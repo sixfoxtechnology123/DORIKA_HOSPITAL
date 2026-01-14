@@ -82,9 +82,9 @@ exports.createEmployee = async (req, res) => {
     if (!req.body.employeeID) {
       req.body.employeeID = await generateEmployeeID(req.body.employmentStatus);
     }
-    if (!req.body.employeeUserId) {
-      req.body.employeeUserId = await generateEmployeeUserId();
-    }
+   if (!req.body.employeeUserId) {
+    req.body.employeeUserId = await generateEmployeeUserId();
+  }
 
     const { departmentID, designationID } = req.body;
     const department = departmentID ? await Department.findById(departmentID).lean() : null;

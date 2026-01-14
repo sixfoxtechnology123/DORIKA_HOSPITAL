@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 const path = require("path");
 const connectDB = require("./db/db");
 const bcrypt = require("bcryptjs");
+const mongoose = require("mongoose");
 const Admin = require("./models/Admin");
 
 dotenv.config();
@@ -92,7 +93,14 @@ const startServer = async () => {
   try {
     await connectDB();
     await createDefaultAdmin();
-
+    // try {
+    //   const db = mongoose.connection.db;
+    //   // This command forces MongoDB to delete the 'SerialNumber' rule
+    //   await db.collection('employees').dropIndex("employeeSerialNumber_1");
+    //   console.log(" SUCCESS: The SerialNumber rule is deleted. You can save now!");
+    // } catch (e) {
+    //   console.log(" Index rule not found or already deleted.");
+    // }
     const PORT = process.env.PORT || 5002;
     app.listen(PORT, () =>
       console.log(`Server running at http://localhost:${PORT}`)
