@@ -7,20 +7,27 @@ const LeaveApplication = require("../models/LeaveApplication");
 
 const generateEmployeeUserId = async () => {
   try {
-    // Find the last employee created
+    const prefix = "DH";
+    // Find the last employee created to get the highest serial
     const lastEmp = await Employee.findOne().sort({ createdAt: -1 }).lean();
+    
     let next = 1;
 
-    // Check the dedicated serial field, NOT the employeeID
+    // Check if the last employee has a userId and extract the number
     if (lastEmp?.employeeUserId) {
-      const match = lastEmp.employeeUserId.match(/EMP(\d+)/);
-      if (match) next = parseInt(match[1], 10) + 1;
+      // This regex matches "DH-" followed by digits
+      const match = lastEmp.employeeUserId.match(/DH-(\d+)/);
+      if (match) {
+        next = parseInt(match[1], 10) + 1;
+      }
     } 
 
-    return `EMP${next}`;
+    // Pad the number to 5 digits (e.g., 00001)
+    const nextSerial = String(next).padStart(5, "0");
+    return `${prefix}-${nextSerial}`;
   } catch (err) {
     console.error("Error generating serial number:", err);
-    return "EMP1";
+    return "DH-00001"; // Fallback
   }
 };
 
