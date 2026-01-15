@@ -41,7 +41,7 @@ const leaveApplicationRoutes = require("./routes/leaveApplicationRoutes");
 const salaryHeadRoutes = require("./routes/salaryHeadRoutes");
 const paySlipRoutes = require("./routes/paySlipRoutes");
 const shiftManagementRoutes = require("./routes/shiftManagementRoutes");
-
+const attendanceRoutes = require("./routes/attendanceRoutes");
 
 app.use("/api/master", masterRoutes);
 app.use("/api/departments", departmentRoutes);
@@ -64,6 +64,7 @@ app.use("/api/leave-application", leaveApplicationRoutes);
 app.use("/api/salary-heads", salaryHeadRoutes);
 app.use("/api/payslips", paySlipRoutes);
 app.use("/api/shift-management", shiftManagementRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 // ----------------- Create Default Admin -----------------
 const createDefaultAdmin = async () => {

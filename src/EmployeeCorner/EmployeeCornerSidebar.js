@@ -12,6 +12,8 @@ import {
   ArrowBigRightDash,
   ArrowBigLeftDash,
   LogOut,
+  ClipboardList,
+  CalendarCheck
 } from "lucide-react";
 
 const EmployeeCornerSidebar = () => {
@@ -22,8 +24,9 @@ const EmployeeCornerSidebar = () => {
   const location = useLocation();
 
   const menus = [
-    { name: "Dashboard", path: "/EmployeeLeaveDetails", icon: LayoutDashboard },
+    { name: "Dashboard", path: "/EmployeeLeaveDetails", icon: ClipboardList },
     { name: "My Leave Details", path: "/employeeHome", icon: LayoutDashboard },
+    { name: "Attendance", path: "/EmployeeAttendance", icon: CalendarCheck },
     {
       name: "Employee Access",
       icon: Users,
