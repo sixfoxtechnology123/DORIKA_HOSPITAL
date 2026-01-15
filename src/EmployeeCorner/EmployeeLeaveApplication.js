@@ -47,6 +47,8 @@ const EmployeeLeaveApplication = () => {
     toDate: "",
     noOfDays: 0,
     reason: "",
+    reportingManagerEmployeeUserId: "",
+    departmentHeadEmployeeUserId: ""
   });
 
   const formatDate = (date) => (date ? new Date(date).toISOString().split("T")[0] : "");
@@ -87,15 +89,15 @@ axios
     setFormData({
       employeeId: editingData.employeeId,
       employeeName: editingData.employeeName,
-      // Use the global formatDate for the hidden picker
       applicationDate: formatDate(editingData.applicationDate), 
       leaveType: editingData.leaveType,
       leaveInHand: editingData.leaveInHand,
-      // IMPORTANT: If DB already has DD-MM-YYYY, use it directly
       fromDate: editingData.fromDate, 
       toDate: editingData.toDate,
       noOfDays: editingData.noOfDays,
       reason: editingData.reason || "",
+      reportingManagerEmployeeUserId: editingData.reportingManagerEmployeeUserId || "",
+      departmentHeadEmployeeUserId: editingData.departmentHeadEmployeeUserId || ""
     });
   }
 }, [loggedUser.employeeID, editingData]);
@@ -267,7 +269,9 @@ const fy = getDynamicFY(formData.applicationDate);
       fromDate: formData.fromDate,
       toDate: formData.toDate,
       noOfDays: formData.noOfDays,
-      reason: formData.reason ? formData.reason.trim() : ""
+      reason: formData.reason ? formData.reason.trim() : "",
+      reportingManagerEmployeeUserId: formData.reportingManagerEmployeeUserId,
+      departmentHeadEmployeeUserId: formData.departmentHeadEmployeeUserId
     };
 
     try {

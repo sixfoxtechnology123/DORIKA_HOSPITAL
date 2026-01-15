@@ -33,8 +33,10 @@ const leaveApplicationSchema = new mongoose.Schema(
     // Inside LeaveApplication Schema
     reportingManager: { type: String },
     reportingManagerEmpID: { type: String },
+    reportingManagerEmployeeUserId: { type: String },
     departmentHead: { type: String },
     departmentHeadEmpID: { type: String },
+    departmentHeadEmployeeUserId: { type: String },
   },
   { timestamps: true }
 );

@@ -79,8 +79,10 @@ export const applyLeave = async (req, res) => {
       status: "PENDING",
       reportingManager: empMaster?.reportingManager || null, 
       reportingManagerEmpID: empMaster?.reportingManagerEmpID || null, 
+      reportingManagerEmployeeUserId: empMaster?.reportingManagerEmployeeUserId || null, 
       departmentHead: empMaster?.departmentHead|| null,
       departmentHeadEmpID: empMaster?.departmentHeadEmpID|| null,
+      departmentHeadEmployeeUserId: empMaster?.departmentHeadEmployeeUserId|| null,
     });
 
     await newLeave.save();

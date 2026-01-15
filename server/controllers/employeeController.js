@@ -3,6 +3,7 @@ const Activity = require("../models/Activity");
 const Department = require("../models/Department");
 const Designation = require("../models/Designation");
 const EmployeeUserId = require("../models/EmployeeUserId");
+const LeaveApplication = require("../models/LeaveApplication");
 
 const generateEmployeeUserId = async () => {
   try {
@@ -243,19 +244,43 @@ exports.updateEmployee = async (req, res) => {
 // DELETE /api/employees/:id
 exports.deleteEmployee = async (req, res) => {
   try {
-    const del = await Employee.findByIdAndDelete(req.params.id);
-    if (!del) return res.status(404).json({ message: "Employee not found" });
+    // 1. Find the employee first to get their unique identifiers
+    const employee = await Employee.findById(req.params.id);
+    
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
 
+    const targetUserId = employee.employeeUserId; // e.g., "EMP8"
+
+    // 2. Delete from associated collections using employeeUserId
+    await Promise.all([
+      // Delete login credentials/user session data
+      EmployeeUserId.deleteMany({ employeeUserId: targetUserId }),
+      
+      // Delete all leave applications for this user
+      LeaveApplication.deleteMany({ employeeUserId: targetUserId }),
+      
+    ]);
+
+    // 3. Finally, delete the main employee record
+    await Employee.findByIdAndDelete(req.params.id);
+
+    // 4. Log the deletion activity
     try {
       await Activity.create({
-        text: `Employee Deleted: ${del.firstName} ${del.lastName} (${del.employeeID})`,
+        text: `Permanent Deletion: ${employee.firstName} ${employee.lastName} (${employee.employeeID}) and all associated records (Leaves, UserID).`,
       });
     } catch (logErr) {
       console.error("Activity log error (deleteEmployee):", logErr);
     }
 
-    res.json({ message: "Employee deleted successfully" });
+    res.json({ 
+      message: "Employee and all associated records (Login, Leaves) deleted successfully" 
+    });
+
   } catch (err) {
+    console.error("Delete error:", err);
     res.status(500).json({ error: err.message });
   }
 };
