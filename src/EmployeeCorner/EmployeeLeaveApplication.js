@@ -102,44 +102,48 @@ axios
   }
 }, [loggedUser.employeeID, editingData]);
 
-// This block ensures Sick and Casual history updates when you change the date
+// This block ensures Sick and Casual history updates
 useEffect(() => {
-  // CHANGE: Check for employeeUserId instead of employeeID
   if (!formData.employeeUserId || !formData.applicationDate) return;
 
   const appDate = new Date(formData.applicationDate);
   const fyYear = appDate.getMonth() < 3 ? appDate.getFullYear() - 1 : appDate.getFullYear();
-  const fyStart = new Date(fyYear, 3, 1);  // April 1st
-  const fyEnd = new Date(fyYear + 1, 2, 31); // March 31st
+  const fyStart = new Date(fyYear, 3, 1); 
+  const fyEnd = new Date(fyYear + 1, 2, 31);
 
-  // CHANGE: Fetch history using employeeUserId ("EMP1")
-  axios
-    .get(`http://localhost:5002/api/leave-application/employee/${formData.employeeUserId}`)
-    .then((res) => {
-      const allLeaves = res.data || [];
-      const otherLeaves = editingData ? allLeaves.filter(l => l._id !== editingData._id) : allLeaves;
+// Locate this block in your EmployeeLeaveApplication.js
+axios
+  .get(`http://localhost:5002/api/leave-application/employee/${formData.employeeUserId}`)
+  .then((res) => {
+    const allLeaves = res.data || [];
+    const otherLeaves = editingData ? allLeaves.filter(l => l._id !== editingData._id) : allLeaves;
 
-      const sickUsed = otherLeaves
-        .filter(l => 
-          l.status !== "Rejected" && 
-          l.leaveType.toUpperCase().includes("SICK") && 
-          new Date(l.fromDate) >= fyStart && new Date(l.fromDate) <= fyEnd
-        )
-        .reduce((sum, l) => sum + l.noOfDays, 0);
+    // ADD THIS NEW FILTER LOGIC HERE:
+    const sickUsed = otherLeaves
+      .filter(l => 
+        // 1. Count if it is Approved OR still Waiting (Pending)
+        (l.approveRejectedStatus === "APPROVED" || l.approveRejectedStatus === null) && 
+        // 2. Match the Leave Type
+        (l.leaveType.toUpperCase().includes("SICK") || l.leaveType.toUpperCase() === "SL") && 
+        // 3. Match the current Financial Year
+        new Date(l.fromDate) >= fyStart && new Date(l.fromDate) <= fyEnd
+      )
+      .reduce((sum, l) => sum + l.noOfDays, 0);
 
-      const casualUsed = otherLeaves
-        .filter(l => 
-          l.status !== "Rejected" && 
-          l.leaveType.toUpperCase().includes("CASUAL") && 
-          new Date(l.fromDate) >= fyStart && new Date(l.fromDate) <= fyEnd
-        )
-        .reduce((sum, l) => sum + l.noOfDays, 0);
+    const casualUsed = otherLeaves
+      .filter(l => 
+        // 1. Count if it is Approved OR still Waiting (Pending)
+        (l.approveRejectedStatus === "APPROVED" || l.approveRejectedStatus === null) && 
+        // 2. Match the Leave Type
+        (l.leaveType.toUpperCase().includes("CASUAL") || l.leaveType.toUpperCase() === "CL") && 
+        // 3. Match the current Financial Year
+        new Date(l.fromDate) >= fyStart && new Date(l.fromDate) <= fyEnd
+      )
+      .reduce((sum, l) => sum + l.noOfDays, 0);
 
-      setUsedLeaves({ sick: sickUsed, casual: casualUsed });
-    })
+    setUsedLeaves({ sick: sickUsed, casual: casualUsed });
+  })
     .catch((err) => console.error("History Fetch Error:", err));
-
-  // CHANGE: Added formData.employeeUserId to dependencies
 }, [formData.employeeUserId, formData.applicationDate, editingData]);
 
 useEffect(() => {

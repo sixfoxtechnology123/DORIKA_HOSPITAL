@@ -10,33 +10,41 @@ const leaveApplicationSchema = new mongoose.Schema(
       type: String,
       default: Date.now,
     },
-
     leaveType: { type: String, required: true },
-
+    noOfDays: { type: Number, required: true },
     leaveInHand: {
       type: Number,
       default: 0,
     },
-
     fromDate: { type: String, required: true }, // Change from Date to String
     toDate: { type: String, required: true },
-
-    noOfDays: { type: Number, required: true },
-
     reason: { type: String, default: "" },
-
-    status: {
-      type: String,
-      enum: ["PENDING", "APPROVED", "REJECTED"],
-      default: "PENDING",
+    applyStatus: { type: String, default: "PENDING" },
+    approveRejectedStatus: { type: String, default: null },
+    reportingManagerApproval: { 
+      type: String, 
+      enum: ["PENDING", "APPROVED", "REJECTED"], 
+      default: "PENDING" 
     },
-    // Inside LeaveApplication Schema
+    departmrntHeadApproval: { 
+      type: String, 
+      enum: ["PENDING", "APPROVED", "REJECTED"], 
+      default: "PENDING" 
+    },
     reportingManager: { type: String },
     reportingManagerEmpID: { type: String },
     reportingManagerEmployeeUserId: { type: String },
     departmentHead: { type: String },
     departmentHeadEmpID: { type: String },
     departmentHeadEmployeeUserId: { type: String },
+    history: [
+      {
+        role: String, // "Reporting Manager" or "Department Head"
+        userId: String,
+        status: String,
+        date: { type: Date, default: Date.now }
+      }
+    ]
   },
   { timestamps: true }
 );

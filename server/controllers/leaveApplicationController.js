@@ -36,27 +36,27 @@ export const applyLeave = async (req, res) => {
     const fyStartDate = new Date(fyStartYear, 3, 1); // April 1st
     const fyEndDate = new Date(fyStartYear + 1, 2, 31); // March 31st next year
 
-    // 3. FIX: Calculate used leaves only within THIS specific session window
-    const used = await LeaveApplication.aggregate([
-      {
-        $match: {
-          employeeId,
-          leaveType,
-          status: { $ne: "REJECTED" },
-          fromDate: { 
-            $gte: fyStartDate,
-            $lte: fyEndDate 
-          }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$noOfDays" }
-        }
+const used = await LeaveApplication.aggregate([
+  {
+    $match: {
+      employeeId,
+      leaveType,
+      approveRejectedStatus: "APPROVED", 
+      $expr: {
+        $and: [
+          { $gte: [{ $toDate: "$fromDate" }, fyStartDate] },
+          { $lte: [{ $toDate: "$fromDate" }, fyEndDate] }
+        ]
       }
-    ]);
-
+    }
+  },
+  {
+    $group: {
+      _id: null,
+      total: { $sum: "$noOfDays" }
+    }
+  }
+]);
     const usedDays = used[0]?.total || 0;
     const remaining = totalAllowed - usedDays;
 
@@ -92,17 +92,13 @@ export const applyLeave = async (req, res) => {
   }
 };
 
-// Updated Backend Controller Function
 export const getEmployeeLeaves = async (req, res) => {
   try {
-    // The param comes from the URL (:employeeId) 
-    // but now it will contain the value "EMP1"
+    
     const userIdFromParams = req.params.employeeId; 
-
-    // CHANGE HERE: Search by the field 'employeeUserId'
     const leaves = await LeaveApplication.find({ 
       employeeUserId: userIdFromParams 
-    }).sort({ createdAt: 1 });
+    }).sort({ createdAt: -1 });
     
     res.status(200).json(leaves);
   } catch (error) {
@@ -155,5 +151,79 @@ export const updateLeaveApplication = async (req, res) => {
     res.status(200).json({ message: "Leave updated successfully", leave: existingLeave });
   } catch (err) {
     res.status(500).json({ message: "Server error while updating leave" });
+  }
+};
+
+
+export const getLeavesForManagerOrDH = async (req, res) => {
+  try {
+    const { employeeUserId } = req.params;
+    const cleanId = employeeUserId.trim();
+
+    const leaves = await LeaveApplication.find({
+      $or: [
+        // 1. Reporting Manager sees leaves assigned to them
+        { reportingManagerEmployeeUserId: cleanId },
+
+        // 2. Department Head ONLY sees leaves IF RM has already APPROVED
+        { 
+          departmentHeadEmployeeUserId: cleanId, 
+          reportingManagerApproval: "APPROVED" 
+        }
+      ]
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json(leaves);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateLeaveStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, loggedInUserId } = req.body; 
+
+    const leave = await LeaveApplication.findById(id);
+    if (!leave) return res.status(404).json({ message: "Leave not found" });
+
+    // --- REMOVED: The check that blocked updates if status !== PENDING ---
+
+    let userRole = "";
+    if (leave.reportingManagerEmployeeUserId === loggedInUserId) {
+      userRole = "Reporting Manager";
+      leave.reportingManagerApproval = status;
+    } else if (leave.departmentHeadEmployeeUserId === loggedInUserId) {
+      userRole = "Department Head";
+      leave.departmrntHeadApproval = status;
+    }
+
+    if (!userRole) return res.status(403).json({ message: "Unauthorized" });
+
+    // Track history of changes
+    leave.history.push({
+      role: userRole,
+      userId: loggedInUserId,
+      status: status,
+      date: new Date()
+    });
+
+    // --- RE-CALCULATE FINAL DECISION ---
+    if (leave.reportingManagerApproval === "REJECTED" || leave.departmrntHeadApproval === "REJECTED") {
+      leave.approveRejectedStatus = "REJECTED";
+      leave.status = "REJECTED"; 
+    } else if (leave.reportingManagerApproval === "APPROVED" && leave.departmrntHeadApproval === "APPROVED") {
+      leave.approveRejectedStatus = "APPROVED";
+      leave.status = "APPROVED";
+    } else {
+      // If one is Approved and other is still Pending
+      leave.approveRejectedStatus = null;
+      leave.status = "PENDING"; 
+    }
+
+    await leave.save();
+    res.status(200).json({ message: "Decision updated", leave });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

@@ -7,7 +7,7 @@ const EmployeeDashboard = () => {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    navigate("/EmployeeHome"); // Navigate to UserProfile page
+    navigate("/EmployeeLeaveDetails"); // Navigate to UserProfile page
   };
 
   return (

@@ -120,7 +120,44 @@ const deleteLeaveApplication = async (id) => {
                     <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">{formatDDMMYYYY(leave.toDate)}</td>
                     <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">{leave.noOfDays || "-"}</td>
                     <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">{leave.reason || "-"}</td>
-                    <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">{leave.status}</td>
+                 <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 text-[10px] text-left min-w-[120px]">
+                  <div className="flex flex-col gap-0.5">
+                    {/* Reporting Manager Status */}
+                    <div className="flex justify-between">
+                      <span>Manager:</span>
+                      <span className={`font-bold ${
+                        leave.reportingManagerApproval === 'APPROVED' ? 'text-green-600' : 
+                        leave.reportingManagerApproval === 'REJECTED' ? 'text-red-600' : 'text-orange-500'
+                      }`}>
+                        {leave.reportingManagerApproval}
+                      </span>
+                    </div>
+
+                    {/* Department Head Status Logic */}
+                    <div className="flex justify-between">
+                      <span>Dept. Head:</span>
+                      <span className={`font-bold ${
+                        leave.departmrntHeadApproval === 'APPROVED' ? 'text-green-600' : 
+                        leave.departmrntHeadApproval === 'REJECTED' ? 'text-red-600' : 
+                        leave.reportingManagerApproval === 'REJECTED' ? 'text-gray-400' : 'text-orange-500'
+                      }`}>
+                        {/* NEW LOGIC: If RM rejected, show "--". Else show DH status */}
+                        {leave.reportingManagerApproval === "REJECTED" ? "--" : leave.departmrntHeadApproval}
+                      </span>
+                    </div>
+
+                    {/* Final Status */}
+                    <div className="border-t flex justify-between font-bold border-gray-300">
+                      <span className="text-gray-700">Final:</span>
+                      <span className={
+                        leave.approveRejectedStatus === 'APPROVED' ? 'text-green-700 text-xs font-bold' : 
+                        leave.approveRejectedStatus === 'REJECTED' ? 'text-red-700 text-xs font-bold' : 'text-blue-600'
+                      }>
+                        {leave.approveRejectedStatus || "WAITING"}
+                      </span>
+                    </div>
+                  </div>
+                </td>
                     <td className="border border-dorika-blue px-1 sm:px-2 py-[2px] sm:py-1 whitespace-nowrap">
                       <div className="flex justify-center gap-2 sm:gap-4">
                        {/* <button
@@ -132,12 +169,22 @@ const deleteLeaveApplication = async (id) => {
                           <FaEdit />
                         </button>*/}
                         <button
-                          onClick={() => deleteLeaveApplication(leave._id)}
-                          className="text-dorika-orange hover:text-red-700"
-                        >
-                          <FaTrash className="text-sm sm:text-base" />
-
-                        </button>
+                            onClick={() => deleteLeaveApplication(leave._id)}
+                            // DISABLE logic: disable if status is APPROVED or REJECTED
+                            disabled={leave.approveRejectedStatus === "APPROVED" || leave.approveRejectedStatus === "REJECTED"}
+                            className={`${
+                              leave.approveRejectedStatus === "APPROVED" || leave.approveRejectedStatus === "REJECTED"
+                                ? "text-gray-400 cursor-not-allowed" // Disabled style
+                                : "text-dorika-orange hover:text-red-700" // Active style
+                            }`}
+                            title={
+                              leave.approveRejectedStatus === "APPROVED" || leave.approveRejectedStatus === "REJECTED"
+                                ? "Cannot delete processed leave"
+                                : "Delete Application"
+                            }
+                          >
+                            <FaTrash className="text-sm sm:text-base" />
+                          </button>
                       </div>
                     </td>
                   </tr>
