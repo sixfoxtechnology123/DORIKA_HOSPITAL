@@ -1,4 +1,5 @@
 const Attendance = require("../models/Attendance");
+const Leave = require("../models/LeaveApplication"); // Ensure you import your Leave model
 
 const markDailyAttendance = async (req, res) => {
   try {
@@ -22,7 +23,7 @@ const markDailyAttendance = async (req, res) => {
       });
     }
 
-    // --- AUTOMATIC SCANNING LOGIC ---
+    // --- ENHANCED AUTOMATIC SCANNING LOGIC ---
     if (attendance.records.length > 0) {
       const lastRecord = attendance.records[attendance.records.length - 1];
       const lastDate = new Date(lastRecord.date);
@@ -31,28 +32,42 @@ const markDailyAttendance = async (req, res) => {
       const diffTime = todayDate - lastDate;
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-      // The computer scans every missing day here
       for (let i = 1; i < diffDays; i++) {
         const gapDate = new Date(lastDate);
         gapDate.setDate(gapDate.getDate() + i);
-        
         const gapDateStr = gapDate.toLocaleDateString('en-CA');
-        
-        // COMPUTER AUTOMATIC SCAN: .getDay() checks the calendar
+
+        // 1. Check if this gap day is a Sunday
         if (gapDate.getDay() === 0) {
-          // If the scan finds a Sunday, mark it Holiday
           attendance.records.push({
             date: gapDateStr,
             status: "Holiday",
             checkInTime: "--",
           });
         } else {
-          // If it's any other day, mark it Absent
-          attendance.records.push({
-            date: gapDateStr,
-            status: "Absent",
-            checkInTime: "--",
+          // 2. Check if there is an APPROVED leave for this gap date
+          const approvedLeave = await Leave.findOne({
+            employeeUserId: employeeUserId,
+            approveRejectedStatus: "APPROVED",
+            fromDate: { $lte: gapDateStr },
+            toDate: { $gte: gapDateStr }
           });
+
+          if (approvedLeave) {
+            // Mark as SL or CL based on the leave type
+            attendance.records.push({
+              date: gapDateStr,
+              status: approvedLeave.leaveType === "SICK" ? "SL" : "CL",
+              checkInTime: "--",
+            });
+          } else {
+            // 3. If no holiday and no leave, mark Absent
+            attendance.records.push({
+              date: gapDateStr,
+              status: "Absent",
+              checkInTime: "--",
+            });
+          }
         }
       }
     }

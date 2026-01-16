@@ -151,55 +151,68 @@ const updateLeaveStatus = async (id, status) => {
                         {(() => {
                           const isRM = leave.reportingManagerEmployeeUserId === loggedInEmployeeUserId;
                           const isDH = leave.departmentHeadEmployeeUserId === loggedInEmployeeUserId;
-                          
-                          // Identify what THIS manager decided
-                          const myDecision = isRM ? leave.reportingManagerApproval : leave.departmrntHeadApproval;
+                            // 1. Identify what THIS manager decided
+                            const myDecision = isRM ? leave.reportingManagerApproval : leave.departmrntHeadApproval;
 
-                          // Date Expiry Logic
-                          const today = new Date();
-                          today.setHours(0,0,0,0);
-                          const leaveEndDate = new Date(leave.toDate); 
-                          leaveEndDate.setHours(0,0,0,0);
-                          const isExpired = today > leaveEndDate;
+                            // 2. Date Expiry Logic
+                            const today = new Date();
+                            today.setHours(0,0,0,0);
+                            const leaveEndDate = new Date(leave.toDate); 
+                            leaveEndDate.setHours(0,0,0,0);
 
-                          return (
-                            <div className="flex flex-col items-center gap-1">
-                              <div className="flex justify-center gap-1">
-                                <button
-                                  disabled={isExpired}
-                                  onClick={() => updateLeaveStatus(leave._id, "APPROVED")}
-                                  className={`px-2 py-[1px] rounded text-[10px] text-white transition ${
-                                    isExpired ? "bg-gray-400 cursor-not-allowed" : "bg-dorika-green hover:bg-green-700"
-                                  }`}
-                                >
-                                  Approve
-                                </button>
-                                <button
-                                  disabled={isExpired}
-                                  onClick={() => updateLeaveStatus(leave._id, "REJECTED")}
-                                  className={`px-2 py-[1px] rounded text-[10px] text-white transition ${
-                                    isExpired ? "bg-gray-400 cursor-not-allowed" : "bg-dorika-orange hover:bg-red-700"
-                                  }`}
-                                >
-                                  Reject
-                                </button>
+                            const isExpired = today > leaveEndDate;
+
+                            // --- ADD THIS LINE HERE ---
+                            const isSick = leave.leaveType.toUpperCase().includes("SICK") || leave.leaveType.toUpperCase() === "SL";
+
+                            //const isSickOrCasual = ["SICK", "SL", "CASUAL", "CL"].some(type => leave.leaveType.toUpperCase().includes(type));
+                            // Only disable if it's expired AND NOT sick leave
+                            const canAction = !isExpired || isSick; 
+                            //const canAction = !isExpired || isSickOrCasual;
+
+                            return (
+                              <div className="flex flex-col items-center gap-1">
+                                <div className="flex justify-center gap-1">
+                                  <button
+                                    disabled={!canAction} // CHANGED THIS
+                                    onClick={() => updateLeaveStatus(leave._id, "APPROVED")}
+                                    className={`px-2 py-[1px] rounded text-[10px] text-white transition ${
+                                      !canAction ? "bg-gray-400 cursor-not-allowed" : "bg-dorika-green hover:bg-green-700"
+                                    }`}
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    disabled={!canAction} // CHANGED THIS
+                                    onClick={() => updateLeaveStatus(leave._id, "REJECTED")}
+                                    className={`px-2 py-[1px] rounded text-[10px] text-white transition ${
+                                      !canAction ? "bg-gray-400 cursor-not-allowed" : "bg-dorika-orange hover:bg-red-700"
+                                    }`}
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+
+                                {myDecision !== "PENDING" && (
+                                  <span className={`text-[9px] font-bold uppercase ${
+                                    myDecision === 'REJECTED' ? 'text-red-600' : 'text-green-600'
+                                  }`}>
+                                    You {myDecision}
+                                  </span>
+                                )}
+
+                                {/* CHANGED THIS: Show EXPIRED only if it's not Sick Leave */}
+                                {isExpired && !isSick && (
+                                  <span className="text-[9px] text-gray-500 font-bold">EXPIRED</span>
+                                )}
+
+                                {/* OPTIONAL: Label for backdated sick leave */}
+                                {isExpired && isSick && (
+                                  <span className="text-[9px] text-blue-500 font-bold">BACK-DATE</span>
+                                )}
                               </div>
-
-                              {/* FEEDBACK: Show what you decided in color */}
-                              {myDecision !== "PENDING" && (
-                                <span className={`text-[9px] font-bold uppercase ${
-                                  myDecision === 'REJECTED' ? 'text-red-600' : 'text-green-600'
-                                }`}>
-                                  You {myDecision}
-                                </span>
-                              )}
-
-                              {isExpired && (
-                                <span className="text-[9px] text-gray-500 font-bold">EXPIRED</span>
-                              )}
-                            </div>
-                          );
-                        })()}
+                            );
+                           })()}
                       </td>
                     </tr>
                   );

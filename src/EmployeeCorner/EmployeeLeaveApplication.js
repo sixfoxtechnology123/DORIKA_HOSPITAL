@@ -6,6 +6,12 @@ import { useLocation,useNavigate } from "react-router-dom";
 
 const formatDDMMYYYY = (date) => {
   if (!date) return "";
+  if (typeof date === 'string' && date.includes('-')) {
+    const parts = date.split('-');
+    if (parts[0].length === 4) { // YYYY-MM-DD
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+  }
   const d = new Date(date);
   if (isNaN(d.getTime())) return "";
   const day = String(d.getDate()).padStart(2, "0");
@@ -14,12 +20,12 @@ const formatDDMMYYYY = (date) => {
   return `${day}-${month}-${year}`;
 };
 
-const parseDDMMYYYY = (date) => {
-  if (!date) return null;
-  const [d, m, y] = date.split("-");
-  return new Date(y, m - 1, d);
+const parseDDMMYYYY = (dateStr) => {
+  if (!dateStr) return null;
+  // This correctly parses "DD-MM-YYYY" into a Local Date object
+  const [d, m, y] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d); // Using year, monthIndex, day constructor uses LOCAL time
 };
-
 
 const EmployeeLeaveApplication = () => {
   const navigate = useNavigate();
@@ -252,47 +258,54 @@ const getDynamicFY = (inputDate) => {
 // Locate this line in your component and update it:
 const fy = getDynamicFY(formData.applicationDate);
 
-  const handleSubmit = async () => {
+ const handleSubmit = async () => {
   if (formData.noOfDays <= 0) return toast.error("Invalid leave duration");
   
-  // NEW: Check against the calculated balance
   if (formData.noOfDays > formData.leaveInHand) {
     return toast.error(`Insufficient balance. You only have ${formData.leaveInHand} days available.`);
   }
     
-    // Final security check for logic
-    if (formData.leaveInHand === 0) return toast.error("You are not eligible for this leave type");
+  if (formData.leaveInHand === 0) return toast.error("You are not eligible for this leave type");
 
-    const dataToSubmit = {
-      employeeId: formData.employeeId,
-      employeeUserId: formData.employeeUserId,
-      employeeName: formData.employeeName,
-      applicationDate: formData.applicationDate,
-      leaveType: formData.leaveType,
-      leaveInHand: formData.leaveInHand,
-      fromDate: formData.fromDate,
-      toDate: formData.toDate,
-      noOfDays: formData.noOfDays,
-      reason: formData.reason ? formData.reason.trim() : "",
-      reportingManagerEmployeeUserId: formData.reportingManagerEmployeeUserId,
-      departmentHeadEmployeeUserId: formData.departmentHeadEmployeeUserId
-    };
-
-    try {
-      const url = isEditMode 
-        ? `http://localhost:5002/api/leave-application/${editingId}`
-        : "http://localhost:5002/api/leave-application";
-      
-      await axios[isEditMode ? "put" : "post"](url, dataToSubmit, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      toast.success("Submitted successfully!");
-      navigate("/EmployeeHome");
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Submission failed");
-    }
+  // ADD THIS HELPER HERE: Converts "15-01-2026" back to "2026-01-15" for database
+  const toISO = (dateStr) => {
+    if (!dateStr || !dateStr.includes("-")) return dateStr;
+    const parts = dateStr.split("-");
+    if (parts[0].length === 4) return dateStr; // Already YYYY-MM-DD
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
   };
+
+  const dataToSubmit = {
+    employeeId: formData.employeeId,
+    employeeUserId: formData.employeeUserId,
+    employeeName: formData.employeeName,
+    applicationDate: formData.applicationDate, 
+    leaveType: formData.leaveType,
+    leaveInHand: formData.leaveInHand,
+    // REPLACE THESE TWO LINES:
+    fromDate: toISO(formData.fromDate),
+    toDate: toISO(formData.toDate),
+    noOfDays: formData.noOfDays,
+    reason: formData.reason ? formData.reason.trim() : "",
+    reportingManagerEmployeeUserId: formData.reportingManagerEmployeeUserId,
+    departmentHeadEmployeeUserId: formData.departmentHeadEmployeeUserId
+  };
+
+  try {
+    const url = isEditMode 
+      ? `http://localhost:5002/api/leave-application/${editingId}`
+      : "http://localhost:5002/api/leave-application";
+    
+    await axios[isEditMode ? "put" : "post"](url, dataToSubmit, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    toast.success("Submitted successfully!");
+    navigate("/EmployeeHome");
+  } catch (error) {
+    toast.error(error.response?.data?.message || "Submission failed");
+  }
+};
 
   const inputClass =
   "w-full pl-2 pr-2 py-1.5 sm:py-1 border border-gray-300 rounded text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150";

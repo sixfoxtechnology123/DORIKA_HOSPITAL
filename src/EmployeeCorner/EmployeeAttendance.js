@@ -162,14 +162,16 @@ const EmployeeAttendance = () => {
                       <td className="p-3 border">{rec.checkInTime || "--"}</td>
                       <td className="p-3 border">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          rec.status === 'Present' 
-                            ? 'bg-green-100 text-green-700' 
-                            : rec.status === 'Holiday' 
-                            ? 'bg-yellow-100 text-yellow-700' 
-                            : 'bg-red-100 text-red-700' 
-                        }`}>
-                          {rec.status}
-                        </span>
+  rec.status === 'Present' 
+    ? 'bg-green-100 text-green-700' 
+    : rec.status === 'Holiday' 
+    ? 'bg-yellow-100 text-yellow-700' 
+    : (rec.status === 'SL' || rec.status === 'CL')
+    ? 'bg-purple-100 text-purple-700' // Distinct color for Leave
+    : 'bg-red-100 text-red-700' 
+}`}>
+  {rec.status}
+</span>
                       </td>
                     </tr>
                   ))
