@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import hospitalBg from "../assets/hospital.jpeg";
 
 const AdminLogin = () => {
   const [userId, setUserId] = useState("");
@@ -19,10 +20,7 @@ const AdminLogin = () => {
       const endpoint =
         loginType === "admin"
           ? "http://localhost:5002/api/adminManagement/login"
-          : "http://localhost:5002/api/employee-ids/login"; 
-
-          
-
+          : "http://localhost:5002/api/employee-ids/login";
 
       const res = await axios.post(endpoint, {
         userId: userId.trim(),
@@ -43,22 +41,22 @@ const AdminLogin = () => {
         };
 
         localStorage.setItem("token", res.data.token);
-       if (loginType === "employee") {
-  localStorage.setItem(
-    "employeeUser",
-    JSON.stringify({
-      employeeID: user.employeeID || user.employeeId, 
-      employeeUserId: user.employeeUserId,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      designation: user.designation,
-      department: user.department,
-      phone: user.phone,
-    })
-  );
-} else {
-  localStorage.setItem("adminData", JSON.stringify(userData));
-}
+        if (loginType === "employee") {
+          localStorage.setItem(
+            "employeeUser",
+            JSON.stringify({
+              employeeID: user.employeeID || user.employeeId,
+              employeeUserId: user.employeeUserId,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              designation: user.designation,
+              department: user.department,
+              phone: user.phone,
+            })
+          );
+        } else {
+          localStorage.setItem("adminData", JSON.stringify(userData));
+        }
 
         localStorage.setItem("userPermissions", JSON.stringify(userData.permissions));
 
@@ -73,7 +71,13 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="h-screen w-full flex items-center justify-center bg-gradient-to-br from-purple-900 via-indigo-900 to-black">
+    <div 
+      className="h-screen w-full flex items-center justify-center bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: `url(${hospitalBg})` }}
+    >
+      {/* Overlay to make the form stand out more against the image */}
+      <div className="absolute inset-0 bg-black/50"></div>
+
       <div className="relative z-10 bg-white/10 backdrop-blur-lg p-10 rounded-2xl shadow-2xl w-[90%] sm:w-[400px] border border-white/20">
         {/* Heading */}
         <h1 className="text-3xl font-bold text-white text-center mb-6">
@@ -140,7 +144,7 @@ const AdminLogin = () => {
             />
             <button
               type="button"
-              className="absolute right-3 top-3 text-black" 
+              className="absolute right-3 top-3 text-white" // Changed to white for better visibility
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}
