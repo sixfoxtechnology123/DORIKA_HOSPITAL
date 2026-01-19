@@ -163,12 +163,12 @@ const updateLeaveStatus = async (id, status) => {
                             const isExpired = today > leaveEndDate;
 
                             // --- ADD THIS LINE HERE ---
-                            const isSick = leave.leaveType.toUpperCase().includes("SICK") || leave.leaveType.toUpperCase() === "SL";
+                            // const isSick = leave.leaveType.toUpperCase().includes("SICK") || leave.leaveType.toUpperCase() === "SL";
 
-                            //const isSickOrCasual = ["SICK", "SL", "CASUAL", "CL"].some(type => leave.leaveType.toUpperCase().includes(type));
+                            const isSickOrCasual = ["SICK", "SL", "CASUAL", "CL"].some(type => leave.leaveType.toUpperCase().includes(type));
                             // Only disable if it's expired AND NOT sick leave
-                            const canAction = !isExpired || isSick; 
-                            //const canAction = !isExpired || isSickOrCasual;
+                            //const canAction = !isExpired || isSick; 
+                            const canAction = !isExpired || isSickOrCasual;
 
                             return (
                               <div className="flex flex-col items-center gap-1">
@@ -202,12 +202,12 @@ const updateLeaveStatus = async (id, status) => {
                                 )}
 
                                 {/* CHANGED THIS: Show EXPIRED only if it's not Sick Leave */}
-                                {isExpired && !isSick && (
+                                {isExpired && !isSickOrCasual && (
                                   <span className="text-[9px] text-gray-500 font-bold">EXPIRED</span>
                                 )}
 
                                 {/* OPTIONAL: Label for backdated sick leave */}
-                                {isExpired && isSick && (
+                                {isExpired && isSickOrCasual && (
                                   <span className="text-[9px] text-blue-500 font-bold">BACK-DATE</span>
                                 )}
                               </div>

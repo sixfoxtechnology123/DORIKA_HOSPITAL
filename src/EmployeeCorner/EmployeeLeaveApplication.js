@@ -258,11 +258,19 @@ const getDynamicFY = (inputDate) => {
 // Locate this line in your component and update it:
 const fy = getDynamicFY(formData.applicationDate);
 
- const handleSubmit = async () => {
+const handleSubmit = async () => {
   if (formData.noOfDays <= 0) return toast.error("Invalid leave duration");
   
+  // A. Check if they have enough balance (already in your code)
   if (formData.noOfDays > formData.leaveInHand) {
     return toast.error(`Insufficient balance. You only have ${formData.leaveInHand} days available.`);
+  }
+
+  const type = formData.leaveType.toUpperCase();
+  const isCasualLeave = type.includes("CASUAL") || type === "CL";
+  
+  if (isCasualLeave && formData.noOfDays > 5) {
+    return toast.error("For Casual Leave, you can only apply for a maximum of 5 days at a time.");
   }
     
   if (formData.leaveInHand === 0) return toast.error("You are not eligible for this leave type");
@@ -479,6 +487,11 @@ const fy = getDynamicFY(formData.applicationDate);
             <div className="bg-blue-50 p-2 sm:p-3 rounded-lg border border-blue-200 text-sm">
               <p className="text-blue-800 font-bold">Total Days: {formData.noOfDays}</p>
               <p className="text-sm text-blue-600">Allocation: {formData.leaveInHand} Days</p>
+              {formData.noOfDays > 5 && (formData.leaveType.toUpperCase().includes("CASUAL")) && (
+              <p className="text-[10px] text-red-600 font-bold mt-1 bg-red-50 p-1 rounded border border-red-200">
+                ⚠️ Limit: Max 5 days per application
+              </p>
+            )}
             </div>
           </div>
 

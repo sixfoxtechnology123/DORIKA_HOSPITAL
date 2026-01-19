@@ -1,20 +1,61 @@
 const Attendance = require("../models/Attendance");
 const Leave = require("../models/LeaveApplication");
+const ShiftMaster = require("../models/Shift");
+const ShiftManagement = require("../models/ShiftManagement");
+
+// --- HELPER FUNCTIONS ---
+
+const parseTimeToMinutes = (t) => {
+  if (!t || typeof t !== "string") return 0;
+  try {
+    const normalized = t.replace(".", ":");
+    const [time, modifier] = normalized.split(" ");
+    let [hours, minutes] = time.split(":").map(Number);
+    if (modifier === "PM" && hours < 12) hours += 12;
+    if (modifier === "AM" && hours === 12) hours = 0;
+    return hours * 60 + (minutes || 0);
+  } catch (e) {
+    return 0;
+  }
+};
+
+const calculateDuration = (inTime, outTime) => {
+  if (!inTime || !outTime || inTime === "--" || outTime === "--") return "--";
+  const start = parseTimeToMinutes(inTime);
+  const end = parseTimeToMinutes(outTime);
+  let diff = end - start;
+  if (diff <= 0) return "--";
+  const h = Math.floor(diff / 60);
+  const m = diff % 60;
+  return `${h}h ${m}m`;
+};
+
+// --- MAIN CONTROLLER ---
 
 const markDailyAttendance = async (req, res) => {
   try {
     const { employeeId, employeeUserId, employeeName } = req.body;
-    
+
     const now = new Date();
-    const todayStr = now.toLocaleDateString('en-CA'); 
+    const todayStr = now.toLocaleDateString('en-CA');
+    const dayKey = now.getDate();
     const currentTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-    
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const shiftMonthStr = `${monthNames[now.getMonth()]}-${now.getFullYear()}`;
+
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
-    const fy = currentMonth <= 3 ? `${currentYear-1}-${currentYear}` : `${currentYear}-${currentYear+1}`;
+    const fy = currentMonth <= 3 ? `${currentYear - 1}-${currentYear}` : `${currentYear}-${currentYear + 1}`;
 
+    // 0. Fetch Shift Management for the month (Needed for Gap Filling and Today)
+    const shiftMgmt = await ShiftManagement.findOne({ employeeUserId, month: shiftMonthStr }).lean();
+    if (!shiftMgmt) {
+      return res.status(400).json({ message: "No shift schedule found for this month in Master." });
+    }
+
+    // 1. Get/Create Attendance Record
     let attendance = await Attendance.findOne({ employeeUserId, month: currentMonth, year: currentYear });
-
     if (!attendance) {
       attendance = new Attendance({
         employeeId, employeeUserId, employeeName,
@@ -23,12 +64,13 @@ const markDailyAttendance = async (req, res) => {
       });
     }
 
-    // 1. CHECK IF USER IS MARKING "OUT" FOR TODAY
+    // 2. CHECK FOR CHECK-OUT (Already checked in today?)
     const todayIndex = attendance.records.findIndex(r => r.date === todayStr);
-
     if (todayIndex !== -1) {
-      if (attendance.records[todayIndex].checkInTime && !attendance.records[todayIndex].checkOutTime) {
-        attendance.records[todayIndex].checkOutTime = currentTime;
+      const record = attendance.records[todayIndex];
+      if (record.checkInTime && (!record.checkOutTime || record.checkOutTime === "" || record.checkOutTime === "--")) {
+        record.checkOutTime = currentTime;
+        record.workDuration = calculateDuration(record.checkInTime, currentTime);
         await attendance.save();
         return res.status(200).json({ message: "Check-out time recorded!" });
       } else {
@@ -36,65 +78,112 @@ const markDailyAttendance = async (req, res) => {
       }
     }
 
-    // 2. MARKING "IN" (GAP-FILLING LOGIC)
+    // 3. GAP-FILLING LOGIC (Shift-based, no Holidays)
     if (attendance.records.length > 0) {
       const lastRecord = attendance.records[attendance.records.length - 1];
       const lastDate = new Date(lastRecord.date);
       const todayDate = new Date(todayStr);
+      const diffDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
 
-      const diffTime = todayDate - lastDate;
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-      // This loop checks every day between the last entry and today
       for (let i = 1; i < diffDays; i++) {
         const gapDate = new Date(lastDate);
         gapDate.setDate(gapDate.getDate() + i);
         const gapDateStr = gapDate.toLocaleDateString('en-CA');
-        
-        const isSunday = gapDate.getDay() === 0;
+        const gapDayNum = gapDate.getDate();
 
-        // Check if there is an APPROVED leave for this specific gap date
+        // Get shift for this gap day from ShiftManagement
+        const gapShiftCode = shiftMgmt.shifts[gapDayNum] || shiftMgmt.shifts[gapDayNum.toString()];
+        const isOffDay = gapShiftCode === "OFF";
+
+        // Check if employee was on approved leave during this gap day
         const approvedLeave = await Leave.findOne({
-          employeeUserId: employeeUserId,
+          employeeUserId,
           approveRejectedStatus: "APPROVED",
           fromDate: { $lte: gapDateStr },
           toDate: { $gte: gapDateStr }
         });
 
-        let finalStatus = "";
+        let finalStatus = "Absent";
         if (approvedLeave) {
           const leaveCode = approvedLeave.leaveType === "SICK" ? "SL" : "CL";
-          // If it's Sunday AND employee is on Leave -> SL(Holiday)
-          finalStatus = isSunday ? `${leaveCode}(Holiday)` : leaveCode;
-        } else if (isSunday) {
-          // If it's just Sunday and NO leave -> Holiday
-          finalStatus = "Holiday";
-        } else {
-          // No leave and no Sunday -> Absent
-          finalStatus = "Absent";
+          finalStatus = isOffDay ? `${leaveCode}(OFF)` : leaveCode;
+        } else if (isOffDay) {
+          finalStatus = "OFF";
         }
 
         attendance.records.push({
           date: gapDateStr,
           status: finalStatus,
           checkInTime: "--",
-          checkOutTime: "--"
+          checkOutTime: "--",
+          workDuration: "--",
+          shiftCode: gapShiftCode || "--"
         });
       }
     }
 
-    // 3. FINALLY MARK TODAY AS PRESENT (IN-TIME)
+    // 4. TODAY'S ATTENDANCE LOGIC (STRICT WINDOW)
+    const assignedShiftCode = shiftMgmt.shifts[dayKey] || shiftMgmt.shifts[dayKey.toString()];
+    
+    if (!assignedShiftCode || assignedShiftCode === "OFF") {
+      return res.status(400).json({ 
+        message: assignedShiftCode === "OFF" ? "Today is your OFF day." : "No shift assigned for today." 
+      });
+    }
+
+    const shiftMaster = await ShiftMaster.findOne({ shiftCode: assignedShiftCode }).lean();
+    if (!shiftMaster) {
+      return res.status(400).json({ message: "Shift timing details not found." });
+    }
+
+    const startMin = parseTimeToMinutes(shiftMaster.startTime);
+    const endMin = parseTimeToMinutes(shiftMaster.endTime);
+    const currentMin = (now.getHours() * 60) + now.getMinutes();
+    
+    // Adjusted End Time for Night Shifts
+    let adjustedEndMin = endMin < startMin ? endMin + 1440 : endMin;
+
+    // --- STRICT BLOCKING ---
+    if (currentMin < startMin) {
+      return res.status(400).json({ 
+        message: `Too early! Your shift (${assignedShiftCode}) starts at ${shiftMaster.startTime}.` 
+      });
+    }
+
+    if (currentMin > adjustedEndMin) {
+      return res.status(400).json({ 
+        message: `Shift ended at ${shiftMaster.endTime}. You cannot mark attendance now.` 
+      });
+    }
+
+    // --- STATUS CALCULATION ---
+    let todayStatus = "Present";
+    const graceThreshold = startMin + 15;
+    if (currentMin > graceThreshold) {
+      todayStatus = "Absent"; // Marked Absent because they are late
+    }
+
     attendance.records.push({
       date: todayStr,
-      status: "Present",
+      status: todayStatus,
       checkInTime: currentTime,
-      checkOutTime: "" 
+      checkOutTime: "",
+      workDuration: "--",
+      shiftCode: assignedShiftCode
     });
 
     await attendance.save();
-    res.status(200).json({ message: "Check-in time recorded!" });
+
+    res.status(200).json({ 
+      message: todayStatus === "Present" 
+        ? "Check-in successful! Status: Present." 
+        : "Late Entry! You have been marked Absent.",
+      status: todayStatus 
+    });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("ATTENDANCE_ERROR:", error); 
+    return res.status(500).json({ message: "Server Error: " + error.message });
   }
 };
 

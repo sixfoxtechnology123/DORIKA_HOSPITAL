@@ -10,6 +10,27 @@ const formatDateDisplay = (dateStr) => {
   return `${d}-${m}-${y}`; // Returns DD-MM-YYYY
 };
 
+const calculateWorkTime = (inTime, outTime) => {
+  if (!inTime || !outTime || inTime === "--" || outTime === "--") return "--";
+
+  const parseTime = (t) => {
+    const [time, modifier] = t.split(" ");
+    let [hours, minutes] = time.split(":").map(Number);
+    if (modifier === "PM" && hours < 12) hours += 12;
+    if (modifier === "AM" && hours === 12) hours = 0;
+    return hours * 60 + minutes;
+  };
+
+  try {
+    const diff = parseTime(outTime) - parseTime(inTime);
+    if (diff <= 0) return "--"; 
+    const h = Math.floor(diff / 60);
+    const m = diff % 60;
+    return `${h}h ${m}m`;
+  } catch (e) {
+    return "--";
+  }
+};
 const EmployeeAttendance = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -69,25 +90,33 @@ const EmployeeAttendance = () => {
       return;
     }
 
-    setLoading(true);
-    try {
-      const storageName = `${loggedUser.firstName || ""} ${loggedUser.lastName || ""}`.trim();
-      const nameToStore = employeeFullName || storageName || loggedUser.employeeUserId;
+  setLoading(true);
+  try {
+    const storageName = `${loggedUser.firstName || ""} ${loggedUser.lastName || ""}`.trim();
+    const nameToStore = employeeFullName || storageName || loggedUser.employeeUserId;
 
-      await axios.post("http://localhost:5002/api/attendance/mark", {
-        employeeId: loggedUser.employeeID,
-        employeeUserId: loggedUser.employeeUserId,
-        employeeName: nameToStore,
-      });
-      
-      toast.success(`${hasIn ? "Out-time" : "In-time"} marked successfully!`);
-      fetchHistory();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Error marking attendance");
-    } finally {
-      setLoading(false);
+    const res = await axios.post("http://localhost:5002/api/attendance/mark", {
+      employeeId: loggedUser.employeeID,
+      employeeUserId: loggedUser.employeeUserId,
+      employeeName: nameToStore,
+    });
+    
+    // Check if the backend returned a successful save but with an "Absent" status
+    if (res.data.status === "Absent") {
+      toast.error(res.data.message, { duration: 5000 }); // Red toast for late entry
+    } else {
+      toast.success(res.data.message); // Green toast for "Present" or "Out"
     }
-  };
+
+    fetchHistory();
+  } catch (err) {
+    // This catches the 400 error (Too Early / No Shift) and shows the backend message
+    const errorMsg = err.response?.data?.message || "Error marking attendance";
+    toast.error(errorMsg);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const filteredRecords = history.length > 0 
     ? history[0].records.filter(rec => rec.date.startsWith(selectedMonth))
@@ -139,44 +168,79 @@ const EmployeeAttendance = () => {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-center">
-              <thead className="bg-gray-100 text-gray-700">
-                <tr>
-                  <th className="p-3 border">Date (DD-MM-YYYY)</th>
-                  <th className="p-3 border">In Time</th>
-                  <th className="p-3 border">Out Time</th>
-                  <th className="p-3 border">Status</th>
-                </tr>
-              </thead>
-              <tbody>
+          <thead className="bg-gray-100 text-gray-700">
+            <tr>
+              <th className="p-3 border">Date (DD-MM-YYYY)</th>
+              <th className="p-3 border">Shift</th> {/* ADDED */}
+              <th className="p-3 border">In Time</th>
+              <th className="p-3 border">Out Time</th>
+              <th className="p-3 border text-blue-600">Total Work Time</th>
+              <th className="p-3 border">Status</th>
+            </tr>
+          </thead>
+            <tbody>
                 {filteredRecords.length > 0 ? (
-                  filteredRecords.slice().reverse().map((rec, index) => (
-                    <tr 
-                      key={index} 
-                      className={`border-b ${rec.status.includes('Holiday') ? 'bg-yellow-50' : 'hover:bg-blue-50'}`}
-                    >
-                      <td className="p-3 border font-medium">
-                        {formatDateDisplay(rec.date)}
-                      </td>
-                      <td className="p-3 border">{rec.checkInTime || "--"}</td>
-                      <td className="p-3 border">{rec.checkOutTime || "--"}</td>
-                      <td className="p-3 border">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          rec.status === 'Present' 
-                            ? 'bg-green-100 text-green-700' 
-                            : rec.status.includes('Holiday')
-                            ? 'bg-yellow-100 text-yellow-700' 
-                            : (rec.status.includes('SL') || rec.status.includes('CL'))
-                            ? 'bg-purple-100 text-purple-700' 
-                            : 'bg-red-100 text-red-700' 
-                        }`}>
+                  filteredRecords.slice().reverse().map((rec, index) => {
+                    // Calculate work duration for this row
+                    const workTime = calculateWorkTime(rec.checkInTime, rec.checkOutTime);
+
+                    return (
+                      <tr 
+                        key={index} 
+                        className={`border-b ${rec.status.includes('Holiday') ? 'bg-yellow-50' : 'hover:bg-blue-50'}`}
+                      >
+                        {/* 1. Date Column */}
+                        <td className="p-3 border font-medium">
+                          {formatDateDisplay(rec.date)}
+                        </td>
+
+                        {/* 2. Shift Code Column (Added based on your new logic) */}
+                        <td className="p-3 border font-bold text-indigo-600">
+                          {rec.shiftCode || "--"}
+                        </td>
+
+                        {/* 3. Times Columns */}
+                        <td className="p-3 border">{rec.checkInTime || "--"}</td>
+                        <td className="p-3 border">{rec.checkOutTime || "--"}</td>
+                        
+                        {/* 4. Work Duration */}
+                        <td className="p-3 border font-bold text-gray-700">
+                          {workTime}
+                        </td>
+
+                     <td className="p-3 border">
+                        <div className="flex flex-col items-center justify-center gap-1">
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            rec.status === 'Present' 
+                              ? 'bg-green-100 text-green-700' 
+                              : rec.status === 'Absent' 
+                                ? 'bg-red-100 text-red-700'
+                                : rec.status === 'OFF' || rec.status.includes('(OFF)')
+                                  ? 'bg-blue-100 text-blue-700 border border-blue-200' // Blue for OFF days
+                                  : rec.status.includes('SL') 
+                                    ? 'bg-purple-100 text-purple-700' // Purple for Sick Leave
+                                    : rec.status.includes('CL')
+                                      ? 'bg-orange-100 text-orange-700' // Orange for Casual Leave
+                                      : 'bg-gray-100 text-gray-700'
+                          }`}>
                             {rec.status}
-                        </span>
+                          </span>
+
+                          {/* Late Entry Warning */}
+                          {rec.status === 'Absent' && rec.checkInTime && rec.checkInTime !== "--" && (
+                            <span className="text-[10px] text-red-500 font-bold uppercase tracking-tighter">
+                              Late Entry
+                            </span>
+                          )}
+                        </div>
                       </td>
-                    </tr>
-                  ))
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
-                    <td colSpan="4" className="p-10 text-gray-400 italic">No attendance records found for this period.</td>
+                    {/* Increased colSpan to 6 because we added the 'Shift' column */}
+                    <td colSpan="6" className="p-10 text-gray-400 italic">No records found.</td>
                   </tr>
                 )}
               </tbody>
