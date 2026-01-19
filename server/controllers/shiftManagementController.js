@@ -48,6 +48,7 @@ exports.saveBulkShifts = async (req, res) => {
         update: {
           $set: {
             employeeName: item.employeeName,
+            employeeUserId: item.employeeUserId,
             designation: item.designation,
             shifts: item.shifts,
           },

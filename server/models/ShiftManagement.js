@@ -6,6 +6,10 @@ const shiftManagementSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    employeeUserId: {
+       type: String, 
+       required: true 
+      },
      employeeName:
       {
          type: String, 

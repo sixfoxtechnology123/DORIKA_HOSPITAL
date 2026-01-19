@@ -6,10 +6,6 @@ import { useNavigate } from "react-router-dom";
 import Pagination from "./Pagination";
 import toast from "react-hot-toast";
 
-
-
-
-
 const ShiftManagement = () => {
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
@@ -32,7 +28,7 @@ useEffect(() => {
      const options = res.data
       .filter(s => s.status === "Active")
       .map(s => ({
-        code: s.shiftName.charAt(0).toUpperCase(), // M, N
+       code: s.shiftCode, // M, N
         name: s.shiftName,                         // MORNING
         start: s.startTime,                        // 02.36 AM
         end: s.endTime                             // 06.40 AM
@@ -103,7 +99,7 @@ useEffect(() => {
 
       const formatted = {};
       res.data.forEach((item) => {
-        formatted[item.employeeID] = item.shifts || {};
+        formatted[item.employeeUserId] = item.shifts || {};
       });
 
       setShifts(formatted);
@@ -134,16 +130,17 @@ useEffect(() => {
 
 const handleShiftChange = (emp, day, value) => {
   const updatedShifts = {
-    ...(shifts[emp.employeeID] || {}),
+    // CHANGE: Use employeeUserId here
+    ...(shifts[emp.employeeUserId] || {}), 
     [day]: value,
   };
 
   setShifts((prev) => ({
     ...prev,
-    [emp.employeeID]: updatedShifts,
+    // CHANGE: Use employeeUserId here
+    [emp.employeeUserId]: updatedShifts,
   }));
 };
-
         const startIndex = (currentPage - 1) * perPage;
         const paginatedEmployees = filteredEmployees.slice(
         startIndex,
@@ -157,21 +154,26 @@ const handleSubmit = async () => {
       return new Date(y, m - 1).toLocaleString("en-US", { month: "short" }) + "-" + y;
     };
 
-    const dataToSave = filteredEmployees
-      .map(emp => {
-        const empShifts = shifts[emp.employeeID] || {};
-        const nonEmptyShifts = Object.fromEntries(
-          Object.entries(empShifts).filter(([_, shift]) => shift)
-        );
-        if (Object.keys(nonEmptyShifts).length === 0) return null;
-        return {
-          employeeID: emp.employeeID,
-          employeeName: `${emp.firstName} ${emp.middleName} ${emp.lastName}`,
-          designation: emp.designationName,
-          shifts: nonEmptyShifts,
-        };
-      })
-      .filter(Boolean);
+const dataToSave = filteredEmployees
+  .map(emp => {
+    // CHANGE: Use employeeUserId
+    const empShifts = shifts[emp.employeeUserId] || {}; 
+    
+    const nonEmptyShifts = Object.fromEntries(
+      Object.entries(empShifts).filter(([_, shift]) => shift)
+    );
+    
+    if (Object.keys(nonEmptyShifts).length === 0) return null;
+    
+    return {
+      employeeID: emp.employeeID,
+      employeeUserId: emp.employeeUserId, // Keep this
+      employeeName: `${emp.firstName} ${emp.middleName} ${emp.lastName}`,
+      designation: emp.designationName,
+      shifts: nonEmptyShifts,
+    };
+  })
+  .filter(Boolean);
 
     if (dataToSave.length === 0) {
       toast.error("No shifts to save ❌");
@@ -358,9 +360,9 @@ const handlePrint = () => {
             </tr>
           </thead>
           <tbody>
-          {paginatedEmployees.map((emp, index) => (
-              <tr key={emp.employeeID}
-                    className={`${getRowColor(index)} transition`}>
+        
+                {paginatedEmployees.map((emp, index) => (
+                  <tr key={emp.employeeUserId} className={`${getRowColor(index)} transition`}>
                      <td className="border px-2 py-1 border-dorika-blue text-center">
                     <input
                       type="checkbox"
@@ -381,18 +383,20 @@ const handlePrint = () => {
                 <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.firstName} {emp.middleName} {emp.lastName}</td>
                 <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.designationName}</td>
                 {daysInMonth.map((day) => (
-                 <td
-                      key={day}
-                      className={`border border-dorika-blue px-1 py-1 text-center ${getShiftColor(
-                        shifts?.[emp.employeeID]?.[day],
-                        index
-                      )}`}
-                    >
+                <td
+                  key={day}
+                  className={`border border-dorika-blue px-1 py-1 text-center ${getShiftColor(
+                    // CHANGE 1: Use employeeUserId
+                    shifts?.[emp.employeeUserId]?.[day], 
+                    index
+                  )}`}
+                >
                   <select
-                        value={shifts?.[emp.employeeID]?.[day] || ""}
-                        onChange={(e) => handleShiftChange(emp, day, e.target.value)}
-                        className="bg-transparent border rounded px-1 py-0.5 text-xs font-semibold"
-                      >
+                    // CHANGE 2: Use employeeUserId
+                    value={shifts?.[emp.employeeUserId]?.[day] || ""} 
+                    onChange={(e) => handleShiftChange(emp, day, e.target.value)}
+                    className="bg-transparent border rounded px-1 py-0.5 text-xs font-semibold"
+                  >
 
                       <option value="">-</option>
                         {shiftOptions.map((opt) => (
