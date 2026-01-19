@@ -11,6 +11,7 @@ const ShiftMaster = () => {
   const [shift, setShift] = useState({
     _id: "",
     shiftID: "",
+    shiftCode: "",
     shiftName: "",
     startTime: "",
     endTime: "",
@@ -41,6 +42,7 @@ const ShiftMaster = () => {
       setShift({
         _id: s._id,
         shiftID: s.shiftID,   // fixed → always existing id
+        shiftCode: s.shiftCode || "",
         shiftName: s.shiftName || "",
         startTime: to24Hour(s.startTime) || "",
         endTime: to24Hour(s.endTime) || "",
@@ -152,9 +154,20 @@ const to24Hour = (time12) => {
                 placeholder="eg-MORNING, NIGHT, GENERAL"
                 required
               />
-
           </div>
-
+          <div>
+                <label className="block font-medium">Shift Code</label>
+                <input
+                  type="text"
+                  name="shiftCode"
+                  value={shift.shiftCode}
+                  onChange={(e) => setShift({...shift, shiftCode: e.target.value.toUpperCase()})}
+                  placeholder="eg: M, N, E"
+                  required
+                  maxLength={5}
+                  className="w-full pl-2 py-1 border border-gray-300 rounded text-sm font-medium focus:ring-2 focus:ring-sky-400 focus:outline-none"
+                />
+              </div>
           <div>
             <label className="block font-medium">Start Time</label>
             <input
@@ -187,7 +200,6 @@ const to24Hour = (time12) => {
               value={shift.breakDuration}
               onChange={handleChange}
               className="w-full pl-2 pr-1 py-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
-              required
             />
           </div>
 

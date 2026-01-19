@@ -16,6 +16,7 @@ const attendanceSchema = new mongoose.Schema({
       date: { type: String },         // "2026-01-15"
       status: { type: String, default: "Present" }, 
       checkInTime: { type: String },
+      checkOutTime: { type: String },
       source: { type: String, default: "Web" }
     }
   ]

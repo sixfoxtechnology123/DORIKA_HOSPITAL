@@ -26,7 +26,8 @@ exports.getNextShiftID = async (req, res) => {
 // Create shift
 exports.createShift = async (req, res) => {
   try {
-    const { shiftName, startTime, endTime, breakDuration, status } = req.body;
+    // 1. ADD shiftCode here in the destructuring
+    const { shiftName, shiftCode, startTime, endTime, breakDuration, status } = req.body;
 
     // Check duplicate by shiftName
     const existingShift = await Shift.findOne({ shiftName });
@@ -40,9 +41,10 @@ exports.createShift = async (req, res) => {
     const newShift = new Shift({
       shiftID: newId,
       shiftName,
+      shiftCode, // Now this variable is defined!
       startTime,
       endTime,
-      breakDuration,
+      breakDuration: breakDuration || 0,
       status,
     });
 
@@ -51,7 +53,7 @@ exports.createShift = async (req, res) => {
     // Log activity
     try {
       await Activity.create({
-        text: `Shift created: ${shiftName} (${newId})`,
+        text: `Shift created: ${shiftName} (${newId}) with Code: ${shiftCode}`,
         createdAt: new Date(),
       });
     } catch (err) {
@@ -60,7 +62,9 @@ exports.createShift = async (req, res) => {
 
     res.status(201).json(newShift);
   } catch (err) {
-    res.status(500).json({ error: "Failed to create shift" });
+    // 2. Log the actual error to your terminal so you can see it
+    console.error("Backend Error:", err); 
+    res.status(500).json({ error: "Failed to create shift: " + err.message });
   }
 };
 
