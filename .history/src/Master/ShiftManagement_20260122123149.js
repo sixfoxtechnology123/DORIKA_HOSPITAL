@@ -84,40 +84,33 @@ useEffect(() => {
     fetchDesignations();
   }, []);
 
-  useEffect(() => {
-    const fetchShifts = async () => {
-      try {
-        const formatMonth = (ym) => {
-          const [y, m] = ym.split("-");
-          return new Date(y, m - 1).toLocaleString("en-US", { month: "short" }) + "-" + y;
-        };
-  
-        const res = await axios.get(
-          `http://localhost:5002/api/shift-management/${formatMonth(selectedMonth)}`
-        );
-  
-        const formatted = {};
-        res.data.forEach((item) => {
-          const processedShifts = {};
-          // Convert stored "MG" back to "DD:MG" for the UI
-          Object.entries(item.shifts || {}).forEach(([day, code]) => {
-            if (code.length === 2 && code !== "DD" && code !== "OFF") {
-              processedShifts[day] = `DD:${code}`;
-            } else {
-              processedShifts[day] = code;
-            }
-          });
-          formatted[item.employeeUserId] = processedShifts;
-        });
-  
-        setShifts(formatted);
-      } catch (err) {
-        console.error("Shift fetch error:", err);
-        setShifts({});
-      }
-    };
-    fetchShifts();
-  }, [selectedMonth]);
+useEffect(() => {
+  const fetchShifts = async () => {
+    try {
+      // convert selectedMonth to same format as saved month
+      const formatMonth = (ym) => {
+        const [y, m] = ym.split("-");
+        return new Date(y, m - 1).toLocaleString("en-US", { month: "short" }) + "-" + y;
+      };
+
+      const res = await axios.get(
+        `http://localhost:5002/api/shift-management/${formatMonth(selectedMonth)}`
+      );
+
+      const formatted = {};
+      res.data.forEach((item) => {
+        formatted[item.employeeUserId] = item.shifts || {};
+      });
+
+      setShifts(formatted);
+    } catch (err) {
+      console.error("Shift fetch error:", err);
+      setShifts({});
+    }
+  };
+
+  fetchShifts();
+}, [selectedMonth]);
 
 
   /* ================= DAYS IN MONTH ================= */
@@ -179,10 +172,7 @@ const dataToSave = filteredEmployees
     const empShifts = shifts[emp.employeeUserId] || {}; 
     
     const nonEmptyShifts = Object.fromEntries(
-      Object.entries(empShifts).map(([day, val]) => [
-        day,
-        val.startsWith("DD:") ? val.replace("DD:", "") : val
-      ]).filter(([_, shift]) => shift)
+      Object.entries(empShifts).filter(([_, shift]) => shift)
     );
     
     if (Object.keys(nonEmptyShifts).length === 0) return null;
@@ -405,78 +395,55 @@ const handlePrint = () => {
                 <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.firstName} {emp.middleName} {emp.lastName}</td>
                 <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.designationName}</td>
                 {daysInMonth.map((day) => {
-                const currentShift = shifts?.[emp.employeeUserId]?.[day] || "";
-                const isDD = currentShift.startsWith("DD:");
-                const ddParts = isDD ? currentShift.replace("DD:", "").split("") : ["", ""];
+  const currentShift = shifts?.[emp.employeeUserId]?.[day] || "";
+  const isDD = currentShift.startsWith("DD:");
+  const ddParts = isDD ? currentShift.replace("DD:", "").split("") : ["", ""];
 
-                return (
-                  <td
-                    key={day}
-                    // Added min-width and horizontal padding
-                    className={`border border-dorika-blue px-1 py-2 text-center min-w-[60px] ${getShiftColor(isDD ? "DD" : currentShift, index)}`}
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                    <select
-                        value={isDD ? "DD" : currentShift}
-                        onChange={(e) => handleShiftChange(emp, day, e.target.value)}
-                        className="bg-transparent border rounded px-1 py-0.5 text-xs font-semibold w-full cursor-pointer"
-                      >
-                        <option value="">-</option>
-                        {shiftOptions.map((opt) => (
-                          <option 
-                            key={opt.code} 
-                            value={opt.code}
-                            // ADD THIS TITLE TAG HERE
-                            title={opt.name && opt.start ? `${opt.name}: ${opt.start} - ${opt.end}` : opt.name}
-                          >
-                            {opt.code}
-                          </option>
-                        ))}
-                      </select>
+  return (
+    <td
+      key={day}
+      className={`border border-dorika-blue px-1 py-1 text-center ${getShiftColor(isDD ? "DD" : currentShift, index)}`}
+    >
+      <div className="flex flex-col items-center gap-1">
+        <select
+          value={isDD ? "DD" : currentShift}
+          onChange={(e) => handleShiftChange(emp, day, e.target.value)}
+          className="bg-transparent border rounded px-1 py-0.5 text-xs font-semibold w-full"
+        >
+          <option value="">-</option>
+          {shiftOptions.map((opt) => (
+            <option key={opt.code} value={opt.code}>{opt.code}</option>
+          ))}
+        </select>
 
-                      {isDD && (
-                        <div className="flex items-center gap-1 border-t pt-1 border-dorika-blue w-full justify-center">
-                          {/* First DD Box */}
-                          <select
-                            value={ddParts[0]}
-                            onChange={(e) => handleShiftChange(emp, day, e.target.value, false)}
-                            className="bg-white border rounded text-[10px] w-10 px-0.5 font-bold"
-                          >
-                            {shiftOptions.filter(o => o.code !== "OFF" && o.code !== "DD").map(opt => (
-                              <option 
-                                key={opt.code} 
-                                value={opt.code} 
-                                title={`${opt.name}: ${opt.start} - ${opt.end}`} // ADDED
-                              >
-                                {opt.code}
-                              </option>
-                            ))}
-                          </select>
-
-                          <span className="text-[10px] font-bold">+</span>
-
-                          {/* Second DD Box */}
-                          <select
-                            value={ddParts[1]}
-                            onChange={(e) => handleShiftChange(emp, day, e.target.value, true)}
-                            className="bg-white border rounded text-[10px] w-10 px-0.5 font-bold"
-                          >
-                            {shiftOptions.filter(o => o.code !== "OFF" && o.code !== "DD").map(opt => (
-                              <option 
-                                key={opt.code} 
-                                value={opt.code} 
-                                title={`${opt.name}: ${opt.start} - ${opt.end}`} // ADDED
-                              >
-                                {opt.code}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                );
-              })}
+        {/* Sub-dropdowns for DD */}
+        {isDD && (
+          <div className="flex items-center gap-1 border-t pt-1 border-dorika-blue">
+            <select
+              value={ddParts[0]}
+              onChange={(e) => handleShiftChange(emp, day, e.target.value, false)}
+              className="bg-white border rounded text-[10px] w-8"
+            >
+              {shiftOptions.filter(o => o.code !== "OFF" && o.code !== "DD").map(opt => (
+                <option key={opt.code} value={opt.code}>{opt.code}</option>
+              ))}
+            </select>
+            <span className="text-[10px]">+</span>
+            <select
+              value={ddParts[1]}
+              onChange={(e) => handleShiftChange(emp, day, e.target.value, true)}
+              className="bg-white border rounded text-[10px] w-8"
+            >
+              {shiftOptions.filter(o => o.code !== "OFF" && o.code !== "DD").map(opt => (
+                <option key={opt.code} value={opt.code}>{opt.code}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+    </td>
+  );
+})}
               </tr>
             ))}
           </tbody>

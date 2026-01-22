@@ -86,8 +86,7 @@ const AdminLogin = () => {
         </h2>
         <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-purple-500 to-transparent mt-1"></div>
       </div>
-       {/* Heading */}
-       <h1 className="text-lg font-semibold text-white/90 text-center mb-2">
+        <h1 className="text-3xl font-bold text-white text-center mb-6">
           {loginType === "admin" ? "Admin Login" : "Employee Login"}
         </h1>
 

@@ -436,39 +436,24 @@ const handlePrint = () => {
 
                       {isDD && (
                         <div className="flex items-center gap-1 border-t pt-1 border-dorika-blue w-full justify-center">
-                          {/* First DD Box */}
                           <select
                             value={ddParts[0]}
                             onChange={(e) => handleShiftChange(emp, day, e.target.value, false)}
+                            // Width adjusted to w-10 for better visibility of N, M, E
                             className="bg-white border rounded text-[10px] w-10 px-0.5 font-bold"
                           >
                             {shiftOptions.filter(o => o.code !== "OFF" && o.code !== "DD").map(opt => (
-                              <option 
-                                key={opt.code} 
-                                value={opt.code} 
-                                title={`${opt.name}: ${opt.start} - ${opt.end}`} // ADDED
-                              >
-                                {opt.code}
-                              </option>
+                              <option key={opt.code} value={opt.code}>{opt.code}</option>
                             ))}
                           </select>
-
                           <span className="text-[10px] font-bold">+</span>
-
-                          {/* Second DD Box */}
                           <select
                             value={ddParts[1]}
                             onChange={(e) => handleShiftChange(emp, day, e.target.value, true)}
                             className="bg-white border rounded text-[10px] w-10 px-0.5 font-bold"
                           >
                             {shiftOptions.filter(o => o.code !== "OFF" && o.code !== "DD").map(opt => (
-                              <option 
-                                key={opt.code} 
-                                value={opt.code} 
-                                title={`${opt.name}: ${opt.start} - ${opt.end}`} // ADDED
-                              >
-                                {opt.code}
-                              </option>
+                              <option key={opt.code} value={opt.code}>{opt.code}</option>
                             ))}
                           </select>
                         </div>

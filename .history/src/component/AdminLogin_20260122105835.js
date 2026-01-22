@@ -82,12 +82,11 @@ const AdminLogin = () => {
       <div className="relative z-10 bg-white/10 backdrop-blur-xl py-3 px-8 rounded-2xl shadow-2xl w-[90%] sm:w-[420px] border border-white/20">
       <div className="text-center mb-1">
         <h2 className="text-2xl font-black text-white tracking-tighter sm:tracking-normal drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
-         DORIKA HOSPITAL
+         NETRAPEDIA EYE HOSPITAL
         </h2>
         <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-purple-500 to-transparent mt-1"></div>
       </div>
-       {/* Heading */}
-       <h1 className="text-lg font-semibold text-white/90 text-center mb-2">
+        <h1 className="text-3xl font-bold text-white text-center mb-6">
           {loginType === "admin" ? "Admin Login" : "Employee Login"}
         </h1>
 
