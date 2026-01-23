@@ -12,6 +12,7 @@ const formatDateDisplay = (dateStr) => {
 
 
 
+
 const EmployeeAttendance = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -165,7 +166,13 @@ const EmployeeAttendance = () => {
           <tbody>
                 {filteredRecords.length > 0 ? (
                   filteredRecords.slice().reverse().map((rec, index) => {
-                   
+                    // Keep your official calculation for the "Shift Work Time" column
+                    const shiftWorkTime = calculateWorkTime(
+                      rec.checkInTime, 
+                      rec.checkOutTime, 
+                      rec.shiftStartTime, 
+                      rec.shiftEndTime
+                    );
 
                     return (
                       <tr 
@@ -189,27 +196,20 @@ const EmployeeAttendance = () => {
                           {rec.actualWorkDuration || "--"}
                         </td>
 
-                       <td className="p-3 border">
-                        <div className="flex flex-col items-center justify-center gap-1">
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            rec.status === 'Present' ? 'bg-green-100 text-green-700' :
-                            rec.status === 'Absent'  ? 'bg-red-100 text-red-700' :
-                            rec.status === 'OFF'     ? 'bg-gray-100 text-gray-700' :
-                            rec.status.includes('SL') ? 'bg-orange-100 text-orange-700' :
-                            rec.status.includes('CL') ? 'bg-blue-100 text-blue-700' :
-                            'bg-yellow-100 text-yellow-700' // Default for Holidays or others
-                          }`}>
-                            {rec.status}
-                          </span>
-                          
-                          {/* Late Entry Indicator */}
-                          {(rec.isLateEntry || (rec.status === 'Present' && rec.isLate)) && (
-                            <span className="text-[10px] text-red-500 font-bold uppercase animate-pulse">
-                              Late Entry
+                        <td className="p-3 border">
+                          <div className="flex flex-col items-center justify-center gap-1">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              rec.status === 'Present' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {rec.status}
                             </span>
-                          )}
-                        </div>
-                      </td>
+                            {(rec.isLateEntry || (rec.status === 'Present' && rec.isLate)) && (
+                              <span className="text-[10px] text-red-500 font-bold uppercase animate-pulse">
+                                Late Entry
+                              </span>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })

@@ -19,37 +19,31 @@ const parseTimeToMinutes = (t) => {
   }
 };
 
-const calculateActualDuration = (inTime, outTime) => {
-  if (!inTime || !outTime || inTime === "--" || outTime === "--" || outTime === "") return "--";
-  const start = parseTimeToMinutes(inTime);
-  let end = parseTimeToMinutes(outTime);
-  
-  // Handle midnight crossing for actual punch
-  if (end < start) end += 1440;
-  
-  const diff = end - start;
-  const h = Math.floor(diff / 60);
-  const m = diff % 60;
-  return `${h}h ${m}m`;
-};
+const calculateDuration = (actualIn, actualOut, shiftStart, shiftEnd) => {
+  if (!actualIn || !actualOut || actualIn === "--" || actualOut === "--" || !shiftStart || !shiftEnd) return "--";
 
-const calculateDuration = (shiftStart, shiftEnd) => {
-  if (!shiftStart || !shiftEnd || shiftStart === "--" || shiftEnd === "--") return "--";
-
+  const actInMin = parseTimeToMinutes(actualIn);
+  const actOutMin = parseTimeToMinutes(actualOut);
   const shStartMin = parseTimeToMinutes(shiftStart);
   let shEndMin = parseTimeToMinutes(shiftEnd);
 
-  // Handle midnight crossing for Shift
+  // Handle midnight crossing
   if (shEndMin < shStartMin) shEndMin += 1440;
-  
-  const diff = shEndMin - shStartMin;
-  if (diff <= 0) return "--";
+  let adjustedOutMin = actOutMin;
+  if (actOutMin < actInMin) adjustedOutMin += 1440;
 
+  // --- Rule for IN ---
+  let finalStart = (actInMin >= shStartMin - 15 && actInMin <= shStartMin + 15) ? shStartMin : actInMin;
+
+  // --- Rule for OUT ---
+  let finalEnd = (adjustedOutMin >= shEndMin && adjustedOutMin <= shEndMin + 30) ? shEndMin : adjustedOutMin;
+
+  const diff = finalEnd - finalStart;
+  if (diff <= 0) return "--";
   const h = Math.floor(diff / 60);
   const m = diff % 60;
   return `${h}h ${m}m`;
 };
-
 // --- MAIN CONTROLLER ---
 
 const markDailyAttendance = async (req, res) => {
@@ -68,7 +62,7 @@ const markDailyAttendance = async (req, res) => {
     const currentYear = now.getFullYear();
     const fy = currentMonth <= 3 ? `${currentYear - 1}-${currentYear}` : `${currentYear}-${currentYear + 1}`;
 
-    // 0. Fetch Shift Management for the month
+    // 0. Fetch Shift Management for the month (Needed for Gap Filling and Today)
     const shiftMgmt = await ShiftManagement.findOne({ employeeUserId, month: shiftMonthStr }).lean();
     if (!shiftMgmt) {
       return res.status(400).json({ message: "No shift schedule found for this month in Master." });
@@ -84,18 +78,20 @@ const markDailyAttendance = async (req, res) => {
       });
     }
 
-    // 2. CHECK FOR CHECK-OUT
+ // 2. CHECK FOR CHECK-OUT
     const todayIndex = attendance.records.findIndex(r => r.date === todayStr);
     if (todayIndex !== -1) {
       const record = attendance.records[todayIndex];
       if (record.checkInTime && (!record.checkOutTime || record.checkOutTime === "" || record.checkOutTime === "--")) {
         record.checkOutTime = currentTime;
         
-        // workDuration: Strictly Shift End - Shift Start
-        record.workDuration = calculateDuration(record.shiftStartTime, record.shiftEndTime);
-
-        // actualWorkDuration: Strictly Punch Out - Punch In
-        record.actualWorkDuration = calculateActualDuration(record.checkInTime, currentTime);
+        // Pass stored shiftStartTime and shiftEndTime
+        record.workDuration = calculateDuration(
+          record.checkInTime, 
+          currentTime, 
+          record.shiftStartTime, 
+          record.shiftEndTime
+        );
 
         await attendance.save();
         return res.status(200).json({ message: "Check-out time recorded!" });
@@ -104,7 +100,7 @@ const markDailyAttendance = async (req, res) => {
       }
     }
 
-    // 3. GAP-FILLING LOGIC
+    // 3. GAP-FILLING LOGIC (Shift-based, no Holidays)
     if (attendance.records.length > 0) {
       const lastRecord = attendance.records[attendance.records.length - 1];
       const lastDate = new Date(lastRecord.date);
@@ -117,9 +113,11 @@ const markDailyAttendance = async (req, res) => {
         const gapDateStr = gapDate.toLocaleDateString('en-CA');
         const gapDayNum = gapDate.getDate();
 
+        // Get shift for this gap day from ShiftManagement
         const gapShiftCode = shiftMgmt.shifts[gapDayNum] || shiftMgmt.shifts[gapDayNum.toString()];
         const isOffDay = gapShiftCode === "OFF";
 
+        // Check if employee was on approved leave during this gap day
         const approvedLeave = await Leave.findOne({
           employeeUserId,
           approveRejectedStatus: "APPROVED",
@@ -141,13 +139,11 @@ const markDailyAttendance = async (req, res) => {
           checkInTime: "--",
           checkOutTime: "--",
           workDuration: "--",
-          actualWorkDuration: "--",
           shiftCode: gapShiftCode || "--"
         });
       }
     }
-
-    // 4. TODAY'S ATTENDANCE LOGIC
+// 4. TODAY'S ATTENDANCE LOGIC
     const assignedShiftCode = shiftMgmt.shifts[dayKey] || shiftMgmt.shifts[dayKey.toString()];
     
     if (!assignedShiftCode || assignedShiftCode === "OFF") {
@@ -158,18 +154,22 @@ const markDailyAttendance = async (req, res) => {
 
     let shiftStartTime, shiftEndTime;
 
+    // --- NEW LOGIC FOR DOUBLE DUTY (e.g., NM, EN) ---
     if (assignedShiftCode.length === 2 && assignedShiftCode !== "DD") {
       const firstCode = assignedShiftCode[0];
       const secondCode = assignedShiftCode[1];
+
       const firstShift = await ShiftMaster.findOne({ shiftCode: firstCode }).lean();
       const secondShift = await ShiftMaster.findOne({ shiftCode: secondCode }).lean();
 
       if (!firstShift || !secondShift) {
         return res.status(400).json({ message: `Shift components ${firstCode} or ${secondCode} not found.` });
       }
-      shiftStartTime = firstShift.startTime;
-      shiftEndTime = secondShift.endTime;
+
+      shiftStartTime = firstShift.startTime; // Take Start of first shift (e.g., 2 AM)
+      shiftEndTime = secondShift.endTime;    // Take End of last shift (e.g., 4 PM)
     } else {
+      // Standard Single Shift Logic
       const shiftMaster = await ShiftMaster.findOne({ shiftCode: assignedShiftCode }).lean();
       if (!shiftMaster) {
         return res.status(400).json({ message: `Shift details for ${assignedShiftCode} not found.` });
@@ -181,8 +181,11 @@ const markDailyAttendance = async (req, res) => {
     const startMin = parseTimeToMinutes(shiftStartTime);
     const endMin = parseTimeToMinutes(shiftEndTime);
     const currentMin = (now.getHours() * 60) + now.getMinutes();
+    
+    // Handle Night Shifts / Long Combined Shifts
     let adjustedEndMin = endMin < startMin ? endMin + 1440 : endMin;
 
+    // --- 15 MIN EARLY LOGIC ---
     const earlyLimit = startMin - 15;
     if (currentMin < earlyLimit) {
       return res.status(400).json({ 
@@ -190,15 +193,18 @@ const markDailyAttendance = async (req, res) => {
       });
     }
 
+    // --- SHIFT ENDED LOGIC ---
     if (currentMin > adjustedEndMin) {
       return res.status(400).json({ 
         message: `Shift ended at ${shiftEndTime}. You cannot mark attendance now.` 
       });
     }
 
+    // --- STATUS & LATE ENTRY LOGIC ---
     let todayStatus = "Present";
     let lateEntry = false;
     const graceThreshold = startMin + 15;
+
     if (currentMin > graceThreshold) {
       lateEntry = true;
     }
@@ -208,14 +214,20 @@ const markDailyAttendance = async (req, res) => {
       status: todayStatus,
       checkInTime: currentTime,
       checkOutTime: "",
-      workDuration: calculateDuration(shiftStartTime, shiftEndTime),
-      actualWorkDuration: "--",
+      workDuration: "--",
       shiftCode: assignedShiftCode,
       shiftStartTime: shiftStartTime, 
-      shiftEndTime: shiftEndTime,      
-      isLate: lateEntry                                      
+      shiftEndTime: shiftEndTime,     
+      isLate: lateEntry                      
     });
 
+    await attendance.save();
+
+    return res.status(200).json({ 
+      message: lateEntry ? "Late Entry Marked!" : "Check-in successful!",
+      status: todayStatus,
+      isLate: lateEntry
+    });
     await attendance.save();
 
     return res.status(200).json({ 

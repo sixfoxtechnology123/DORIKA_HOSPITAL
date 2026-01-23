@@ -136,30 +136,30 @@ useEffect(() => {
         );
 
        const handleShiftChange = (emp, day, value, isSecondHalf = null) => {
-        setShifts((prev) => {
-          const empShifts = { ...(prev[emp.employeeUserId] || {}) };
-          let currentVal = empShifts[day] || "";
+  setShifts((prev) => {
+    const empShifts = { ...(prev[emp.employeeUserId] || {}) };
+    let currentVal = empShifts[day] || "";
 
-          if (value === "DD") {
-            // Initialize DD
-            const def = shiftOptions[0]?.code || "M";
-            empShifts[day] = `DD:${def}${def}`;
-          } else if (isSecondHalf !== null && currentVal.startsWith("DD:")) {
-            // Update specific sub-boxes
-            const codes = currentVal.replace("DD:", "").split("");
-            if (isSecondHalf) {
-              empShifts[day] = `DD:${codes[0]}${value}`; // Update second
-            } else {
-              empShifts[day] = `DD:${value}${codes[1] || value}`; // Update first
-            }
-          } else {
-            // NORMAL SHIFT SELECTION: This resets the DD state
-            empShifts[day] = value;
-          }
+    if (value === "DD") {
+      // Initialize DD
+      const def = shiftOptions[0]?.code || "M";
+      empShifts[day] = `DD:${def}${def}`;
+    } else if (isSecondHalf !== null && currentVal.startsWith("DD:")) {
+      // Update specific sub-boxes
+      const codes = currentVal.replace("DD:", "").split("");
+      if (isSecondHalf) {
+        empShifts[day] = `DD:${codes[0]}${value}`; // Update second
+      } else {
+        empShifts[day] = `DD:${value}${codes[1] || value}`; // Update first
+      }
+    } else {
+      // NORMAL SHIFT SELECTION: This resets the DD state
+      empShifts[day] = value;
+    }
 
-          return { ...prev, [emp.employeeUserId]: empShifts };
-        });
-      };
+    return { ...prev, [emp.employeeUserId]: empShifts };
+  });
+};
         const startIndex = (currentPage - 1) * perPage;
         const paginatedEmployees = filteredEmployees.slice(
         startIndex,

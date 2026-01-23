@@ -10,8 +10,35 @@ const formatDateDisplay = (dateStr) => {
   return `${d}-${m}-${y}`; // Returns DD-MM-YYYY
 };
 
+const calculateWorkTime = (inTime, outTime, shiftStart, shiftEnd) => {
+  if (!inTime || !outTime || inTime === "--" || outTime === "--" || !shiftStart || !shiftEnd) return "--";
 
+  const parseTime = (t) => {
+    const [time, modifier] = t.split(" ");
+    let [hours, minutes] = time.split(":").map(Number);
+    if (modifier === "PM" && hours < 12) hours += 12;
+    if (modifier === "AM" && hours === 12) hours = 0;
+    return hours * 60 + minutes;
+  };
 
+  try {
+    let actIn = parseTime(inTime);
+    let actOut = parseTime(outTime);
+    let shStart = parseTime(shiftStart);
+    let shEnd = parseTime(shiftEnd);
+
+    if (shEnd < shStart) shEnd += 1440;
+    if (actOut < actIn) actOut += 1440;
+
+    // Apply exact same rounding logic as backend
+    let finalStart = (actIn >= shStart - 15 && actIn <= shStart + 15) ? shStart : actIn;
+    let finalEnd = (actOut >= shEnd && actOut <= shEnd + 30) ? shEnd : actOut;
+
+    const diff = finalEnd - finalStart;
+    if (diff <= 0) return "--"; 
+    return `${Math.floor(diff / 60)}h ${diff % 60}m`;
+  } catch (e) { return "--"; }
+};
 const EmployeeAttendance = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -156,7 +183,7 @@ const EmployeeAttendance = () => {
             <th className="p-3 border text-green-600">Punch In</th> {/* New */}
             <th className="p-3 border">Shift Start</th> {/* New */}
             <th className="p-3 border">Shift End</th> {/* New */}
-            <th className="p-3 border text-orange-600">Punch Out</th> {/* New */}
+            <th className="p-3 border text-orange-600">Actual Out</th> {/* New */}
             <th className="p-3 border text-blue-600">Shift Work Time</th> {/* Official */}
             <th className="p-3 border text-purple-600">Actual Work Time</th>
             <th className="p-3 border">Status</th>
@@ -165,7 +192,13 @@ const EmployeeAttendance = () => {
           <tbody>
                 {filteredRecords.length > 0 ? (
                   filteredRecords.slice().reverse().map((rec, index) => {
-                   
+                    // Keep your official calculation for the "Shift Work Time" column
+                    const shiftWorkTime = calculateWorkTime(
+                      rec.checkInTime, 
+                      rec.checkOutTime, 
+                      rec.shiftStartTime, 
+                      rec.shiftEndTime
+                    );
 
                     return (
                       <tr 
@@ -181,7 +214,7 @@ const EmployeeAttendance = () => {
                         
                         {/* 7. Shift Work Duration (Rounded) */}
                         <td className="p-3 border font-bold text-blue-700">
-                          {rec.workDuration || "--"}
+                          {rec.workDuration || shiftWorkTime}
                         </td>
 
                         {/* 8. Actual Work Duration (Raw Punch Time from DB) */}
@@ -189,27 +222,20 @@ const EmployeeAttendance = () => {
                           {rec.actualWorkDuration || "--"}
                         </td>
 
-                       <td className="p-3 border">
-                        <div className="flex flex-col items-center justify-center gap-1">
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            rec.status === 'Present' ? 'bg-green-100 text-green-700' :
-                            rec.status === 'Absent'  ? 'bg-red-100 text-red-700' :
-                            rec.status === 'OFF'     ? 'bg-gray-100 text-gray-700' :
-                            rec.status.includes('SL') ? 'bg-orange-100 text-orange-700' :
-                            rec.status.includes('CL') ? 'bg-blue-100 text-blue-700' :
-                            'bg-yellow-100 text-yellow-700' // Default for Holidays or others
-                          }`}>
-                            {rec.status}
-                          </span>
-                          
-                          {/* Late Entry Indicator */}
-                          {(rec.isLateEntry || (rec.status === 'Present' && rec.isLate)) && (
-                            <span className="text-[10px] text-red-500 font-bold uppercase animate-pulse">
-                              Late Entry
+                        <td className="p-3 border">
+                          <div className="flex flex-col items-center justify-center gap-1">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              rec.status === 'Present' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {rec.status}
                             </span>
-                          )}
-                        </div>
-                      </td>
+                            {(rec.isLateEntry || (rec.status === 'Present' && rec.isLate)) && (
+                              <span className="text-[10px] text-red-500 font-bold uppercase animate-pulse">
+                                Late Entry
+                              </span>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })

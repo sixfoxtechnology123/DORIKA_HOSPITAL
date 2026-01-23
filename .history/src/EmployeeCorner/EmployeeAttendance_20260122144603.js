@@ -10,8 +10,27 @@ const formatDateDisplay = (dateStr) => {
   return `${d}-${m}-${y}`; // Returns DD-MM-YYYY
 };
 
+const calculateWorkTime = (inTime, outTime) => {
+  if (!inTime || !outTime || inTime === "--" || outTime === "--") return "--";
 
+  const parseTime = (t) => {
+    const [time, modifier] = t.split(" ");
+    let [hours, minutes] = time.split(":").map(Number);
+    if (modifier === "PM" && hours < 12) hours += 12;
+    if (modifier === "AM" && hours === 12) hours = 0;
+    return hours * 60 + minutes;
+  };
 
+  try {
+    const diff = parseTime(outTime) - parseTime(inTime);
+    if (diff <= 0) return "--"; 
+    const h = Math.floor(diff / 60);
+    const m = diff % 60;
+    return `${h}h ${m}m`;
+  } catch (e) {
+    return "--";
+  }
+};
 const EmployeeAttendance = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -150,61 +169,68 @@ const EmployeeAttendance = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-center">
         <thead className="bg-gray-100 text-gray-700">
-          <tr>
-            <th className="p-3 border">Date</th>
-            <th className="p-3 border">Shift</th>
-            <th className="p-3 border text-green-600">Punch In</th> {/* New */}
-            <th className="p-3 border">Shift Start</th> {/* New */}
-            <th className="p-3 border">Shift End</th> {/* New */}
-            <th className="p-3 border text-orange-600">Punch Out</th> {/* New */}
-            <th className="p-3 border text-blue-600">Shift Work Time</th> {/* Official */}
-            <th className="p-3 border text-purple-600">Actual Work Time</th>
-            <th className="p-3 border">Status</th>
-          </tr>
-        </thead>
-          <tbody>
+  <tr>
+    <th className="p-3 border">Date (DD-MM-YYYY)</th>
+    <th className="p-3 border">Shift</th>
+    <th className="p-3 border text-green-600">Actual In</th> {/* New */}
+    <th className="p-3 border">Shift Start</th> {/* New */}
+    <th className="p-3 border">Shift End</th> {/* New */}
+    <th className="p-3 border text-orange-600">Actual Out</th> {/* New */}
+    <th className="p-3 border text-blue-600">Work Duration</th>
+    <th className="p-3 border">Status</th>
+  </tr>
+</thead>
+            <tbody>
                 {filteredRecords.length > 0 ? (
                   filteredRecords.slice().reverse().map((rec, index) => {
-                   
+                    // Calculate work duration for this row
+                    const workTime = calculateWorkTime(rec.checkInTime, rec.checkOutTime);
 
                     return (
                       <tr 
                         key={index} 
                         className={`border-b ${rec.status.includes('Holiday') ? 'bg-yellow-50' : 'hover:bg-blue-50'}`}
                       >
-                        <td className="p-3 border font-medium">{formatDateDisplay(rec.date)}</td>
-                        <td className="p-3 border font-bold text-indigo-600">{rec.shiftCode || "--"}</td>
-                        <td className="p-3 border font-semibold text-green-700">{rec.checkInTime || "--"}</td>
-                        <td className="p-3 border text-gray-500 font-semibold italic">{rec.shiftStartTime || "--"}</td>
-                        <td className="p-3 border text-gray-500 font-semibold italic">{rec.shiftEndTime || "--"}</td>
-                        <td className="p-3 border font-semibold text-orange-700">{rec.checkOutTime || "--"}</td>
+                        {/* 1. Date Column */}
+                        <td className="p-3 border font-medium">
+                          {formatDateDisplay(rec.date)}
+                        </td>
+
+                        {/* 2. Shift Code Column (Added based on your new logic) */}
+                        <td className="p-3 border font-bold text-indigo-600">
+                          {rec.shiftCode || "--"}
+                        </td>
+
+                        {/* 3. Times Columns */}
+                        <td className="p-3 border">{rec.checkInTime || "--"}</td>
+                        <td className="p-3 border">{rec.checkOutTime || "--"}</td>
                         
-                        {/* 7. Shift Work Duration (Rounded) */}
-                        <td className="p-3 border font-bold text-blue-700">
-                          {rec.workDuration || "--"}
+                        {/* 4. Work Duration */}
+                        <td className="p-3 border font-bold text-gray-700">
+                          {workTime}
                         </td>
 
-                        {/* 8. Actual Work Duration (Raw Punch Time from DB) */}
-                        <td className="p-3 border font-bold text-purple-700">
-                          {rec.actualWorkDuration || "--"}
-                        </td>
-
-                       <td className="p-3 border">
+                     <td className="p-3 border">
                         <div className="flex flex-col items-center justify-center gap-1">
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            rec.status === 'Present' ? 'bg-green-100 text-green-700' :
-                            rec.status === 'Absent'  ? 'bg-red-100 text-red-700' :
-                            rec.status === 'OFF'     ? 'bg-gray-100 text-gray-700' :
-                            rec.status.includes('SL') ? 'bg-orange-100 text-orange-700' :
-                            rec.status.includes('CL') ? 'bg-blue-100 text-blue-700' :
-                            'bg-yellow-100 text-yellow-700' // Default for Holidays or others
+                            rec.status === 'Present' 
+                              ? 'bg-green-100 text-green-700' 
+                              : rec.status === 'Absent' 
+                                ? 'bg-red-100 text-red-700'
+                                : rec.status === 'OFF' || rec.status.includes('(OFF)')
+                                  ? 'bg-blue-100 text-blue-700 border border-blue-200' // Blue for OFF days
+                                  : rec.status.includes('SL') 
+                                    ? 'bg-purple-100 text-purple-700' // Purple for Sick Leave
+                                    : rec.status.includes('CL')
+                                      ? 'bg-orange-100 text-orange-700' // Orange for Casual Leave
+                                      : 'bg-gray-100 text-gray-700'
                           }`}>
                             {rec.status}
                           </span>
-                          
-                          {/* Late Entry Indicator */}
-                          {(rec.isLateEntry || (rec.status === 'Present' && rec.isLate)) && (
-                            <span className="text-[10px] text-red-500 font-bold uppercase animate-pulse">
+
+                          {/* Late Entry Warning */}
+                          {rec.status === 'Absent' && rec.checkInTime && rec.checkInTime !== "--" && (
+                            <span className="text-[10px] text-red-500 font-bold uppercase tracking-tighter">
                               Late Entry
                             </span>
                           )}
@@ -215,8 +241,8 @@ const EmployeeAttendance = () => {
                   })
                 ) : (
                   <tr>
-                    {/* Changed colSpan to 9 to match new columns */}
-                    <td colSpan="9" className="p-10 text-gray-400 italic text-center">No records found.</td>
+                    {/* Increased colSpan to 6 because we added the 'Shift' column */}
+                    <td colSpan="6" className="p-10 text-gray-400 italic">No records found.</td>
                   </tr>
                 )}
               </tbody>

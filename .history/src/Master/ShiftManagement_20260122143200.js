@@ -135,31 +135,34 @@ useEffect(() => {
           (emp) => emp.designationName === selectedDesignation
         );
 
-       const handleShiftChange = (emp, day, value, isSecondHalf = null) => {
-        setShifts((prev) => {
-          const empShifts = { ...(prev[emp.employeeUserId] || {}) };
-          let currentVal = empShifts[day] || "";
+    const handleShiftChange = (emp, day, value, isSecondHalf = false) => {
+      setShifts((prev) => {
+        const empShifts = { ...(prev[emp.employeeUserId] || {}) };
+        let currentVal = empShifts[day] || "";
 
-          if (value === "DD") {
-            // Initialize DD
-            const def = shiftOptions[0]?.code || "M";
-            empShifts[day] = `DD:${def}${def}`;
-          } else if (isSecondHalf !== null && currentVal.startsWith("DD:")) {
-            // Update specific sub-boxes
-            const codes = currentVal.replace("DD:", "").split("");
-            if (isSecondHalf) {
-              empShifts[day] = `DD:${codes[0]}${value}`; // Update second
-            } else {
-              empShifts[day] = `DD:${value}${codes[1] || value}`; // Update first
-            }
+        if (value === "DD") {
+          // Logic for selecting DD
+          const def = shiftOptions[0]?.code || "M";
+          empShifts[day] = `DD:${def}${def}`;
+        } else if (isSecondHalf === true || isSecondHalf === false && currentVal.startsWith("DD:") && arguments[3] === undefined) {
+          /** * If we are specifically clicking the tiny sub-dropdowns, 
+           * we update the pair. 
+           */
+          const codes = currentVal.replace("DD:", "").split("");
+          if (isSecondHalf) {
+            empShifts[day] = `DD:${codes[0]}${value}`; // Update second box
           } else {
-            // NORMAL SHIFT SELECTION: This resets the DD state
-            empShifts[day] = value;
+            empShifts[day] = `DD:${value}${codes[1] || value}`; // Update first box
           }
+        } else {
+          // NORMAL SHIFT SELECTION (M, G, A, OFF, etc.)
+          // Overwrites everything, removing the DD state.
+          empShifts[day] = value;
+        }
 
-          return { ...prev, [emp.employeeUserId]: empShifts };
-        });
-      };
+        return { ...prev, [emp.employeeUserId]: empShifts };
+      });
+    };
         const startIndex = (currentPage - 1) * perPage;
         const paginatedEmployees = filteredEmployees.slice(
         startIndex,
@@ -374,11 +377,68 @@ const handlePrint = () => {
               <th className="border px-2 py-1 border-dorika-blue">Emp ID</th>
               <th className="border px-2 py-1 border-dorika-blue">Employee Name</th>
               <th className="border px-2 py-1 border-dorika-blue">Designation</th>
-              {daysInMonth.map((day) => (
-                <th key={day} className="border px-2 py-1 border-dorika-blue text-center">
-                  {day}
-                </th>
+            {daysInMonth.map((day) => {
+  const currentShift = shifts?.[emp.employeeUserId]?.[day] || "";
+  const isDD = currentShift.startsWith("DD:");
+  const ddParts = isDD ? currentShift.replace("DD:", "").split("") : ["", ""];
+
+  return (
+    <td
+      key={day}
+      className={`border border-dorika-blue text-center transition-all 
+        ${getShiftColor(isDD ? "DD" : currentShift, index)} 
+        ${isDD ? "p-1 min-w-[80px]" : "px-4 py-3 min-w-[60px]"}
+      `}
+    >
+      {/* px-4 py-3 adds the padding you want for M, N, E.
+          min-w ensures the box is wide enough to see the name clearly.
+      */}
+      <div className="flex flex-col items-center gap-1">
+        <select
+          value={isDD ? "DD" : currentShift}
+          // Note: Only passing 3 arguments here ensures it hits the "else" (Normal Shift) logic
+          onChange={(e) => handleShiftChange(emp, day, e.target.value)}
+          className="bg-transparent border-none text-xs font-bold w-full cursor-pointer focus:outline-none"
+        >
+          <option value="">-</option>
+          {shiftOptions.map((opt) => (
+            <option 
+              key={opt.code} 
+              value={opt.code}
+              title={opt.name && opt.start ? `${opt.name}: ${opt.start} - ${opt.end}` : opt.name}
+            >
+              {opt.code}
+            </option>
+          ))}
+        </select>
+
+        {isDD && (
+          <div className="flex items-center gap-1 border-t pt-1 border-dorika-blue w-full justify-center mt-1">
+            <select
+              value={ddParts[0]}
+              onChange={(e) => handleShiftChange(emp, day, e.target.value, false)}
+              className="bg-white border rounded text-[10px] w-9 font-bold"
+            >
+              {shiftOptions.filter(o => o.code !== "OFF" && o.code !== "DD").map(opt => (
+                <option key={opt.code} value={opt.code} title={opt.name}>{opt.code}</option>
               ))}
+            </select>
+            <span className="text-[10px] font-bold">+</span>
+            <select
+              value={ddParts[1]}
+              onChange={(e) => handleShiftChange(emp, day, e.target.value, true)}
+              className="bg-white border rounded text-[10px] w-9 font-bold"
+            >
+              {shiftOptions.filter(o => o.code !== "OFF" && o.code !== "DD").map(opt => (
+                <option key={opt.code} value={opt.code} title={opt.name}>{opt.code}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+    </td>
+  );
+})}
             </tr>
           </thead>
           <tbody>

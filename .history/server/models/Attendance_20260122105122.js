@@ -18,11 +18,7 @@ const attendanceSchema = new mongoose.Schema({
       checkInTime: { type: String },
       checkOutTime: { type: String },
       workDuration: { type: String, default: "--" },
-      actualWorkDuration: { type: String, default: "--" },
       shiftCode: { type: String },
-      shiftStartTime: { type: String, default: "--" },
-      shiftEndTime: { type: String, default: "--" },
-      isLate: { type: Boolean, default: false },
       source: { type: String, default: "Web" }
     }
   ]

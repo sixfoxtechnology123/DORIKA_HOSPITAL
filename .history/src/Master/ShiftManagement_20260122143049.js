@@ -135,31 +135,34 @@ useEffect(() => {
           (emp) => emp.designationName === selectedDesignation
         );
 
-       const handleShiftChange = (emp, day, value, isSecondHalf = null) => {
-        setShifts((prev) => {
-          const empShifts = { ...(prev[emp.employeeUserId] || {}) };
-          let currentVal = empShifts[day] || "";
+const handleShiftChange = (emp, day, value, isSecondHalf = false) => {
+  setShifts((prev) => {
+    const empShifts = { ...(prev[emp.employeeUserId] || {}) };
+    let currentVal = empShifts[day] || "";
 
-          if (value === "DD") {
-            // Initialize DD
-            const def = shiftOptions[0]?.code || "M";
-            empShifts[day] = `DD:${def}${def}`;
-          } else if (isSecondHalf !== null && currentVal.startsWith("DD:")) {
-            // Update specific sub-boxes
-            const codes = currentVal.replace("DD:", "").split("");
-            if (isSecondHalf) {
-              empShifts[day] = `DD:${codes[0]}${value}`; // Update second
-            } else {
-              empShifts[day] = `DD:${value}${codes[1] || value}`; // Update first
-            }
-          } else {
-            // NORMAL SHIFT SELECTION: This resets the DD state
-            empShifts[day] = value;
-          }
+    if (value === "DD") {
+      // Logic for selecting DD
+      const def = shiftOptions[0]?.code || "M";
+      empShifts[day] = `DD:${def}${def}`;
+    } else if (isSecondHalf === true || isSecondHalf === false && currentVal.startsWith("DD:") && arguments[3] === undefined) {
+      /** * If we are specifically clicking the tiny sub-dropdowns, 
+       * we update the pair. 
+       */
+      const codes = currentVal.replace("DD:", "").split("");
+      if (isSecondHalf) {
+        empShifts[day] = `DD:${codes[0]}${value}`; // Update second box
+      } else {
+        empShifts[day] = `DD:${value}${codes[1] || value}`; // Update first box
+      }
+    } else {
+      // NORMAL SHIFT SELECTION (M, G, A, OFF, etc.)
+      // Overwrites everything, removing the DD state.
+      empShifts[day] = value;
+    }
 
-          return { ...prev, [emp.employeeUserId]: empShifts };
-        });
-      };
+    return { ...prev, [emp.employeeUserId]: empShifts };
+  });
+};
         const startIndex = (currentPage - 1) * perPage;
         const paginatedEmployees = filteredEmployees.slice(
         startIndex,
