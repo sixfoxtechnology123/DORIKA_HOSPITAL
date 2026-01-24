@@ -3,6 +3,7 @@ const Leave = require("../models/LeaveApplication");
 const ShiftMaster = require("../models/Shift");
 const ShiftManagement = require("../models/ShiftManagement");
 
+
 // --- HELPER FUNCTIONS ---
 
 const parseTimeToMinutes = (t) => {
@@ -240,4 +241,61 @@ const getMyAttendance = async (req, res) => {
   }
 };
 
-module.exports = { markDailyAttendance, getMyAttendance };
+
+/* ================= ATTENDANCE HISTORY ================= */
+const getAttendanceHistory = async (req, res) => {
+  try {
+    const { month, year } = req.query;
+
+    const data = await Attendance.find({
+      month: Number(month),
+      year: Number(year),
+    }).lean();
+
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: "Attendance fetch failed" });
+  }
+};
+
+const updateAttendanceRecord = async (req, res) => {
+  try {
+    const { employeeUserId, date, status, isLate } = req.body;
+
+    const targetDate = new Date(date).toLocaleDateString("en-CA");
+    const month = new Date(date).getMonth() + 1;
+    const year = new Date(date).getFullYear();
+
+    const attendanceDoc = await Attendance.findOne({ employeeUserId, month, year });
+    if (!attendanceDoc) {
+      return res.status(404).json({ message: "Attendance record not found" });
+    }
+
+    const recordIndex = attendanceDoc.records.findIndex(r => r.date === targetDate);
+    if (recordIndex === -1) {
+      return res.status(404).json({ message: "Attendance date not found" });
+    }
+
+    const existingStatus = attendanceDoc.records[recordIndex].status;
+
+    if (["SL", "CL", "SL(OFF)", "CL(OFF)", "OFF"].includes(existingStatus)) {
+      return res.status(400).json({ message: "Leave / OFF records cannot be modified" });
+    }
+
+    let finalStatus = status;
+    if (status === "P" || status === "PL") finalStatus = "Present";
+    if (status === "A") finalStatus = "Absent";
+
+    attendanceDoc.records[recordIndex].status = finalStatus;
+    attendanceDoc.records[recordIndex].isLate = finalStatus === "Present" ? !!isLate : false;
+
+    await attendanceDoc.save();
+
+    res.status(200).json({ message: "Attendance updated successfully" });
+  } catch (err) {
+    console.error("UPDATE_ATTENDANCE_ERROR:", err);
+    res.status(500).json({ message: "Failed to update attendance" });
+  }
+};
+
+module.exports = { markDailyAttendance, getMyAttendance,getAttendanceHistory ,updateAttendanceRecord};

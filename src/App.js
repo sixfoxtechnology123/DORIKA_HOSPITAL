@@ -49,6 +49,7 @@ import ShiftManagement from "./Master/ShiftManagement";
 import EmployeeLeaveDetails from "./EmployeeCorner/EmployeeLeaveDetails";
 import EmployeeAttendance from "./EmployeeCorner/EmployeeAttendance";
 import LeaveHistory from "./Master/LeaveHistory";
+import EmployeeAttendanceHistory from "./Master/EmployeeAttendanceHistory";
 
 export default function App(){
   return (
@@ -102,6 +103,7 @@ export default function App(){
       <Route path="/EmployeeLeaveDetails" element={<EmployeeLeaveDetails/>} />
       <Route path="/EmployeeAttendance" element={<EmployeeAttendance/>} />
       <Route path="/LeaveHistory" element={<LeaveHistory/>} />
+      <Route path="/EmployeeAttendanceHistory" element={<EmployeeAttendanceHistory/>} />
 
      </Routes>
         <Toaster

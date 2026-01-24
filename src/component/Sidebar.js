@@ -19,6 +19,7 @@ import {
   ArrowBigRightDash,
   ArrowBigLeftDash,
   LogOut,
+  ClipboardList,
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -76,6 +77,11 @@ const Sidebar = () => {
             },
           ]
         },
+        {
+            name: "Attendance History",
+            path: "/EmployeeAttendanceHistory",
+            icon: ClipboardList,
+          },
     {
       name: "Master",
       icon: Building2,
