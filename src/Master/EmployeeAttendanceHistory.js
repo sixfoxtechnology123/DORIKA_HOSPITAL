@@ -37,24 +37,38 @@ const getAttendanceTextColor = (val) => {
   }
 };
 
-/* ===== CALCULATE TOTALS ===== */
+/* ===== CALCULATE TOTALS WITH DOUBLE SHIFT LOGIC ===== */
 const calculateTotals = (records = {}) => {
-  let totalPresent = 0; // P + PL
-  let totalAbsent = 0;  // A
-  let totalOff = 0;     // OFF
-  let totalLeave = 0;   // SL + CL
+  let totalPresent = 0; // Counts 2 for double shifts, 1 for single
+  let totalAbsent = 0; 
+  let totalOff = 0;    
+  let totalLeave = 0;  
 
   Object.values(records).forEach((val) => {
-    if (val?.status === "P" || val?.status === "P(L)") totalPresent++;
-    else if (val?.status === "A") totalAbsent++;
-    else if (val?.status === "OFF") totalOff++;
-    else if (
-      val?.status === "SL" ||
-      val?.status === "SL(OFF)" ||
-      val?.status === "CL(OFF)" ||
-      val?.status === "CL"
-    )
+    const status = val?.status;
+    const shiftCode = val?.shiftCode || "";
+
+    // 1. Present Logic (P, P(L), or "Present" from DB)
+    if (status === "P" || status === "P(L)" || status === "Present") {
+      // If code length is 2 (ME, EN, MN) and NOT "DD", count as 2
+      if (shiftCode.length === 2 && shiftCode !== "DD") {
+        totalPresent += 2;
+      } else {
+        totalPresent += 1;
+      }
+    } 
+    // 2. Absent Logic
+    else if (status === "A" || status === "Absent") {
+      totalAbsent += 1;
+    } 
+    // 3. OFF Logic
+    else if (status === "OFF") {
+      totalOff += 1;
+    } 
+    // 4. Leave Logic
+    else if (["SL", "CL", "SL(OFF)", "CL(OFF)"].includes(status)) {
       totalLeave++;
+    }
   });
 
   return { totalPresent, totalAbsent, totalOff, totalLeave };
@@ -108,29 +122,28 @@ const EmployeeAttendanceHistory = () => {
       .then((res) => {
         const map = {};
 
-        res.data.forEach((doc) => {
-          const dayMap = {};
+  res.data.forEach((doc) => {
+    const dayMap = {};
 
-          doc.records.forEach((r) => {
-            const day = new Date(r.date).getDate();
+    doc.records.forEach((r) => {
+      const day = new Date(r.date).getDate();
 
-            // Store full object for hover tooltip
-            let status = "";
-            if (r.status === "Present" && r.isLate) status = "P(L)";
-            else if (r.status === "Present") status = "P";
-            else if (r.status === "Absent") status = "A";
-            else status = r.status; // SL / CL / OFF
+      let status = "";
+      if (r.status === "Present" && r.isLate) status = "P(L)";
+      else if (r.status === "Present") status = "P";
+      else if (r.status === "Absent") status = "A";
+      else status = r.status; 
 
-            dayMap[day] = {
-              status,
-              shiftCode: r.shiftCode || "-",
-              shiftStartTime: r.shiftStartTime || "-",
-              shiftEndTime: r.shiftEndTime || "-",
-            };
-          });
+      dayMap[day] = {
+        status,
+        shiftCode: r.shiftCode || "-", // 👈 THIS IS CRITICAL
+        shiftStartTime: r.shiftStartTime || "-",
+        shiftEndTime: r.shiftEndTime || "-",
+      };
+    });
 
-          map[doc.employeeUserId] = dayMap;
-        });
+    map[doc.employeeUserId] = dayMap;
+  });
 
         setAttendanceMap(map);
       });
@@ -327,40 +340,75 @@ const EmployeeAttendanceHistory = () => {
                           {isEditable ? (
                         <select
                             value={currentStatus} 
-                            onChange={async (e) => {
-                              const newStatus = e.target.value;
+                         onChange={async (e) => {
+                          const newStatus = e.target.value;
 
-                              const confirmChange = window.confirm(
-                                `Change attendance to ${newStatus}?`
-                              );
-                              if (!confirmChange) return;
-
-                              const payload = {
-                                employeeUserId: emp.employeeUserId,
-                                date: `${selectedMonth}-${String(day).padStart(2, "0")}`,
-                                status: (newStatus === "P" || newStatus === "P(L)") ? "Present" : "Absent",
-                                isLate: newStatus === "P(L)", 
-                              };
-
-                              try {
-                                await axios.put("http://localhost:5002/api/attendance/update", payload);
-
-                                setAttendanceMap((prev) => ({
-                                  ...prev,
-                                  [emp.employeeUserId]: {
-                                    ...prev[emp.employeeUserId],
-                                    [day]: {
-                                      ...prev[emp.employeeUserId][day],
-                                      status: newStatus,
+                          toast((t) => (
+                            <div className="flex flex-col gap-3 min-w-[220px]">
+                              <div className="flex items-center gap-3">
+                                <div className="w-1.5 h-10 bg-green-500 rounded-full"></div>
+                                <p className="text-sm font-semibold text-gray-800">
+                                  Set attendance to <span className="text-green-600 font-bold underline">{newStatus}</span>?
+                                </p>
+                              </div>
+                              
+                              <div className="flex justify-end items-center gap-3 border-t border-gray-100 pt-3">
+                                <button
+                                  className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white text-[11px] font-bold px-3 py-1.5 rounded-md transition-all uppercase tracking-wider"
+                                  onClick={() => toast.dismiss(t.id)}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  className="bg-green-600 hover:bg-green-700 text-white text-[11px] font-bold px-4 py-1.5 rounded-md shadow-md shadow-green-100 transition-all active:scale-95 uppercase tracking-wider"
+                                  onClick={async () => {
+                                    toast.dismiss(t.id);
+                                    
+                                    const payload = {
+                                      employeeUserId: emp.employeeUserId,
+                                      date: `${selectedMonth}-${String(day).padStart(2, "0")}`,
+                                      status: (newStatus === "P" || newStatus === "P(L)") ? "Present" : "Absent",
                                       isLate: newStatus === "P(L)", 
-                                    },
-                                  },
-                                }));
-                                toast.success("Updated!");
-                              } catch (err) {
-                                toast.error("Error updating");
-                              }
-                            }}
+                                    };
+
+                                    try {
+                                      await axios.put("http://localhost:5002/api/attendance/update", payload);
+                                      
+                                      setAttendanceMap((prev) => ({
+                                        ...prev,
+                                        [emp.employeeUserId]: {
+                                          ...prev[emp.employeeUserId],
+                                          [day]: {
+                                            ...prev[emp.employeeUserId][day],
+                                            status: newStatus,
+                                            isLate: newStatus === "P(L)", 
+                                          },
+                                        },
+                                      }));
+                                      toast.success(`Updated to ${newStatus}`, {
+                                        icon: '✅',
+                                        style: { borderRadius: '8px', background: '#f0fdf4', color: '#166534', fontWeight: 'bold' }
+                                      });
+                                    } catch (err) {
+                                      toast.error("Update failed!");
+                                    }
+                                  }}
+                                >
+                                  Confirm
+                                </button>
+                              </div>
+                            </div>
+                          ), { 
+                            duration: 6000,
+                            position: 'top-center',
+                            style: {
+                              padding: '16px',
+                              borderRadius: '12px',
+                              border: '1px solid #f1f5f9',
+                              background: '#ffffff',
+                            }
+                          });
+                        }}
                             className={`bg-transparent text-center font-bold w-full cursor-pointer ${getAttendanceTextColor(currentStatus)}`}
                           >
                             <option value="P">P</option>

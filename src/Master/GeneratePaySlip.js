@@ -235,7 +235,7 @@ const handleSave = async () => {
   };
 
   try {
-    // 🟢 CHECK THIS PART CAREFULLY
+    // CHECK THIS PART CAREFULLY
     if (editingData && editingData._id) {
       // Use the _id from the editing data
       await axios.put(`http://localhost:5002/api/payslips/${editingData._id}`, payload);
