@@ -2,10 +2,12 @@
 import PaySlip from "../models/PaySlip.js";
 import Employee from "../models/Employee.js";
 
-// Helper function to update employee earnings and deductions
 const updateEmployeePayDetails = async (employeeId, earnings, deductions) => {
+  // 1. Fixes the "toUpperCase" error by checking if it is a string
+  const searchId = typeof employeeId === 'string' ? employeeId.toUpperCase() : employeeId;
+
   const updatedEarnings = earnings.map(e => ({
-    _id: e._id || undefined, // preserve _id if exists
+    _id: e._id || undefined,
     headName: e.headName,
     headType: e.type || "",
     value: Number(e.amount) || 0
@@ -18,18 +20,18 @@ const updateEmployeePayDetails = async (employeeId, earnings, deductions) => {
     value: Number(d.amount) || 0
   }));
 
-  await Employee.findByIdAndUpdate(
-    employeeId,
+  // 2. Fixes the "Cast to ObjectId" error by searching for the ID string "P-00003"
+  await Employee.findOneAndUpdate(
+    { employeeID: searchId }, 
     {
       $set: {
         earnings: updatedEarnings,
         deductions: updatedDeductions
       }
     },
-    { new: true, upsert: true }
+    { new: true }
   );
 };
-
 // CREATE Payslip
 export const createPaySlip = async (req, res) => {
   try {
@@ -57,11 +59,13 @@ export const createPaySlip = async (req, res) => {
     const employee = await Employee.findOne({ employeeID: employeeId.toUpperCase() });
     if (!employee) return res.status(404).json({ error: "Employee not found" });
 
-    const mappedEarnings = earnings.map(e => ({
-      headName: e.headName,
-      type: e.type || "FIXED",
-      amount: Number(e.amount || 0)
-    }));
+  const mappedEarnings = earnings
+  .filter(e => e.headName && e.headName.trim() !== "") // 👈 This filters out empty rows
+  .map(e => ({
+    headName: e.headName,
+    type: e.type || "FIXED",
+    amount: Number(e.amount || 0)
+  }));
 
   const mappedDeductions = deductions
     .filter(d => d.headName && d.headName.trim() !== "")
@@ -119,7 +123,8 @@ export const createPaySlip = async (req, res) => {
 // UPDATE Payslip
 export const updatePaySlip = async (req, res) => {
   try {
-    const { payslipId } = req.params;
+    // 1. Get the Payslip Database ID from the URL
+    const { id } = req.params; 
     const {
       earnings,
       deductions,
@@ -140,22 +145,28 @@ export const updatePaySlip = async (req, res) => {
 
     if (!month || !year) return res.status(400).json({ error: "Month & Year required" });
 
-    const payslip = await PaySlip.findById(payslipId);
-    if (!payslip) return res.status(404).json({ error: "PaySlip not found" });
+    // 2. Find the existing Payslip document
+    const payslip = await PaySlip.findById(id);
+    if (!payslip) return res.status(404).json({ error: "PaySlip not found in database" });
 
-    const mappedEarnings = earnings.map(e => ({
-      headName: e.headName,
-      type: e.type || "FIXED",
-      amount: Number(e.amount || 0)
-    }));
+    // 3. Filter out empty rows and map the data (Fixes "headName required" error)
+    const mappedEarnings = earnings
+      .filter(e => e.headName && e.headName.trim() !== "")
+      .map(e => ({
+        headName: e.headName,
+        type: e.type || "FIXED",
+        amount: Number(e.amount || 0)
+      }));
 
-    const mappedDeductions = deductions.map(d => ({
-      headName: d.headName,
-      type: d.type || "FIXED",
-      amount: Number(d.amount || 0)
-    }));
+    const mappedDeductions = deductions
+      .filter(d => d.headName && d.headName.trim() !== "")
+      .map(d => ({
+        headName: d.headName,
+        type: d.type || "FIXED",
+        amount: Number(d.amount || 0)
+      }));
 
-    // Update fields
+    // 4. Update the Payslip fields
     payslip.earnings = mappedEarnings;
     payslip.deductions = mappedDeductions;
     payslip.month = month;
@@ -172,9 +183,10 @@ export const updatePaySlip = async (req, res) => {
     payslip.LOP = Number(LOP || 0);
     payslip.leaves = Number(leaves || 0);
 
+    // 5. Save the updated payslip
     await payslip.save();
 
-    // Optionally update employee's top-level pay info
+    // 6. Update the Employee Master (Passes the string ID like "P-00003")
     await updateEmployeePayDetails(payslip.employeeId, mappedEarnings, mappedDeductions);
 
     res.json({ success: true, data: payslip });

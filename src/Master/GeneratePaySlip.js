@@ -22,6 +22,7 @@ const GeneratePaySlip = () => {
   const selectedEmployee = editingData
     ? {
         employeeID: editingData.employeeId,
+        employeeUserId: editingData.employeeUserId,
         salutation: "", 
         firstName: editingData.employeeName,
         permanentAddress: {
@@ -71,6 +72,57 @@ useEffect(() => {
     setMonthDays(days);
   }
 }, [month, year]);
+
+useEffect(() => {
+  const fetchAttendanceTotals = async () => {
+    if (!selectedEmployee?.employeeUserId || !month || !year) return;
+
+    try {
+      const monthMap = { "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6, "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12 };
+      const monthNum = monthMap[month];
+
+      const res = await axios.get(
+        `http://localhost:5002/api/attendance/history?month=${monthNum}&year=${year}`
+      );
+
+      const empData = res.data.find(doc => doc.employeeUserId === selectedEmployee.employeeUserId);
+      
+      if (empData) {
+        let tp = 0; // Total Present
+        let ta = 0; // LOP (Total Absent)
+        let tl = 0; // Leaves (SL + CL)
+
+        empData.records.forEach(r => {
+          // 1. Calculate TP (Present and Late Present)
+          if (r.status === "Present" || r.status === "P" || r.status === "P(L)") {
+            tp++;
+          } 
+          // 2. Calculate TA (Absent)
+          else if (r.status === "Absent" || r.status === "A") {
+            ta++;
+          } 
+          // 3. Calculate TL (SL and CL including OFF variants)
+          else if (
+            r.status === "SL" || 
+            r.status === "CL" || 
+            r.status === "SL(OFF)" || 
+            r.status === "CL(OFF)"
+          ) {
+            tl++;
+          }
+        });
+        
+        setTotalWorkingDays(tp); // TP
+        setLOP(ta);              // TA
+        setLeaves(tl);           // TL
+      }
+    } catch (err) {
+      console.error("Error fetching attendance for payslip", err);
+    }
+  };
+
+  fetchAttendanceTotals();
+}, [selectedEmployee, month, year]);
 
   useEffect(() => {
     const fetchEmployeeSalary = async () => {
@@ -149,7 +201,6 @@ const handleSave = async () => {
 
   const fullName = `${selectedEmployee.salutation} ${selectedEmployee.firstName} ${selectedEmployee.middleName || ""} ${selectedEmployee.lastName || ""}`.trim();
 
-  // Map earnings and deductions to send 'amount' to backend
   const earningsPayload = earningDetails.map(e => ({
     headName: e.headName,
     type: e.headType || "FIXED",
@@ -162,9 +213,9 @@ const handleSave = async () => {
     amount: Number(d.value) || 0
   }));
 
-  // Prepare final payload including mobile, email, and summary totals
   const payload = {
     employeeId: selectedEmployee.employeeID,
+    employeeUserId: selectedEmployee.employeeUserId, // Required for updateEmployeePayDetails
     employeeName: fullName,
     mobile: selectedEmployee.permanentAddress?.mobile || "",
     email: selectedEmployee.permanentAddress?.email || "",
@@ -184,26 +235,20 @@ const handleSave = async () => {
   };
 
   try {
-    if (editingData?._id) {
-      // Update existing payslip
+    // 🟢 CHECK THIS PART CAREFULLY
+    if (editingData && editingData._id) {
+      // Use the _id from the editing data
       await axios.put(`http://localhost:5002/api/payslips/${editingData._id}`, payload);
       toast.success("Payslip Updated Successfully!");
     } else {
-      // Create new payslip
       await axios.post("http://localhost:5002/api/payslips", payload);
       toast.success("Payslip Generated Successfully!");
     }
-    // Optionally refresh or navigate
-     navigate("/PaySlipGenerateEmployeeList");
-  }catch (err) {
+    navigate("/PaySlipGenerateEmployeeList");
+  } catch (err) {
     console.error("Error saving payslip:", err);
-
-    // Add duplicate error handling from backend
-    if (err.response && err.response.status === 400 && err.response.data.message) {
-      toast.error(err.response.data.message); // Payslip already exists
-    } else {
-      toast.error("Error saving payslip");
-    }
+    const serverMsg = err.response?.data?.message || err.response?.data?.error;
+    toast.error(serverMsg || "Error saving payslip");
   }
 };
 
@@ -627,16 +672,17 @@ const handleSave = async () => {
     <TwoColRow label1="Pay Month" value1={`${month} ${year}`} />
   </div>
 
-  {/* Right Section (1/3) */}
-  <div className="col-span-1 border border-gray-300 rounded p-4 bg-green-50 text-left">
-    <p className="text-2xl font-semibold">₹{inHandSalary.toFixed(2)}</p>
-    <p className="text-lg text-gray-800">Total Payable</p>
-    <div className="mt-2 text-left space-y-1">
-      <TwoColRow label1="Working Days" value1={totalWorkingDays} />
-      <TwoColRow label1="LOP" value1={LOP} />
-      <TwoColRow label1="Leaves" value1={leaves} />
-    </div>
+{/* Right Section (1/3) of the Header info */}
+<div className="col-span-1 border border-gray-300 rounded p-4 bg-green-50 text-left">
+  <p className="text-2xl font-semibold">₹{inHandSalary.toFixed(2)}</p>
+  <p className="text-lg text-gray-800">Total Payable</p>
+  <div className="mt-2 text-left space-y-1">
+    {/* Updated labels below */}
+    <TwoColRow label1="Total Working Days(TP)" value1={totalWorkingDays} />
+    <TwoColRow label1="LOP(TA)" value1={LOP} />
+    <TwoColRow label1="Leaves(TL)" value1={leaves} />
   </div>
+</div>
 </div>
 </div>
 

@@ -105,14 +105,14 @@ const markDailyAttendance = async (req, res) => {
       }
     }
 
-    // 3. GAP-FILLING LOGIC
-    if (attendance.records.length > 0) {
-      const lastRecord = attendance.records[attendance.records.length - 1];
-      const lastDate = new Date(lastRecord.date);
-      const todayDate = new Date(todayStr);
-      const diffDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
+// --- 3. GAP-FILLING LOGIC ---
+if (attendance.records.length > 0) {
+    const lastRecord = attendance.records[attendance.records.length - 1];
+    const lastDate = new Date(lastRecord.date);
+    const todayDate = new Date(todayStr);
+    const diffDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
 
-      for (let i = 1; i < diffDays; i++) {
+    for (let i = 1; i < diffDays; i++) {
         const gapDate = new Date(lastDate);
         gapDate.setDate(gapDate.getDate() + i);
         const gapDateStr = gapDate.toLocaleDateString('en-CA');
@@ -121,32 +121,60 @@ const markDailyAttendance = async (req, res) => {
         const gapShiftCode = shiftMgmt.shifts[gapDayNum] || shiftMgmt.shifts[gapDayNum.toString()];
         const isOffDay = gapShiftCode === "OFF";
 
+        // 🟢 NEW LOGIC FOR DD SHIFTS (EN, ME, etc.)
+        let gapStartTime = "--";
+        let gapEndTime = "--";
+
+        if (gapShiftCode && gapShiftCode !== "OFF") {
+            // Check if it is a Double Shift (2 characters and not 'DD')
+            if (gapShiftCode.length === 2 && gapShiftCode !== "DD") {
+                const firstCode = gapShiftCode[0];
+                const secondCode = gapShiftCode[1];
+                const firstShift = await ShiftMaster.findOne({ shiftCode: firstCode }).lean();
+                const secondShift = await ShiftMaster.findOne({ shiftCode: secondCode }).lean();
+
+                if (firstShift && secondShift) {
+                    gapStartTime = firstShift.startTime;
+                    gapEndTime = secondShift.endTime;
+                }
+            } else {
+                // Single Shift logic
+                const sMaster = await ShiftMaster.findOne({ shiftCode: gapShiftCode }).lean();
+                if (sMaster) {
+                    gapStartTime = sMaster.startTime;
+                    gapEndTime = sMaster.endTime;
+                }
+            }
+        }
+
         const approvedLeave = await Leave.findOne({
-          employeeUserId,
-          approveRejectedStatus: "APPROVED",
-          fromDate: { $lte: gapDateStr },
-          toDate: { $gte: gapDateStr }
+            employeeUserId,
+            approveRejectedStatus: "APPROVED",
+            fromDate: { $lte: gapDateStr },
+            toDate: { $gte: gapDateStr }
         });
 
         let finalStatus = "Absent";
         if (approvedLeave) {
-          const leaveCode = approvedLeave.leaveType === "SICK" ? "SL" : "CL";
-          finalStatus = isOffDay ? `${leaveCode}(OFF)` : leaveCode;
+            const leaveCode = approvedLeave.leaveType === "SICK" ? "SL" : "CL";
+            finalStatus = isOffDay ? `${leaveCode}(OFF)` : leaveCode;
         } else if (isOffDay) {
-          finalStatus = "OFF";
+            finalStatus = "OFF";
         }
 
         attendance.records.push({
-          date: gapDateStr,
-          status: finalStatus,
-          checkInTime: "--",
-          checkOutTime: "--",
-          workDuration: "--",
-          actualWorkDuration: "--",
-          shiftCode: gapShiftCode || "--"
+            date: gapDateStr,
+            status: finalStatus,
+            checkInTime: "--",
+            checkOutTime: "--",
+            shiftCode: gapShiftCode || "--",
+            shiftStartTime: gapStartTime,
+            shiftEndTime: gapEndTime,
+            workDuration: calculateDuration(gapStartTime, gapEndTime),
+            actualWorkDuration: "--"
         });
-      }
     }
+}
 
     // 4. TODAY'S ATTENDANCE LOGIC
     const assignedShiftCode = shiftMgmt.shifts[dayKey] || shiftMgmt.shifts[dayKey.toString()];
@@ -283,7 +311,7 @@ const updateAttendanceRecord = async (req, res) => {
     }
 
     let finalStatus = status;
-    if (status === "P" || status === "PL") finalStatus = "Present";
+    if (status === "P" || status === "P(L)") finalStatus = "Present";
     if (status === "A") finalStatus = "Absent";
 
     attendanceDoc.records[recordIndex].status = finalStatus;

@@ -182,43 +182,44 @@ export const getLeavesForManagerOrDH = async (req, res) => {
 export const updateLeaveStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, loggedInUserId } = req.body; 
+    const { status, loggedInUserId } = req.body;
 
     const leave = await LeaveApplication.findById(id);
     if (!leave) return res.status(404).json({ message: "Leave not found" });
 
-    // --- REMOVED: The check that blocked updates if status !== PENDING ---
+    // 1. Identify roles independently (remove else if)
+    const isRM = leave.reportingManagerEmployeeUserId === loggedInUserId;
+    const isDH = leave.departmentHeadEmployeeUserId === loggedInUserId;
 
-    let userRole = "";
-    if (leave.reportingManagerEmployeeUserId === loggedInUserId) {
-      userRole = "Reporting Manager";
+    if (!isRM && !isDH) return res.status(403).json({ message: "Unauthorized" });
+
+    // 2. Update status for both roles if the user is both
+    if (isRM) {
       leave.reportingManagerApproval = status;
-    } else if (leave.departmentHeadEmployeeUserId === loggedInUserId) {
-      userRole = "Department Head";
+    }
+    if (isDH) {
       leave.departmrntHeadApproval = status;
     }
 
-    if (!userRole) return res.status(403).json({ message: "Unauthorized" });
-
-    // Track history of changes
+    // 3. Track history
     leave.history.push({
-      role: userRole,
+      role: isRM && isDH ? "RM & DH" : isRM ? "Reporting Manager" : "Department Head",
       userId: loggedInUserId,
       status: status,
       date: new Date()
     });
 
-    // --- RE-CALCULATE FINAL DECISION ---
+    // 4. Calculate Final Decision
+    // If RM and DH are the same person, this block will now see both as APPROVED/REJECTED instantly
     if (leave.reportingManagerApproval === "REJECTED" || leave.departmrntHeadApproval === "REJECTED") {
       leave.approveRejectedStatus = "REJECTED";
-      leave.status = "REJECTED"; 
+      leave.status = "REJECTED";
     } else if (leave.reportingManagerApproval === "APPROVED" && leave.departmrntHeadApproval === "APPROVED") {
       leave.approveRejectedStatus = "APPROVED";
       leave.status = "APPROVED";
     } else {
-      // If one is Approved and other is still Pending
       leave.approveRejectedStatus = null;
-      leave.status = "PENDING"; 
+      leave.status = "PENDING";
     }
 
     await leave.save();

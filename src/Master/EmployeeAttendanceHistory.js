@@ -163,8 +163,8 @@ const EmployeeAttendanceHistory = () => {
           </div>
 
           {/* ================= TOP CONTROLS ================= */}
-          <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 flex justify-between items-start border border-dorika-blue">
-            <div className="flex gap-4 items-center">
+          <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 flex flex-col md:flex-row md:justify-between md:items-start gap-3 border border-dorika-blue">
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center mr-5">
               <label className="font-semibold text-dorika-blue">Month:</label>
               <input
                 type="month"
@@ -187,18 +187,47 @@ const EmployeeAttendanceHistory = () => {
 
            <div className="flex flex-col gap-1 text-xs font-bold mb-2">
             {/* First line: color codes */}
-            <div className="flex gap-3">
-                <span className="text-green-600">P</span>
-                <span className="text-orange-500">P(L)</span>
-                <span className="text-red-600">A</span>
-                <span className="text-purple-600">SL</span>
-                <span className="text-blue-600">CL</span>
-                <span className="text-black">OFF</span>
-                <span className="text-blue-700 bg-orange-300 px-1 rounded-md">P(L)-Late but Present</span>
+        <div className="flex flex-wrap gap-3 text-xs font-bold justify-start">
+            {/* Present */}
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-green-600 rounded-sm"></span>
+              <span>Present (P)</span>
             </div>
 
+            {/* Late Present */}
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-orange-500 rounded-sm"></span>
+              <span>Late Present (P(L))</span>
+            </div>
+
+            {/* Absent */}
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-red-600 rounded-sm"></span>
+              <span>Absent (A)</span>
+            </div>
+
+            {/* Sick Leave */}
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-purple-600 rounded-sm"></span>
+              <span>Sick Leave (SL)</span>
+            </div>
+
+            {/* Casual Leave */}
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-blue-600 rounded-sm"></span>
+              <span>Casual Leave (CL)</span>
+            </div>
+
+            {/* OFF */}
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 bg-black rounded-sm"></span>
+              <span>OFF</span>
+            </div>
+          </div>
+
+
             {/* Second line: full form / totals */}
-            <div className="flex gap-3 bg-gray-300 p-1 rounded-md">
+            <div className="flex flex-wrap gap-2 bg-gray-300 p-1 rounded-md mt-2 text-[10px] sm:text-xs">
                 <span className="text-green-700">TP - Total Present</span>
                 <span className="text-red-600">TA - Total Absent</span>
                 <span className="text-gray-600">TO - Total OFF</span>
@@ -209,7 +238,7 @@ const EmployeeAttendanceHistory = () => {
 
           {/* ================= TABLE ================= */}
           <div className="overflow-x-auto bg-white rounded-lg shadow">
-            <table className="w-full border-collapse border-dorika-blue text-xs">
+            <table className="w-full border-collapse border-dorika-blue text-[10px] sm:text-xs">
               <thead className="bg-dorika-blue text-white sticky top-0">
                 <tr>
                   <th className="border px-2 border-dorika-blue">SL</th>
@@ -296,64 +325,54 @@ const EmployeeAttendanceHistory = () => {
                           title={valObj ? `Shift: ${valObj.shiftCode}\nStart: ${valObj.shiftStartTime}\nEnd: ${valObj.shiftEndTime}` : ""}
                         >
                           {isEditable ? (
-                      <select
-                      value={currentStatus}
-                      onChange={async (e) => {
-                        const newStatus = e.target.value;
+                        <select
+                            value={currentStatus} 
+                            onChange={async (e) => {
+                              const newStatus = e.target.value;
 
-                        const confirmChange = window.confirm(
-                          `Change attendance of ${emp.firstName} ${emp.lastName} on ${selectedMonth}-${day} to ${newStatus}?`
-                        );
-                        if (!confirmChange) return;
+                              const confirmChange = window.confirm(
+                                `Change attendance to ${newStatus}?`
+                              );
+                              if (!confirmChange) return;
 
-                        // 🔹 Backend-compatible payload
-                        const payload = {
-                          employeeUserId: emp.employeeUserId,
-                          date: `${selectedMonth}-${String(day).padStart(2, "0")}`,
-                          status:
-                            newStatus === "P" || newStatus === "PL" ? "Present" : "Absent",
-                          isLate: newStatus === "PL",
-                        };
-                      
-                        try {
-                          await axios.put(
-                            "http://localhost:5002/api/attendance/update",
-                            payload
-                          );
+                              const payload = {
+                                employeeUserId: emp.employeeUserId,
+                                date: `${selectedMonth}-${String(day).padStart(2, "0")}`,
+                                status: (newStatus === "P" || newStatus === "P(L)") ? "Present" : "Absent",
+                                isLate: newStatus === "P(L)", 
+                              };
 
-                          // 🔹 Update frontend only (no CSS touched)
-                          setAttendanceMap((prev) => ({
-                            ...prev,
-                            [emp.employeeUserId]: {
-                              ...prev[emp.employeeUserId],
-                              [day]: {
-                                ...prev[emp.employeeUserId][day],
-                                status: newStatus === "PL" ? "P(L)" : newStatus,
-                                isLate: payload.isLate,
-                              },
-                            },
-                          }));
-                        } catch (err) {
-                          toast.error("Error updating attendance");
-                        }
-                      }}
-                      className={`bg-transparent text-center font-bold w-full cursor-pointer ${getAttendanceTextColor(currentStatus)}`}
-                    >
-                      <option value="P">P</option>
-                      <option value="PL">P(L)</option>
-                      <option value="A">A</option>
-                    </select>
+                              try {
+                                await axios.put("http://localhost:5002/api/attendance/update", payload);
 
-
+                                setAttendanceMap((prev) => ({
+                                  ...prev,
+                                  [emp.employeeUserId]: {
+                                    ...prev[emp.employeeUserId],
+                                    [day]: {
+                                      ...prev[emp.employeeUserId][day],
+                                      status: newStatus,
+                                      isLate: newStatus === "P(L)", 
+                                    },
+                                  },
+                                }));
+                                toast.success("Updated!");
+                              } catch (err) {
+                                toast.error("Error updating");
+                              }
+                            }}
+                            className={`bg-transparent text-center font-bold w-full cursor-pointer ${getAttendanceTextColor(currentStatus)}`}
+                          >
+                            <option value="P">P</option>
+                            <option value="P(L)">P(L)</option> {/* Changed from PL to P(L) */}
+                            <option value="A">A</option>
+                          </select>
                           ) : (
                             currentStatus
                           )}
                         </td>
                       );
                     })}
-
-
-
                     {(() => {
                       const totals = calculateTotals(attendanceMap?.[emp.employeeUserId]);
                       return (
