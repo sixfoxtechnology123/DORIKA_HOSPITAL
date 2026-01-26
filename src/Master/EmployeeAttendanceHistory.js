@@ -5,7 +5,6 @@ import BackButton from "../component/BackButton";
 import Pagination from "./Pagination";
 import toast from "react-hot-toast";
 
-
 /* ===== SAME REMIX COLORS AS SHIFT MANAGEMENT ===== */
 const EMP_COLORS = [
   "bg-dorika-blueLight",
@@ -35,43 +34,6 @@ const getAttendanceTextColor = (val) => {
     default:
       return "";
   }
-};
-
-/* ===== CALCULATE TOTALS WITH DOUBLE SHIFT LOGIC ===== */
-const calculateTotals = (records = {}) => {
-  let totalPresent = 0; // Counts 2 for double shifts, 1 for single
-  let totalAbsent = 0; 
-  let totalOff = 0;    
-  let totalLeave = 0;  
-
-  Object.values(records).forEach((val) => {
-    const status = val?.status;
-    const shiftCode = val?.shiftCode || "";
-
-    // 1. Present Logic (P, P(L), or "Present" from DB)
-    if (status === "P" || status === "P(L)" || status === "Present") {
-      // If code length is 2 (ME, EN, MN) and NOT "DD", count as 2
-      if (shiftCode.length === 2 && shiftCode !== "DD") {
-        totalPresent += 2;
-      } else {
-        totalPresent += 1;
-      }
-    } 
-    // 2. Absent Logic
-    else if (status === "A" || status === "Absent") {
-      totalAbsent += 1;
-    } 
-    // 3. OFF Logic
-    else if (status === "OFF") {
-      totalOff += 1;
-    } 
-    // 4. Leave Logic
-    else if (["SL", "CL", "SL(OFF)", "CL(OFF)"].includes(status)) {
-      totalLeave++;
-    }
-  });
-
-  return { totalPresent, totalAbsent, totalOff, totalLeave };
 };
 
 const EmployeeAttendanceHistory = () => {
@@ -122,28 +84,35 @@ const EmployeeAttendanceHistory = () => {
       .then((res) => {
         const map = {};
 
-  res.data.forEach((doc) => {
-    const dayMap = {};
+        res.data.forEach((doc) => {
+          const dayMap = {};
 
-    doc.records.forEach((r) => {
-      const day = new Date(r.date).getDate();
+          doc.records.forEach((r) => {
+            const day = new Date(r.date).getDate();
 
-      let status = "";
-      if (r.status === "Present" && r.isLate) status = "P(L)";
-      else if (r.status === "Present") status = "P";
-      else if (r.status === "Absent") status = "A";
-      else status = r.status; 
+            let status = "";
+            if (r.status === "Present" && r.isLate) status = "P(L)";
+            else if (r.status === "Present") status = "P";
+            else if (r.status === "Absent") status = "A";
+            else status = r.status;
 
-      dayMap[day] = {
-        status,
-        shiftCode: r.shiftCode || "-", // 👈 THIS IS CRITICAL
-        shiftStartTime: r.shiftStartTime || "-",
-        shiftEndTime: r.shiftEndTime || "-",
-      };
-    });
+            dayMap[day] = {
+              status,
+              shiftCode: r.shiftCode || "-",
+              shiftStartTime: r.shiftStartTime || "-",
+              shiftEndTime: r.shiftEndTime || "-",
+            };
+          });
 
-    map[doc.employeeUserId] = dayMap;
-  });
+          // Store both daily records and the DB calculated totals
+          map[doc.employeeUserId] = {
+            days: dayMap,
+            totalPresent: doc.totalPresent || 0,
+            totalAbsent: doc.totalAbsent || 0,
+            totalOff: doc.totalOff || 0,
+            totalLeave: doc.totalLeave || 0,
+          };
+        });
 
         setAttendanceMap(map);
       });
@@ -198,54 +167,40 @@ const EmployeeAttendanceHistory = () => {
               </select>
             </div>
 
-           <div className="flex flex-col gap-1 text-xs font-bold mb-2">
-            {/* First line: color codes */}
-        <div className="flex flex-wrap gap-3 text-xs font-bold justify-start">
-            {/* Present */}
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 bg-green-600 rounded-sm"></span>
-              <span>Present (P)</span>
-            </div>
+            <div className="flex flex-col gap-1 text-xs font-bold mb-2">
+              <div className="flex flex-wrap gap-3 text-xs font-bold justify-start">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 bg-green-600 rounded-sm"></span>
+                  <span>Present (P)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 bg-orange-500 rounded-sm"></span>
+                  <span>Late Present (P(L))</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 bg-red-600 rounded-sm"></span>
+                  <span>Absent (A)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 bg-purple-600 rounded-sm"></span>
+                  <span>Sick Leave (SL)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 bg-blue-600 rounded-sm"></span>
+                  <span>Casual Leave (CL)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 bg-black rounded-sm"></span>
+                  <span>OFF</span>
+                </div>
+              </div>
 
-            {/* Late Present */}
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 bg-orange-500 rounded-sm"></span>
-              <span>Late Present (P(L))</span>
-            </div>
-
-            {/* Absent */}
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 bg-red-600 rounded-sm"></span>
-              <span>Absent (A)</span>
-            </div>
-
-            {/* Sick Leave */}
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 bg-purple-600 rounded-sm"></span>
-              <span>Sick Leave (SL)</span>
-            </div>
-
-            {/* Casual Leave */}
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 bg-blue-600 rounded-sm"></span>
-              <span>Casual Leave (CL)</span>
-            </div>
-
-            {/* OFF */}
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 bg-black rounded-sm"></span>
-              <span>OFF</span>
-            </div>
-          </div>
-
-
-            {/* Second line: full form / totals */}
-            <div className="flex flex-wrap gap-2 bg-gray-300 p-1 rounded-md mt-2 text-[10px] sm:text-xs">
+              <div className="flex flex-wrap gap-2 bg-gray-300 p-1 rounded-md mt-2 text-[10px] sm:text-xs">
                 <span className="text-green-700">TP - Total Present</span>
                 <span className="text-red-600">TA - Total Absent</span>
                 <span className="text-gray-600">TO - Total OFF</span>
                 <span className="text-orange-600">TL - Total Leave (SL+CL)</span>
-            </div>
+              </div>
             </div>
           </div>
 
@@ -259,14 +214,13 @@ const EmployeeAttendanceHistory = () => {
                   <th className="border px-2 border-dorika-blue">Name</th>
                   <th className="border px-2 border-dorika-blue">Designation</th>
                   {daysInMonth.map((d) => (
-                   <th
-                key={d}
-                className="border border-dorika-blue text-center whitespace-nowrap"
-                style={{ width: "32px", minWidth: "32px", maxWidth: "32px" }}
-              >
-                {d}
-              </th>
-
+                    <th
+                      key={d}
+                      className="border border-dorika-blue text-center whitespace-nowrap"
+                      style={{ width: "32px", minWidth: "32px", maxWidth: "32px" }}
+                    >
+                      {d}
+                    </th>
                   ))}
                   <th className="border px-2 border-dorika-blue text-center bg-orange-500">TP</th>
                   <th className="border px-2 border-dorika-blue text-center bg-orange-500">TA</th>
@@ -280,158 +234,137 @@ const EmployeeAttendanceHistory = () => {
                   <tr key={emp.employeeUserId} className={`${getRowColor(startIndex + i)}`}>
                     <td className="border px-2 border-dorika-blue">{startIndex + i + 1}</td>
                     <td className="border px-2 border-dorika-blue">{emp.employeeID}</td>
-                    <td className="border px-2 border-dorika-blue font-medium">{emp.firstName} {emp.lastName}</td>
+                    <td className="border px-2 border-dorika-blue font-medium">
+                      {emp.firstName} {emp.lastName}
+                    </td>
                     <td className="border px-2 border-dorika-blue">{emp.designationName}</td>
 
                     {daysInMonth.map((day) => {
-                      const valObj = attendanceMap?.[emp.employeeUserId]?.[day];
+                      const valObj = attendanceMap?.[emp.employeeUserId]?.days?.[day];
                       const currentStatus = valObj?.status || "";
 
-                      // Only allow dropdown for P, P(L), A
                       const editableStatuses = ["P", "P(L)", "A"];
                       const isEditable = editableStatuses.includes(currentStatus);
-
-                      const handleChange = async (e) => {
-                        const newStatus = e.target.value;
-                        if (!isEditable || newStatus === currentStatus) return;
-
-                        // Confirm before updating
-                        const confirmChange = window.confirm(`Change attendance from ${currentStatus} to ${newStatus}?`);
-                        if (!confirmChange) return;
-
-                        try {
-                          await axios.put("http://localhost:5002/api/attendance/update", {
-                            employeeUserId: emp.employeeUserId,
-                            date: `2026-${String(day).padStart(2, "0")}`, // format YYYY-MM-DD, adjust month/year dynamically
-                            status: newStatus,
-                            isLate: newStatus === "P(L)"
-                          });
-
-                          // Update local state immediately
-                          setAttendanceMap((prev) => ({
-                            ...prev,
-                            [emp.employeeUserId]: {
-                              ...prev[emp.employeeUserId],
-                              [day]: {
-                                ...prev[emp.employeeUserId][day],
-                                status: newStatus,
-                                isLate: newStatus === "P(L)"
-                              }
-                            }
-                          }));
-                        } catch (err) {
-                          toast.error("Failed to update attendance!");
-                          console.error(err);
-                        }
-                      };
 
                       return (
                         <td
                           key={day}
-                           className={`border border-dorika-blue text-center font-bold whitespace-nowrap overflow-hidden text-ellipsis ${getAttendanceTextColor(currentStatus)}`}
-                           style={{
+                          className={`border border-dorika-blue text-center font-bold whitespace-nowrap overflow-hidden text-ellipsis ${getAttendanceTextColor(
+                            currentStatus
+                          )}`}
+                          style={{
                             width: "32px",
                             minWidth: "32px",
                             maxWidth: "32px",
                             cursor: isEditable ? "pointer" : "not-allowed",
                           }}
-                          title={valObj ? `Shift: ${valObj.shiftCode}\nStart: ${valObj.shiftStartTime}\nEnd: ${valObj.shiftEndTime}` : ""}
+                          title={
+                            valObj
+                              ? `Shift: ${valObj.shiftCode}\nStart: ${valObj.shiftStartTime}\nEnd: ${valObj.shiftEndTime}`
+                              : ""
+                          }
                         >
                           {isEditable ? (
-                        <select
-                            value={currentStatus} 
-                         onChange={async (e) => {
-                          const newStatus = e.target.value;
+                            <select
+                              value={currentStatus}
+                              onChange={async (e) => {
+                                const newStatus = e.target.value;
 
-                          toast((t) => (
-                            <div className="flex flex-col gap-3 min-w-[220px]">
-                              <div className="flex items-center gap-3">
-                                <div className="w-1.5 h-10 bg-green-500 rounded-full"></div>
-                                <p className="text-sm font-semibold text-gray-800">
-                                  Set attendance to <span className="text-green-600 font-bold underline">{newStatus}</span>?
-                                </p>
-                              </div>
-                              
-                              <div className="flex justify-end items-center gap-3 border-t border-gray-100 pt-3">
-                                <button
-                                  className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white text-[11px] font-bold px-3 py-1.5 rounded-md transition-all uppercase tracking-wider"
-                                  onClick={() => toast.dismiss(t.id)}
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  className="bg-green-600 hover:bg-green-700 text-white text-[11px] font-bold px-4 py-1.5 rounded-md shadow-md shadow-green-100 transition-all active:scale-95 uppercase tracking-wider"
-                                  onClick={async () => {
-                                    toast.dismiss(t.id);
-                                    
-                                    const payload = {
-                                      employeeUserId: emp.employeeUserId,
-                                      date: `${selectedMonth}-${String(day).padStart(2, "0")}`,
-                                      status: (newStatus === "P" || newStatus === "P(L)") ? "Present" : "Absent",
-                                      isLate: newStatus === "P(L)", 
-                                    };
+                                toast(
+                                  (t) => (
+                                    <div className="flex flex-col gap-3 min-w-[220px]">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-1.5 h-10 bg-green-500 rounded-full"></div>
+                                        <p className="text-sm font-semibold text-gray-800">
+                                          Set attendance to{" "}
+                                          <span className="text-green-600 font-bold underline">
+                                            {newStatus}
+                                          </span>
+                                          ?
+                                        </p>
+                                      </div>
 
-                                    try {
-                                      await axios.put("http://localhost:5002/api/attendance/update", payload);
-                                      
-                                      setAttendanceMap((prev) => ({
-                                        ...prev,
-                                        [emp.employeeUserId]: {
-                                          ...prev[emp.employeeUserId],
-                                          [day]: {
-                                            ...prev[emp.employeeUserId][day],
-                                            status: newStatus,
-                                            isLate: newStatus === "P(L)", 
-                                          },
-                                        },
-                                      }));
-                                      toast.success(`Updated to ${newStatus}`, {
-                                        icon: '✅',
-                                        style: { borderRadius: '8px', background: '#f0fdf4', color: '#166534', fontWeight: 'bold' }
-                                      });
-                                    } catch (err) {
-                                      toast.error("Update failed!");
-                                    }
-                                  }}
-                                >
-                                  Confirm
-                                </button>
-                              </div>
-                            </div>
-                          ), { 
-                            duration: 6000,
-                            position: 'top-center',
-                            style: {
-                              padding: '16px',
-                              borderRadius: '12px',
-                              border: '1px solid #f1f5f9',
-                              background: '#ffffff',
-                            }
-                          });
-                        }}
-                            className={`bg-transparent text-center font-bold w-full cursor-pointer ${getAttendanceTextColor(currentStatus)}`}
-                          >
-                            <option value="P">P</option>
-                            <option value="P(L)">P(L)</option> {/* Changed from PL to P(L) */}
-                            <option value="A">A</option>
-                          </select>
+                                      <div className="flex justify-end items-center gap-3 border-t border-gray-100 pt-3">
+                                        <button
+                                          className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white text-[11px] font-bold px-3 py-1.5 rounded-md transition-all uppercase tracking-wider"
+                                          onClick={() => toast.dismiss(t.id)}
+                                        >
+                                          Cancel
+                                        </button>
+                                        <button
+                                          className="bg-green-600 hover:bg-green-700 text-white text-[11px] font-bold px-4 py-1.5 rounded-md shadow-md shadow-green-100 transition-all active:scale-95 uppercase tracking-wider"
+                                          onClick={async () => {
+                                            toast.dismiss(t.id);
+
+                                            const payload = {
+                                              employeeUserId: emp.employeeUserId,
+                                              date: `${selectedMonth}-${String(day).padStart(
+                                                2,
+                                                "0"
+                                              )}`,
+                                              status:
+                                                newStatus === "P" || newStatus === "P(L)"
+                                                  ? "Present"
+                                                  : "Absent",
+                                              isLate: newStatus === "P(L)",
+                                            };
+
+                                            try {
+                                              await axios.put(
+                                                "http://localhost:5002/api/attendance/update",
+                                                payload
+                                              );
+                                              // Reload logic: Ideally you should refetch to get updated totals from DB
+                                              window.location.reload(); 
+                                            } catch (err) {
+                                              toast.error("Update failed!");
+                                            }
+                                          }}
+                                        >
+                                          Confirm
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ),
+                                  {
+                                    duration: 6000,
+                                    position: "top-center",
+                                    style: {
+                                      padding: "16px",
+                                      borderRadius: "12px",
+                                      border: "1px solid #f1f5f9",
+                                      background: "#ffffff",
+                                    },
+                                  }
+                                );
+                              }}
+                              className={`bg-transparent text-center font-bold w-full cursor-pointer ${getAttendanceTextColor(
+                                currentStatus
+                              )}`}
+                            >
+                              <option value="P">P</option>
+                              <option value="P(L)">P(L)</option>
+                              <option value="A">A</option>
+                            </select>
                           ) : (
                             currentStatus
                           )}
                         </td>
                       );
                     })}
-                    {(() => {
-                      const totals = calculateTotals(attendanceMap?.[emp.employeeUserId]);
-                      return (
-                        <>
-                          <td className="border border-dorika-blue text-center font-bold text-green-700">{totals.totalPresent}</td>
-                          <td className="border border-dorika-blue text-center font-bold text-red-600">{totals.totalAbsent}</td>
-                          <td className="border border-dorika-blue text-center font-bold text-gray-600">{totals.totalOff}</td>
-                          <td className="border border-dorika-blue text-center font-bold text-orange-600">{totals.totalLeave}</td>
-                        </>
-                      );
-                    })()}
+                    {/* DISPLAY TOTALS DIRECTLY FROM DB */}
+                    <td className="border border-dorika-blue text-center font-bold text-green-700">
+                      {attendanceMap?.[emp.employeeUserId]?.totalPresent || 0}
+                    </td>
+                    <td className="border border-dorika-blue text-center font-bold text-red-600">
+                      {attendanceMap?.[emp.employeeUserId]?.totalAbsent || 0}
+                    </td>
+                    <td className="border border-dorika-blue text-center font-bold text-gray-600">
+                      {attendanceMap?.[emp.employeeUserId]?.totalOff || 0}
+                    </td>
+                    <td className="border border-dorika-blue text-center font-bold text-orange-600">
+                      {attendanceMap?.[emp.employeeUserId]?.totalLeave || 0}
+                    </td>
                   </tr>
                 ))}
               </tbody>

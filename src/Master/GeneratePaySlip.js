@@ -88,33 +88,12 @@ useEffect(() => {
       const empData = res.data.find(doc => doc.employeeUserId === selectedEmployee.employeeUserId);
       
       if (empData) {
-        let tp = 0; // Total Present
-        let ta = 0; // LOP (Total Absent)
-        let tl = 0; // Leaves (SL + CL)
-
-        empData.records.forEach(r => {
-          // 1. Calculate TP (Present and Late Present)
-          if (r.status === "Present" || r.status === "P" || r.status === "P(L)") {
-            tp++;
-          } 
-          // 2. Calculate TA (Absent)
-          else if (r.status === "Absent" || r.status === "A") {
-            ta++;
-          } 
-          // 3. Calculate TL (SL and CL including OFF variants)
-          else if (
-            r.status === "SL" || 
-            r.status === "CL" || 
-            r.status === "SL(OFF)" || 
-            r.status === "CL(OFF)"
-          ) {
-            tl++;
-          }
-        });
-        
-        setTotalWorkingDays(tp); // TP
-        setLOP(ta);              // TA
-        setLeaves(tl);           // TL
+        // FETCH DIRECTLY FROM DB VALUES 👈
+        // Note: totalAbsent maps to LOP
+        // Note: totalLeave maps to Leaves
+        setTotalWorkingDays(empData.totalPresent || 0); 
+        setLOP(empData.totalAbsent || 0);               
+        setLeaves(empData.totalLeave || 0);             
       }
     } catch (err) {
       console.error("Error fetching attendance for payslip", err);
