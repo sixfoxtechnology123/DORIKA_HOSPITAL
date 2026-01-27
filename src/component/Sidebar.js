@@ -47,7 +47,7 @@ const Sidebar = () => {
       icon:BookA,
       permission:"",
       submenus:[
-        { name: "Salary Fee Heads",path: "/SalarySlipHeadList"},
+        // { name: "Salary Fee Heads",path: "/SalarySlipHeadList"},
         { name: "Pay Slip Generate",path: "/PaySlipGenerateEmployeeList"},
         { name: "History",path: "/PaySlipHistory"},
       ]

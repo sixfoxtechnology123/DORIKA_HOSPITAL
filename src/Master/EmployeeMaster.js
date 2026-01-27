@@ -149,7 +149,7 @@ const [ifscCode, setIfscCode] = useState("");
 const [accountNo, setAccountNo] = useState("");
 const [payLevel, setPayLevel] = useState("");
 const [aadhaarNo, setAadhaarNo] = useState("");
-
+const [grossSalary, setGrossSalary] = useState("");
 const [earningDetails, setEarningDetails] = useState([
   { headName: "", headType: "", value: "" }
 ]);
@@ -366,8 +366,31 @@ useEffect(() => {
     setAccountNo(employee.payDetails?.accountNo || "");
     setPayLevel(employee.payDetails?.payLevel || "");
     setAadhaarNo(employee.payDetails?.aadhaarNo || "");
-    setEarningDetails(employee.earnings || []);
-    setDeductionDetails(employee.deductions || []);
+    // setEarningDetails(employee.earnings || []);
+    // setDeductionDetails(employee.deductions || []);
+    setGrossSalary(employee.grossSalary || "");
+    if (employee.earnings && employee.earnings.length > 0) {
+      setEarningDetails(employee.earnings);
+    } else {
+      setEarningDetails([
+        { headName: "Basic", headType: "EARNING", value: "" },
+        { headName: "HRA", headType: "EARNING", value: "" },
+        { headName: "Mobile Allowance", headType: "EARNING", value: "500" },
+        { headName: "Bonus", headType: "EARNING", value: "" },
+        { headName: "Management Allowance", headType: "EARNING", value: "" },
+        { headName: "OT", headType: "EARNING", value: "0" },
+      ]);
+    }
+
+    if (employee.deductions && employee.deductions.length > 0) {
+      setDeductionDetails(employee.deductions);
+    } else {
+      setDeductionDetails([
+        { headName: "PF", headType: "DEDUCTION", value: "" },
+        { headName: "PT", headType: "DEDUCTION", value: "" },
+        { headName: "ESI", headType: "DEDUCTION", value: "" },
+      ]);
+    }
 
     // 9. Document Checkboxes
     const hardCopyDocsObj = {};
@@ -467,6 +490,35 @@ setDesignations(
   fetchEmployees();
 }, []);
 
+const calculatePayStructure = (grossInput) => {
+  const S = parseFloat(grossInput) || 0;
+ setGrossSalary(S);
+  const basic = S * 0.50;
+  const hra = basic * 0.40;
+  const mobile = 500;
+  const bonus = basic / 6;
+  const managementAllowance = S - (basic + hra + mobile + bonus);
+
+  // Deductions
+  const pf = basic * 0.12;
+  const pt = S > 25000 ? 208 : (S >= 15000 ? 180 : 0);
+  const esi = S * 0.0075;
+
+  setEarningDetails([
+    { headName: "Basic", headType: "EARNING", value: basic.toFixed(2) },
+    { headName: "HRA", headType: "EARNING", value: hra.toFixed(2) },
+    { headName: "Mobile Allowance", headType: "EARNING", value: mobile.toFixed(2) },
+    { headName: "Bonus", headType: "EARNING", value: bonus.toFixed(2) },
+    { headName: "Management Allowance", headType: "EARNING", value: managementAllowance.toFixed(2) },
+    // { headName: "OT", headType: "EARNING", value: "0" }
+  ]);
+
+  setDeductionDetails([
+    { headName: "PF", headType: "DEDUCTION", value: pf.toFixed(2) },
+    { headName: "PT", headType: "DEDUCTION", value: pt.toFixed(2) },
+    { headName: "ESI", headType: "DEDUCTION", value: esi.toFixed(2) }
+  ]);
+};
 
   const handleFileChange = (e) => setProfileImage(e.target.files[0]);
 
@@ -578,6 +630,7 @@ const payload = {
     payLevel,
     aadhaarNo,
   },
+  grossSalary,
   earnings: earningDetails,
   deductions: deductionDetails,
   hardCopyDocuments: employeeData.hardCopyDocuments,
@@ -1792,229 +1845,110 @@ const handleSubmit = async (e) => {
           )}
 
           {/* ---------- STEP 5 : PAY STRUCTURE ---------- */}
-            {step === 5 && (
-            <div className="bg-white min-h-screen shadow-lg rounded-lg p-4 w-full">
-              <h3 className="text-xl font-semibold text-sky-600 col-span-full">
-                PAY STRUCTURE
-              </h3>
+        {step === 5 && (
+      <div className="space-y-6">
+        <h3 className="text-xl font-semibold text-sky-600 border-b pb-2">Pay Structure</h3>
+        
+        {/* Gross Salary Input */}
+        <div className="flex items-center gap-4 bg-sky-50 p-4 rounded-lg border border-sky-100">
+          <label className="font-bold text-gray-700">Enter Gross Salary :</label>
+          <input 
+            type="number" 
+           value={grossSalary}
+            className="border-2 border-sky-600 p-2 rounded w-48 focus:outline-none focus:ring-2 focus:ring-sky-300"
+            placeholder="e.g. 30000"
+            onChange={(e) => calculatePayStructure(e.target.value)}
+          />
+        </div>
 
-              {/* ===== EARNING TABLE ===== */}
-              <h4 className="text-lg font-semibold text-white mb-2 pl-2 bg-blue-700 rounded-sm">EARNING</h4>
-              <table className="w-full border border-gray-300 mb-6 text-sm font-medium">
-                <thead className="bg-sky-100">
-                  <tr>
-                    <th className="border p-2 w-16">SL.NO.</th>
-                    <th className="border p-2">HEAD NAME</th>
-                    <th className="border p-2">HEAD TYPE</th>
-                    <th className="border p-2">VALUE</th>
-                    <th className="border p-2 w-20 text-center">ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {earningDetails.map((row, index) => (
-                    <tr key={index} className="even:bg-gray-50">
-                      <td className="border p-2 text-center">{index + 1}</td>
-
-                      {/* Head Name */}
-                     <td className="border p-2">
-                  <select
-                      value={row.headName}
-                      onChange={(e) => {
-                        const updated = [...earningDetails];
-                        updated[index].headName = e.target.value;
-                        setEarningDetails(updated);
-                      }}
-                      className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 uppercase"
-                    >
-                      <option value="">SELECT</option>
-                      {earningHeads.map(head => (
-                        <option key={head._id} value={head.headName}>{head.headName}</option>
-                      ))}
-                    </select>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Earnings Table */}
+          <div className="border rounded-lg overflow-hidden shadow-sm">
+            <div className="bg-sky-600 text-white p-2 font-bold text-center">EARNINGS</div>
+            <table className="w-full text-sm">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-2 border-b text-left">Head Name</th>
+                  <th className="p-2 border-b text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {earningDetails.map((item, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="p-2 border-b font-semibold">{item.headName}</td>
+                    <td className="p-2 border-b ">
+                      <input 
+                        type="number"
+                        value={item.value}
+                        className="w-full text-right border rounded p-1 font-semibold"
+                        onChange={(e) => {
+                          const updated = [...earningDetails];
+                          updated[index].value = e.target.value;
+                          setEarningDetails(updated);
+                        }}
+                      />
                     </td>
-
-
-                      {/* Head Type */}
-                      <td className="border p-2">
-                        <select
-                          value={row.headType}
-                          onChange={(e) => {
-                            const updated = [...earningDetails];
-                            updated[index].headType = e.target.value.toUpperCase();
-                            setEarningDetails(updated);
-                          }}
-                          className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 uppercase"
-                        >
-                          <option value="">SELECT</option>
-                          <option value="FIXED">FIXED</option>
-                          <option value="VARIABLE">VARIABLE</option>
-                        </select>
-                      </td>
-
-                      {/* Value */}
-                      <td className="border p-2">
-                        <input
-                          type="number"
-                          value={row.value}
-                          onChange={(e) => {
-                            const updated = [...earningDetails];
-                            updated[index].value = e.target.value;
-                            setEarningDetails(updated);
-                          }}
-                          className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
-                        />
-                      </td>
-
-                      {/* Action Buttons */}
-                      <td className="border p-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setEarningDetails([
-                              ...earningDetails,
-                              { headName: "", headType: "", value: "" },
-                            ])
-                          }
-                          className="bg-green-500 hover:bg-green-600 text-white px-2 rounded mr-1"
-                        >
-                          +
-                        </button>
-                        {earningDetails.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setEarningDetails(earningDetails.filter((_, i) => i !== index))
-                            }
-                            className="bg-red-500 hover:bg-red-600 text-white px-2 rounded"
-                          >
-                            -
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* ===== DEDUCTION TABLE ===== */}
-              <h4 className="text-lg font-semibold text-white mb-2 pl-2 bg-blue-700 rounded-sm">DEDUCTION</h4>
-              <table className="w-full border border-gray-300 mb-6 text-sm font-medium">
-                <thead className="bg-sky-100">
-                  <tr>
-                    <th className="border p-2 w-16">SL.NO.</th>
-                    <th className="border p-2">HEAD NAME</th>
-                    <th className="border p-2">HEAD TYPE</th>
-                    <th className="border p-2">VALUE</th>
-                    <th className="border p-2 w-20 text-center">ACTION</th>
                   </tr>
-                </thead>
-                <tbody>
-                  {deductionDetails.map((row, index) => (
-                    <tr key={index} className="even:bg-gray-50">
-                      <td className="border p-2 text-center">{index + 1}</td>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-                     {/* Head Name */}
-                    <td className="border p-2">
-                      <select
-                      value={row.headName}
-                      onChange={(e) => {
-                        const updated = [...deductionDetails];
-                        updated[index].headName = e.target.value;
-                        setDeductionDetails(updated);
-                      }}
-                      className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 uppercase"
-                    >
-                      <option value="">SELECT</option>
-                      {deductionHeads.map(head => (
-                        <option key={head._id} value={head.headName}>{head.headName}</option>
-                      ))}
-                    </select>
+          {/* Deductions Table */}
+          <div className="border rounded-lg overflow-hidden shadow-sm">
+            <div className="bg-red-600 text-white p-2 font-bold text-center">DEDUCTIONS</div>
+            <table className="w-full text-sm">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-2 border-b text-left">Head Name</th>
+                  <th className="p-2 border-b text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deductionDetails.map((item, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="p-2 border-b font-semibold">{item.headName}</td>
+                    <td className="p-2 border-b">
+                      <input 
+                        type="number"
+                        value={item.value}
+                        className="w-full text-right border rounded p-1 font-semibold"
+                        onChange={(e) => {
+                          const updated = [...deductionDetails];
+                          updated[index].value = e.target.value;
+                          setDeductionDetails(updated);
+                        }}
+                      />
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-                      {/* Head Type */}
-                      <td className="border p-2">
-                        <select
-                          value={row.headType}
-                          onChange={(e) => {
-                            const updated = [...deductionDetails];
-                            updated[index].headType = e.target.value.toUpperCase();
-                            setDeductionDetails(updated);
-                          }}
-                          className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 uppercase"
-                        >
-                          <option value="">SELECT</option>
-                          <option value="FIXED">FIXED</option>
-                          <option value="VARIABLE">VARIABLE</option>
-                        </select>
-                      </td>
-
-                      {/* Value */}
-                      <td className="border p-2">
-                        <input
-                          type="number"
-                          value={row.value}
-                          onChange={(e) => {
-                            const updated = [...deductionDetails];
-                            updated[index].value = e.target.value;
-                            setDeductionDetails(updated);
-                          }}
-                          className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
-                        />
-                      </td>
-
-                      {/* Action Buttons */}
-                      <td className="border p-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setDeductionDetails([
-                              ...deductionDetails,
-                              { headName: "", headType: "", value: "" },
-                            ])
-                          }
-                          className="bg-green-500 hover:bg-green-600 text-white px-2 rounded mr-1"
-                        >
-                          +
-                        </button>
-                        {deductionDetails.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setDeductionDetails(deductionDetails.filter((_, i) => i !== index))
-                            }
-                            className="bg-red-500 hover:bg-red-600 text-white px-2 rounded"
-                          >
-                            -
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* ===== NEXT/BACK BUTTONS ===== */}
-              <div className="col-span-full flex justify-between mt-4">
-                  <button
-                    onClick={() => setStep(3)}
-                    className="bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-800"
-                  >
-                    ← Back
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveAndNext} 
-                    className="flex items-center gap-1 px-3 py-1 rounded text-white bg-sky-600 hover:bg-sky-700"
-                  >
-                    <span>Save & Next</span>
-                    <span>→</span>
-                  </button>
-                </div>
-              </div>
-              )}
+        {/* Footer Navigation */}
+        <div className="flex justify-between items-center pt-6 border-t">
+          <button 
+            type="button"
+            onClick={() => setStep(4)}
+           className="bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-800"
+          >
+            ← Back
+          </button>
+          <button 
+            type="button"
+            onClick={handleSaveAndNext}
+            className="flex items-center gap-1 px-3 py-1 rounded text-white bg-sky-600 hover:bg-sky-700"
+          >
+            Save & Next →
+          </button>
+        </div>
+      </div>
+    )}
 
 
-                {/* ---------- STEP 6 : DOCUMENT MANAGEMENT ---------- */}
+          {/* ---------- STEP 6 : DOCUMENT MANAGEMENT ---------- */}
           {step === 6 && (
             <div className="bg-white min-h-screen shadow-lg rounded-lg p-4 w-full">
               <h3 className="text-xl font-semibold text-sky-600 mb-4">

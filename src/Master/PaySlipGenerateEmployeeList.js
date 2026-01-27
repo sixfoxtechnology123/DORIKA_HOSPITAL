@@ -468,72 +468,97 @@ const fetchLatestPayslip = async (emp) => {
 </div>
 
 
-  {/* EARNINGS + DEDUCTIONS */}
-  <div className="grid grid-cols-2 gap-4 mb-4">
-    {/* Earnings */}
-    <div className="border border-black p-2">
-      <h3 className="text-xl font-semibold mb-3">Earnings</h3>
-      <table className="w-full border border-black text-lg">
-        <thead>
-          <tr className="bg-gray-200 text-center">
-            <th className="border p-1">SL No</th>
-            <th className="border p-1">Head</th>
-            <th className="border p-1">Type</th>
-            <th className="border p-1">Amount</th>
+{/* EARNINGS + DEDUCTIONS */}
+<div className="grid grid-cols-2 gap-4 mb-4">
+  {/* Earnings */}
+  <div className="border border-black p-2">
+    <h3 className="text-xl font-semibold mb-3">Earnings</h3>
+    <table className="w-full border border-black text-lg">
+      <thead>
+        <tr className="bg-gray-200 text-center">
+          <th className="border p-1">SL No</th>
+          <th className="border p-1">Head</th>
+          <th className="border p-1">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {earningDetails.map((e, i) => (
+          <tr key={i}>
+            <td className="border p-2 text-center">{i + 1}</td>
+            <td className="border p-2 font-semibold text-left">{e.headName}</td>
+            <td className="border p-2 text-center font-semibold">₹{Number(e.value).toFixed(2)}</td>
           </tr>
-        </thead>
-        <tbody>
-          {earningDetails.map((e, i) => (
-            <tr key={i}>
-              <td className="border p-2 text-center">{i + 1}</td>
-              <td className="border p-2 text-center font-semibold">{e.headName}</td>
-              <td className="border p-2 text-center font-semibold">{e.headType}</td>
-              <td className="border p-2 text-center font-semibold">₹{Number(e.value).toFixed(2)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-
-    {/* Deductions */}
-    <div className="border border-black p-2">
-      <h3 className="text-xl font-semibold mb-3">Deductions</h3>
-      <table className="w-full border border-black text-lg">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="border p-2">Sl No</th>
-            <th className="border p-2">Head</th>
-            <th className="border p-2">Type</th>
-            <th className="border p-2">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {deductionDetails.map((d, i) => (
-            <tr key={i}>
-              <td className="border p-2 text-center">{i + 1}</td>
-              <td className="border p-2 text-center font-semibold">{d.headName}</td>
-              <td className="border p-2 text-center font-semibold">{d.headType}</td>
-              <td className="border p-2 text-center font-semibold">₹{Number(d.value).toFixed(2)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </table>
   </div>
 
-  <div className="border border-black  px-4 py-2 text-lg space-y-2">
-    <TwoColRow label1="Gross Salary" value1={`₹${grossSalary.toFixed(2)}`} />
-    <TwoColRow label1="Total Deduction" value1={`₹${totalDeduction.toFixed(2)}`} />
+  {/* Deductions */}
+  <div className="border border-black p-2">
+    <h3 className="text-xl font-semibold mb-3">Deductions</h3>
+    <table className="w-full border border-black text-lg">
+      <thead>
+        <tr className="bg-gray-200 text-center">
+          <th className="border p-1">Sl No</th>
+          <th className="border p-1">Head</th>
+          <th className="border p-1">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {deductionDetails.map((d, i) => (
+          <tr key={i}>
+            <td className="border p-2 text-center">{i + 1}</td>
+            <td className="border p-2 font-semibold uppercase text-left">{d.headName}</td>
+            <td className="border p-2 text-center font-semibold">₹{Number(d.value).toFixed(2)}</td>
+          </tr>
+        ))}
 
-    <TwoColRow label1="Net Salary" value1={`₹${netSalary.toFixed(2)}`} />
-    <TwoColRow label1="LOP Deduction" value1={`₹${lopAmount.toFixed(2)}`} />
-
-    <div>
-      <h3 className="text-2xl font-semibold mb-3">
-        In-Hand Salary: ₹{inHandSalary.toFixed(2)}
-      </h3>
-    </div>
+        {/* LOP added at the bottom of the table body */}
+        <tr className="bg-red-50 font-bold border-t border-red-200 text-black">
+          <td className="border p-2 text-center">
+            {deductionDetails.length + 1}
+          </td>
+          <td className="border p-2 text-left">
+            LOP ({LOP} DAYS)
+          </td>
+          <td className="border p-2 text-center">
+            ₹{lopAmount.toFixed(2)}
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
+</div>
+
+
+<div className="border-2 border-gray-400 rounded-lg p-4 w-80 bg-white shadow-sm mt-4">
+  <div className="flex justify-between mb-2">
+    <span className="text-gray-950 font-bold">Gross salary</span>
+    <span className="font-bold">₹{grossSalary.toFixed(2)}</span>
+  </div>
+
+  <div className="flex justify-between mb-2 text-sm">
+    <span className="text-gray-600 font-medium">Total Earnings</span>
+    <span className="font-semibold">: ₹{grossSalary.toFixed(2)}</span>
+  </div>
+
+  <div className="flex justify-between mb-2 text-sm">
+    <span className="text-gray-600 font-medium">Total Deduction</span>
+    <span className="font-semibold">: ₹{totalDeduction.toFixed(2)}</span>
+  </div>
+
+  <hr className="border-gray-400 my-2" />
+
+  <div className="flex justify-between mb-2">
+    <span className="text-gray-950 font-bold">Net Salary</span>
+    <span className="font-bold">₹{inHandSalary.toFixed(2)}</span>
+  </div>
+
+  <div className="flex justify-between mt-2 font-bold text-blue-800 border-t pt-2">
+    <span>In Hand Salary</span>
+    <span>₹{inHandSalary.toFixed(2)}</span>
+  </div>
+</div>
 </div>
 )}
 </>

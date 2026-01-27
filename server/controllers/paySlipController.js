@@ -3,32 +3,25 @@ import PaySlip from "../models/PaySlip.js";
 import Employee from "../models/Employee.js";
 
 const updateEmployeePayDetails = async (employeeId, earnings, deductions) => {
-  // 1. Fixes the "toUpperCase" error by checking if it is a string
   const searchId = typeof employeeId === 'string' ? employeeId.toUpperCase() : employeeId;
 
+  // We map the incoming payload to match the Employee Master Schema keys
   const updatedEarnings = earnings.map(e => ({
-    _id: e._id || undefined,
     headName: e.headName,
-    headType: e.type || "",
-    value: Number(e.amount) || 0
+    headType: e.type || "FIXED", // Maps 'type' to 'headType'
+    value: Number(e.amount) || 0  // Maps 'amount' to 'value'
   }));
 
   const updatedDeductions = deductions.map(d => ({
-    _id: d._id || undefined,
     headName: d.headName,
-    headType: d.type || "",
+    headType: d.type || "FIXED",
     value: Number(d.amount) || 0
   }));
 
-  // 2. Fixes the "Cast to ObjectId" error by searching for the ID string "P-00003"
+  // $set replaces the whole array, so deleted rows are now gone from the Master DB
   await Employee.findOneAndUpdate(
     { employeeID: searchId }, 
-    {
-      $set: {
-        earnings: updatedEarnings,
-        deductions: updatedDeductions
-      }
-    },
+    { $set: { earnings: updatedEarnings, deductions: updatedDeductions } },
     { new: true }
   );
 };
@@ -99,7 +92,9 @@ export const createPaySlip = async (req, res) => {
       earnings: mappedEarnings,
       deductions: mappedDeductions,
       grossSalary: Number(grossSalary || 0),
+      
       totalDeduction: Number(totalDeduction || 0),
+      totalEarnings: Number(grossSalary || 0),
       netSalary: Number(netSalary || 0),
       lopAmount: Number(lopAmount || 0),
       inHandSalary: Number(inHandSalary || 0),
@@ -109,8 +104,8 @@ export const createPaySlip = async (req, res) => {
       leaves: Number(leaves || 0)
     });
 
-    // Optionally update employee's top-level pay info
-    await updateEmployeePayDetails(employee._id, mappedEarnings, mappedDeductions);
+ 
+    await updateEmployeePayDetails(employee.employeeID, mappedEarnings, mappedDeductions);
 
     res.json({ success: true, data: newSlip });
 
@@ -120,80 +115,65 @@ export const createPaySlip = async (req, res) => {
   }
 };
 
-// UPDATE Payslip
+// paySlipController.js
 export const updatePaySlip = async (req, res) => {
   try {
-    // 1. Get the Payslip Database ID from the URL
-    const { id } = req.params; 
+    const { id } = req.params;
     const {
       earnings,
       deductions,
-      month,
-      year,
       grossSalary,
       totalDeduction,
       netSalary,
       lopAmount,
       inHandSalary,
-      mobile,
-      email,
       monthDays,
       totalWorkingDays,
       LOP,
       leaves
     } = req.body;
 
-    if (!month || !year) return res.status(400).json({ error: "Month & Year required" });
+    // 1. Update the Payslip Document
+    const updatedSlip = await PaySlip.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          earnings,
+          deductions,
+          grossSalary,
+          totalDeduction,
+          netSalary,
+          lopAmount,
+          inHandSalary,
+          monthDays,
+          totalWorkingDays,
+          LOP,
+          leaves
+        }
+      },
+      { new: true } // Returns the document after update
+    );
 
-    // 2. Find the existing Payslip document
-    const payslip = await PaySlip.findById(id);
-    if (!payslip) return res.status(404).json({ error: "PaySlip not found in database" });
+    if (!updatedSlip) {
+      return res.status(404).json({ success: false, message: "Payslip record not found" });
+    }
 
-    // 3. Filter out empty rows and map the data (Fixes "headName required" error)
-    const mappedEarnings = earnings
-      .filter(e => e.headName && e.headName.trim() !== "")
-      .map(e => ({
-        headName: e.headName,
-        type: e.type || "FIXED",
-        amount: Number(e.amount || 0)
-      }));
+    // 2. Sync changes to Employee Master Data
+    // We reuse your existing updateEmployeePayDetails helper
+    await updateEmployeePayDetails(updatedSlip.employeeId, earnings, deductions);
 
-    const mappedDeductions = deductions
-      .filter(d => d.headName && d.headName.trim() !== "")
-      .map(d => ({
-        headName: d.headName,
-        type: d.type || "FIXED",
-        amount: Number(d.amount || 0)
-      }));
-
-    // 4. Update the Payslip fields
-    payslip.earnings = mappedEarnings;
-    payslip.deductions = mappedDeductions;
-    payslip.month = month;
-    payslip.year = year;
-    payslip.mobile = mobile || payslip.mobile;
-    payslip.email = email || payslip.email;
-    payslip.grossSalary = Number(grossSalary || 0);
-    payslip.totalDeduction = Number(totalDeduction || 0);
-    payslip.netSalary = Number(netSalary || 0);
-    payslip.lopAmount = Number(lopAmount || 0);
-    payslip.inHandSalary = Number(inHandSalary || 0);
-    payslip.monthDays = Number(monthDays || 0);
-    payslip.totalWorkingDays = Number(totalWorkingDays || 0);
-    payslip.LOP = Number(LOP || 0);
-    payslip.leaves = Number(leaves || 0);
-
-    // 5. Save the updated payslip
-    await payslip.save();
-
-    // 6. Update the Employee Master (Passes the string ID like "P-00003")
-    await updateEmployeePayDetails(payslip.employeeId, mappedEarnings, mappedDeductions);
-
-    res.json({ success: true, data: payslip });
+    res.status(200).json({
+      success: true,
+      message: "Payslip and Master record updated",
+      data: updatedSlip
+    });
 
   } catch (err) {
-    console.error("Error updating payslip:", err);
-    res.status(500).json({ error: err.message || "Failed to update payslip" });
+    console.error("Update Controller Error:", err);
+    res.status(500).json({ 
+      success: false, 
+      error: err.message || "Internal Server Error" 
+    });
   }
 };
 

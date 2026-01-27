@@ -146,6 +146,7 @@ statusHistory: [
     presentAddress: { type: AddressSchema, default: {} },
 
     payDetails: { type: PayDetailsSchema, default: {} },
+    grossSalary: { type: Number, default: 0 },
     earnings: { type: [EarningSchema], default: [] },
     deductions: { type: [DeductionSchema], default: [] },
     hardCopyDocuments: {

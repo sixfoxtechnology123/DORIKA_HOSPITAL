@@ -88,9 +88,7 @@ useEffect(() => {
       const empData = res.data.find(doc => doc.employeeUserId === selectedEmployee.employeeUserId);
       
       if (empData) {
-        // FETCH DIRECTLY FROM DB VALUES 👈
-        // Note: totalAbsent maps to LOP
-        // Note: totalLeave maps to Leaves
+       
         setTotalWorkingDays(empData.totalPresent || 0); 
         setLOP(empData.totalAbsent || 0);               
         setLeaves(empData.totalLeave || 0);             
@@ -171,7 +169,7 @@ useEffect(() => {
   const lopAmount = md > 0 ? (grossSalary / md) * lopDays : 0;
   // in-hand salary = netSalary - lopAmount
   const inHandSalary = netSalary - lopAmount;
-
+  
 const handleSave = async () => {
   if (!month || !year) {
     toast.error("Please select month & year");
@@ -180,21 +178,26 @@ const handleSave = async () => {
 
   const fullName = `${selectedEmployee.salutation} ${selectedEmployee.firstName} ${selectedEmployee.middleName || ""} ${selectedEmployee.lastName || ""}`.trim();
 
-  const earningsPayload = earningDetails.map(e => ({
-    headName: e.headName,
-    type: e.headType || "FIXED",
-    amount: Number(e.value) || 0
-  }));
+  // FIX: This maps exactly what you see on screen (after using '-' or changing amounts)
+  const earningsPayload = earningDetails
+    .filter(e => e.headName && e.headName.trim() !== "") // Removes empty/deleted rows
+    .map(e => ({
+      headName: e.headName,
+      type: e.headType || "FIXED",
+      amount: Number(e.value) || 0
+    }));
 
-  const deductionsPayload = deductionDetails.map(d => ({
-    headName: d.headName,
-    type: d.headType || "FIXED",
-    amount: Number(d.value) || 0
-  }));
+  const deductionsPayload = deductionDetails
+    .filter(d => d.headName && d.headName.trim() !== "") // Removes empty/deleted rows
+    .map(d => ({
+      headName: d.headName,
+      type: d.headType || "FIXED",
+      amount: Number(d.value) || 0
+    }));
 
   const payload = {
     employeeId: selectedEmployee.employeeID,
-    employeeUserId: selectedEmployee.employeeUserId, // Required for updateEmployeePayDetails
+    employeeUserId: selectedEmployee.employeeUserId,
     employeeName: fullName,
     mobile: selectedEmployee.permanentAddress?.mobile || "",
     email: selectedEmployee.permanentAddress?.email || "",
@@ -203,8 +206,13 @@ const handleSave = async () => {
     earnings: earningsPayload,
     deductions: deductionsPayload,
     grossSalary: Number(grossSalary.toFixed(2)),
-    totalDeduction: Number(totalDeduction.toFixed(2)),
-    netSalary: Number(netSalary.toFixed(2)),
+    totalEarnings: Number(grossSalary.toFixed(2)),
+    // Updated to include LOP in the Total Deduction field
+    totalDeduction: Number((totalDeduction + lopAmount).toFixed(2)), 
+    
+    // Updated Net Salary to reflect the actual In-Hand amount after LOP
+    netSalary: Number(inHandSalary.toFixed(2)), 
+    
     lopAmount: Number(lopAmount.toFixed(2)),
     inHandSalary: Number(inHandSalary.toFixed(2)),
     monthDays: Number(monthDays),
@@ -214,20 +222,17 @@ const handleSave = async () => {
   };
 
   try {
-    // CHECK THIS PART CAREFULLY
     if (editingData && editingData._id) {
-      // Use the _id from the editing data
       await axios.put(`http://localhost:5002/api/payslips/${editingData._id}`, payload);
-      toast.success("Payslip Updated Successfully!");
+      toast.success("Payslip and Master Data Updated!");
     } else {
       await axios.post("http://localhost:5002/api/payslips", payload);
-      toast.success("Payslip Generated Successfully!");
+      toast.success("Payslip Generated and Master Data Updated!");
     }
     navigate("/PaySlipGenerateEmployeeList");
   } catch (err) {
     console.error("Error saving payslip:", err);
-    const serverMsg = err.response?.data?.message || err.response?.data?.error;
-    toast.error(serverMsg || "Error saving payslip");
+    toast.error("Error saving payslip");
   }
 };
 
@@ -366,157 +371,173 @@ const handleSave = async () => {
         <div className="bg-white min-h-screen shadow-lg rounded-lg p-4 w-full">
           <h3 className="text-xl font-semibold text-sky-600 col-span-full mb-2">PAY STRUCTURE</h3>
 
-          {/* EARNING TABLE */}
-          <h4 className="text-lg font-semibold text-white mb-2 pl-2 bg-blue-700 rounded-sm">EARNING</h4>
-          <table className="w-full border border-gray-300 mb-6 text-sm font-medium">
-            <thead className="bg-sky-100">
-              <tr>
-                <th className="border p-2 w-16">SL.NO.</th>
-                <th className="border p-2">HEAD NAME</th>
-                <th className="border p-2">HEAD TYPE</th>
-                <th className="border p-2">VALUE</th>
-                <th className="border p-2 w-20 text-center">ACTION</th>
-              </tr>
-            </thead>
-           <tbody>
-              {earningDetails.map((row, index) => (
-                <tr key={index} className="even:bg-gray-50">
-                  <td className="border p-2 text-center">{index + 1}</td>
-                  <td className="border p-2">
-                    <select
-                      value={row.headName}
-                      disabled
-                      onChange={(e) => {
-                        const updated = [...earningDetails];
-                        updated[index].headName = e.target.value;
-                        setEarningDetails(updated);
-                      }}
-                      className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 uppercase cursor-not-allowed"
-                    >
-                      {row.headName && !earningHeads.find(h => h.headName === row.headName) && (
-                        <option value={row.headName}>{row.headName}</option>
-                      )}
-                      <option value="">SELECT</option>
-                      {earningHeads.map(head => (
-                        <option key={head._id} value={head.headName}>{head.headName}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="border p-2">
-                    <select
-                      value={row.headType}
-                      disabled
-                      onChange={(e) => {
-                        const updated = [...earningDetails];
-                        updated[index].headType = e.target.value.toUpperCase();
-                        setEarningDetails(updated);
-                      }}
-                      className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 uppercase cursor-not-allowed"
-                    >
-                      <option value="">SELECT</option>
-                      <option value="FIXED">FIXED</option>
-                      <option value="VARIABLE">VARIABLE</option>
-                    </select>
-                  </td>
-                  <td className="border p-2">
-                    <input
-                      type="number"
-                      value={row.value}
-                      disabled={mode === "edit"}
-                      onChange={(e) => {
-                        const updated = [...earningDetails];
-                        updated[index].value = e.target.value;
-                        setEarningDetails(updated);
-                      }}
-                      className={`w-full ${mode === "edit" ? "cursor-not-allowed bg-gray-100" : ""} pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150`}
-                    />
-                  </td>
-                  <td className="border p-2 text-center">
-                    <button type="button" disabled onClick={addEarningRow} className="bg-gray-300 text-white px-2 rounded mr-1 cursor-not-allowed ">+</button>
-                    {earningDetails.length > 1 && (
-                      <button type="button" disabled={mode === "edit"} onClick={() => setEarningDetails(earningDetails.filter((_, i) => i !== index))} className={`bg-red-500 hover:bg-red-600 text-white px-2 rounded ${mode === "edit" ? "cursor-not-allowed" : ""}`}>-</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+         {/* EARNING + DEDUCTION HORIZONTAL */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* DEDUCTION TABLE */}
-          <h4 className="text-lg font-semibold text-white mb-2 pl-2 bg-blue-700 rounded-sm">DEDUCTION</h4>
-          <table className="w-full border border-gray-300 mb-6 text-sm font-medium">
-            <thead className="bg-sky-100">
-              <tr>
-                <th className="border p-2 w-16">SL.NO.</th>
-                <th className="border p-2">HEAD NAME</th>
-                <th className="border p-2">HEAD TYPE</th>
-                <th className="border p-2">VALUE</th>
-                <th className="border p-2 w-20 text-center">ACTION</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deductionDetails.map((row, index) => (
-                <tr key={index} className="even:bg-gray-50">
-                  <td className="border p-2 text-center">{index + 1}</td>
-                  <td className="border p-2">
-                    <select
-                      value={row.headName}
-                      disabled
-                      onChange={(e) => {
-                        const updated = [...deductionDetails];
-                        updated[index].headName = e.target.value;
-                        setDeductionDetails(updated);
-                      }}
-                      className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 uppercase cursor-not-allowed"
-                    >
-                      {row.headName && !deductionHeads.find(h => h.headName === row.headName) && (
-                        <option value={row.headName}>{row.headName}</option>
+            {/* EARNING TABLE */}
+            <div>
+              <h4 className="text-lg font-semibold text-white mb-2 pl-2 bg-blue-700 rounded-sm">
+                EARNING
+              </h4>
+
+              <table className="w-full border border-gray-300 mb-6 text-sm font-medium">
+                <thead className="bg-sky-100">
+                  <tr>
+                    <th className="border p-2 w-16">SL.NO.</th>
+                    <th className="border p-2">HEAD NAME</th>
+                    <th className="border p-2">VALUE</th>
+                    <th className="border p-2 w-20 text-center">ACTION</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {earningDetails.map((row, index) => (
+                    <tr key={index} className="even:bg-gray-50">
+                      <td className="border p-2 text-center">{index + 1}</td>
+
+                      <td className="border p-2">
+                        <select
+                          value={row.headName}
+                          disabled
+                          className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium uppercase cursor-not-allowed"
+                        >
+                          <option>{row.headName}</option>
+                        </select>
+                      </td>
+
+                      <td className="border p-2">
+                       <input
+                          type="number"
+                          value={row.value}
+                          onChange={(e) => {
+                            const updated = [...earningDetails];
+                            updated[index].value = Number(e.target.value);
+                            setEarningDetails(updated);
+                          }}
+                          className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm"
+                        />
+
+                      </td>
+
+                      <td className="border p-2 text-center">
+                        <button
+                          type="button"
+                          disabled
+                          className="bg-gray-300 text-white px-2 rounded mr-1 cursor-not-allowed"
+                        >
+                          +
+                        </button>
+
+                        {earningDetails.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEarningDetails(
+                                earningDetails.filter((_, i) => i !== index)
+                              )
+                            }
+                            className={`bg-red-500 hover:bg-red-600 text-white px-2 rounded ${
+                              mode === "edit" ? "cursor-not-allowed" : ""
+                            }`}
+                          >
+                            -
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+        {/* DEDUCTION TABLE */}
+          <div>
+            <h4 className="text-lg font-semibold text-white mb-2 pl-2 bg-blue-700 rounded-sm">
+              DEDUCTION
+            </h4>
+
+            <table className="w-full border border-gray-300 mb-6 text-sm font-medium">
+              <thead className="bg-sky-100">
+                <tr>
+                  <th className="border p-2 w-16">SL.NO.</th>
+                  <th className="border p-2">HEAD NAME</th>
+                  <th className="border p-2 w-24">DAYS</th> {/* New Column for Days */}
+                  <th className="border p-2">VALUE</th>
+                  <th className="border p-2 w-20 text-center">ACTION</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {/* Dynamic Deduction Heads (PF, PT, ESI, etc.) */}
+                {deductionDetails.map((row, index) => (
+                  <tr key={index} className="even:bg-gray-50">
+                    <td className="border p-2 text-center">{index + 1}</td>
+                    <td className="border p-2 uppercase">{row.headName}</td>
+                    <td className="border p-2 text-center text-gray-400">-</td> {/* Empty Days for regular deductions */}
+                    <td className="border p-2">
+                      <input
+                        type="number"
+                        value={row.value}
+                        onChange={(e) => {
+                          const updated = [...deductionDetails];
+                          updated[index].value = Number(e.target.value);
+                          setDeductionDetails(updated);
+                        }}
+                        className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-400 outline-none"
+                      />
+                    </td>
+                    <td className="border p-2 text-center">
+                      <button type="button" disabled className="bg-gray-300 text-white px-2 rounded mr-1 cursor-not-allowed">+</button>
+                      {deductionDetails.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setDeductionDetails(deductionDetails.filter((_, i) => i !== index))}
+                          className={`bg-red-500 hover:bg-red-600 text-white px-2 rounded ${mode === "edit" ? "opacity-50 cursor-not-allowed" : ""}`}
+                          disabled={mode === "edit"}
+                        >
+                          -
+                        </button>
                       )}
-                      <option value="">SELECT</option>
-                      {deductionHeads.map(head => (
-                        <option key={head._id} value={head.headName}>{head.headName}</option>
-                      ))}
-                    </select>
+                    </td>
+                  </tr>
+                ))}
+
+                {/* FIXED LOP DEDUCTION ROW */}
+                <tr className="bg-red-50 font-bold border-t-2 border-red-200">
+                  <td className="border p-2 text-center text-red-700">
+                    {deductionDetails.length + 1}
                   </td>
-                  <td className="border p-2">
-                    <select
-                      value={row.headType}
-                      disabled
-                      onChange={(e) => {
-                        const updated = [...deductionDetails];
-                        updated[index].headType = e.target.value.toUpperCase();
-                        setDeductionDetails(updated);
-                      }}
-                      className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 uppercase cursor-not-allowed"
-                    >
-                      <option value="">SELECT</option>
-                      <option value="FIXED">FIXED</option>
-                      <option value="VARIABLE">VARIABLE</option>
-                    </select>
+                  <td className="border p-2 text-red-700 uppercase">
+                    LOP
                   </td>
-                  <td className="border p-2">
-                    <input
-                      type="number"
-                      value={row.value}
-                      disabled={mode === "edit"}
-                      onChange={(e) => {
-                        const updated = [...deductionDetails];
-                        updated[index].value = e.target.value;
-                        setDeductionDetails(updated);
-                      }}
-                      className={`w-full ${mode === "edit" ? "cursor-not-allowed bg-gray-100" : ""} pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150`}
-                    />
+                  {/* Column 3: LOP Days */}
+                  <td className="border p-2 text-center text-red-700 bg-red-100">
+                    {LOP} days
                   </td>
-                  <td className="border p-2 text-center">
-                    <button type="button" disabled onClick={addDeductionRow} className="bg-gray-300 text-white px-2 rounded mr-1 cursor-not-allowed">+</button>
-                    {deductionDetails.length > 1 && (
-                      <button type="button" disabled={mode === "edit"} onClick={() => setDeductionDetails(deductionDetails.filter((_, i) => i !== index))} className={`bg-red-500 hover:bg-red-600 text-white px-2 rounded ${mode === "edit" ? "cursor-not-allowed" : ""}`}>-</button>
-                    )}
+                  {/* Column 4: LOP Amount */}
+                  <td  colSpan="2" className="border p-2 text-center text-red-700">
+                    ₹{lopAmount.toFixed(2)}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+                
+                {/* TOTAL DEDUCTION FOOTER */}
+                {/* <tr className="bg-gray-100 font-bold">
+                  <td colSpan="3" className="border p-2 text-right uppercase">
+                    Total Deduction:
+                  </td>
+                  <td className="border p-2 text-center">
+                    ₹{(totalDeduction + lopAmount).toFixed(2)}
+                  </td>
+                  <td className="border p-2"></td>
+                </tr> */}
+              </tbody>
+            </table>
+          </div>
+
+          </div>
+
+
+
           {/* ADDITIONAL FIELDS */}
             {mode !== "edit" && (
           <>
@@ -537,8 +558,9 @@ const handleSave = async () => {
                   <input
                     type="number"
                     value={totalWorkingDays}
+                    readOnly
                     onChange={(e) => setTotalWorkingDays(Number(e.target.value))}
-                     className="font-semibold w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
+                     className="font-semibold w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 cursor-not-allowed"
                   />
                 </div>
                 <div>
@@ -546,8 +568,9 @@ const handleSave = async () => {
                   <input
                     type="number"
                     value={LOP}
+                    readOnly
                     onChange={(e) => setLOP(Number(e.target.value))}
-                     className="font-semibold w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
+                     className="font-semibold w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 cursor-not-allowed"
                   />
                 </div>
                 <div>
@@ -555,66 +578,56 @@ const handleSave = async () => {
                   <input
                     type="number"
                     value={leaves}
+                    readOnly
                     onChange={(e) => setLeaves(Number(e.target.value))}
-                     className="font-semibold w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
+                     className="font-semibold w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 cursor-not-allowed"
                   />
                 </div>
               </div>
               </>
             )}
-                {/* Total Summary and Actions */}
-      
+        {/* Total Summary and Actions */}
           <div className="flex justify-between items-start mb-6">
-              {mode !== "edit" && (
-            <div className="border-2 border-gray-400 rounded-lg p-4 w-80">
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-950 font-semibold w-40">Gross Salary:</span>
-                <span className="font-medium text-gray-800 text-right w-24">₹{grossSalary.toFixed(2)}</span>
-              </div>
-
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-950 font-semibold w-40">Total Deduction:</span>
-                <span className="font-medium text-gray-800 text-right w-24">₹{totalDeduction.toFixed(2)}</span>
-              </div>
-
-              <hr className="border-gray-500" />
-
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-950 font-semibold w-40">Net Salary:</span>
-                <span className="font-medium text-gray-800 text-right w-24">₹{netSalary.toFixed(2)}</span>
-              </div>
-
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-950 font-semibold w-40">LOP Deduction:</span>
-                <span className="font-medium text-gray-800 text-right w-24">₹{lopAmount.toFixed(2)}</span>
-              </div>
-
-              <hr className="border-gray-500" />
-
-              <div className="flex justify-between mt-2 font-semibold text-gray-950">
-                <span className="w-40">In-Hand Total Salary:</span>
-                <span className="text-right w-24">₹{inHandSalary.toFixed(2)}</span>
-              </div>
-            </div>
-           )}
             {mode !== "edit" && (
-            <div className="flex gap-3 mt-36">
-             <button
-              onClick={() => handleSave("submit")}
-              className="px-4 py-1 rounded text-white bg-blue-600 hover:bg-blue-700">
-              Submit
-            </button>
+              <div className="border-2 border-gray-400 rounded-lg p-4 w-80 bg-white">
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-950 font-bold">Gross salary</span>
+                  <span className="font-bold">₹{grossSalary.toFixed(2)}</span>
+                </div>
 
+                <div className="flex justify-between mb-2 text-sm">
+                  <span className="text-gray-600">Total Earnings</span>
+                  <span className="font-semibold">: ₹{grossSalary.toFixed(2)}</span>
+                </div>
 
-              {/* {mode !== "edit" && (
-                <button
-                  onClick={handleDownloadPDF}
-                  className="px-4 py-1 rounded bg-green-500 hover:bg-green-600 text-white"
-                >
-                  Download PDF
+                <div className="flex justify-between mb-2 text-sm">
+                  <span className="text-gray-600">Total Deduction</span>
+                  <span className="font-semibold">: ₹{(totalDeduction + lopAmount).toFixed(2)}</span>
+                </div>
+
+                <hr className="border-gray-400 my-2" />
+
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-950 font-bold">Net Salary</span>
+                  <span className="font-bold">₹{inHandSalary.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between mt-2 font-bold text-blue-800 border-t pt-2">
+                  <span>In Hand Salary</span>
+                  <span>₹{inHandSalary.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+
+            {mode !== "edit" && (
+              <div className="flex gap-3 mt-auto">
+                <button onClick={() => handleSave("submit")} className="px-4 py-1 rounded text-white bg-blue-600 hover:bg-blue-700 font-bold">
+                  Submit
                 </button>
-              )} */}
-            </div>
+                {/* <button onClick={handlePrint} className="px-4 py-2 rounded text-white bg-gray-600 hover:bg-gray-700 font-bold">
+                  Print
+                </button> */}
+              </div>
             )}
           </div>
 
