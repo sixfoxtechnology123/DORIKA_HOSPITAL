@@ -9,7 +9,15 @@ const formatDateDisplay = (dateStr) => {
   const [y, m, d] = dateStr.split("-");
   return `${d}-${m}-${y}`; // Returns DD-MM-YYYY
 };
-
+const formatOTDisplay = (otValue) => {
+  const val = parseFloat(otValue);
+  if (!val || val <= 0) return "--";
+  const totalMinutes = Math.round(val * 60);
+  if (totalMinutes < 240) return "--";
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${h}h ${m}m`;
+};
 
 
 const EmployeeAttendance = () => {
@@ -159,6 +167,7 @@ const EmployeeAttendance = () => {
             <th className="p-3 border text-orange-600">Punch Out</th> {/* New */}
             <th className="p-3 border text-blue-600">Shift Work Time</th> {/* Official */}
             <th className="p-3 border text-purple-600">Actual Work Time</th>
+            <th className="p-3 border text-red-600">OT Hours</th>
             <th className="p-3 border">Status</th>
           </tr>
         </thead>
@@ -188,7 +197,15 @@ const EmployeeAttendance = () => {
                         <td className="p-3 border font-bold text-purple-700">
                           {rec.actualWorkDuration || "--"}
                         </td>
-
+                        <td className="p-3 border">
+                        {rec.isOT && rec.otHours > 0 ? (
+                      <span className="bg-red-100 text-red-600 px-2 py-1 rounded-md font-bold">
+                        {formatOTDisplay(rec.otHours)}
+                      </span>
+                          ) : (
+                            <span className="text-gray-400">--</span>
+                          )}
+                        </td>
                        <td className="p-3 border">
                         <div className="flex flex-col items-center justify-center gap-1">
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${

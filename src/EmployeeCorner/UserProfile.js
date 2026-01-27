@@ -150,58 +150,57 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
           {/* Right Column: 2/5 */}
           <div className="col-span-1 md:col-span-2 space-y-4">
               {/* Earnings Details */}
-              <div className="bg-blue-50 border rounded-xl p-2 shadow-sm overflow-x-auto">
-                <h4 className="font-semibold border-b pb-1 text-blue-700">📈 Earnings</h4>
-               <table className="w-full text-xs sm:text-sm">
-                  <thead>
-                    <tr className="text-left border-b">
-                      <th className="pb-1">Head Name</th>
-                      <th className="pb-1">Type</th>
-                      <th className="pb-1 text-right">Value</th>
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Earnings Section */}
+          <div className="bg-blue-50 border rounded-xl p-3 shadow-sm">
+            <h4 className="font-semibold border-b pb-1 text-blue-700 mb-2">📈 Earnings</h4>
+            <table className="w-full text-xs sm:text-sm">
+              <thead>
+                <tr className="text-left border-b text-gray-500">
+                  <th className="pb-1 font-medium">Head Name</th>
+                  <th className="pb-1 text-right font-medium">Value</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {employee?.earnings?.length > 0 ? (
+                  employee.earnings.map((item, idx) => (
+                    <tr key={idx}>
+                      <td className="py-1.5 font-medium">{item.headName}</td>
+                      <td className="py-1.5 text-right font-semibold text-blue-800">₹{item.value}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {employee?.earnings?.length > 0 ? (
-                      employee.earnings.map((item, idx) => (
-                        <tr key={idx} className="border-b last:border-0">
-                          <td className=" font-medium text-xs">{item.headName}</td>
-                          <td className=" text-xs">{item.headType}</td>
-                          <td className=" text-right font-semibold">₹{item.value}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr><td colSpan="3" className=" text-gray-400">No earnings found</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                  ))
+                ) : (
+                  <tr><td colSpan="2" className="py-2 text-gray-400 italic">No earnings found</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-              {/* Deduction Details */}
-              <div className="bg-red-50 border rounded-xl p-2 shadow-sm mt-4">
-                <h5 className="font-semibold border-b pb-1 text-red-700">📉 Deductions</h5>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left border-b">
-                      <th className="pb-1">Head Name</th>
-                      <th className="pb-1">Type</th>
-                      <th className="pb-1 text-right">Value</th>
+          {/* Deductions Section */}
+          <div className="bg-red-50 border rounded-xl p-3 shadow-sm">
+            <h4 className="font-semibold border-b pb-1 text-red-700 mb-2">📉 Deductions</h4>
+            <table className="w-full text-xs sm:text-sm">
+              <thead>
+                <tr className="text-left border-b text-gray-500">
+                  <th className="pb-1 font-medium">Head Name</th>
+                  <th className="pb-1 text-right font-medium">Value</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {employee?.deductions?.length > 0 ? (
+                  employee.deductions.map((item, idx) => (
+                    <tr key={idx}>
+                      <td className="py-1.5 font-medium">{item.headName}</td>
+                      <td className="py-1.5 text-right font-semibold text-red-600">₹{item.value}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {employee?.deductions?.length > 0 ? (
-                      employee.deductions.map((item, idx) => (
-                        <tr key={idx} className="border-b last:border-0">
-                          <td className=" font-medium text-xs">{item.headName}</td>
-                          <td className=" text-xs">{item.headType}</td>
-                          <td className="text-right font-semibold text-red-600">₹{item.value}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr><td colSpan="3" className=" text-gray-400">No deductions found</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                  ))
+                ) : (
+                  <tr><td colSpan="2" className="py-2 text-gray-400 italic">No deductions found</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
             {/* Pay Details */}
             <div className="bg-green-50 border rounded-xl p-3 shadow-sm">
               <h3 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3">💰 Pay Details</h3>

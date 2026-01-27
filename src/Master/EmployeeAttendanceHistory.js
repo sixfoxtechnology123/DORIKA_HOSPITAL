@@ -5,6 +5,16 @@ import BackButton from "../component/BackButton";
 import Pagination from "./Pagination";
 import toast from "react-hot-toast";
 
+const formatOTDisplay = (otValue) => {
+  const val = parseFloat(otValue);
+  if (!val || val <= 0) return "0h 0m"; // Show 0 for the summary table
+  
+  const totalMinutes = Math.round(val * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  
+  return `${h}h ${m}m`;
+};
 /* ===== SAME REMIX COLORS AS SHIFT MANAGEMENT ===== */
 const EMP_COLORS = [
   "bg-dorika-blueLight",
@@ -111,6 +121,7 @@ const EmployeeAttendanceHistory = () => {
             totalAbsent: doc.totalAbsent || 0,
             totalOff: doc.totalOff || 0,
             totalLeave: doc.totalLeave || 0,
+            totalOTHours: doc.totalOTHours || 0,
           };
         });
 
@@ -200,6 +211,7 @@ const EmployeeAttendanceHistory = () => {
                 <span className="text-red-600">TA - Total Absent</span>
                 <span className="text-gray-600">TO - Total OFF</span>
                 <span className="text-orange-600">TL - Total Leave (SL+CL)</span>
+                <span className="text-orange-600">TOT - Total Over Time</span>
               </div>
             </div>
           </div>
@@ -226,6 +238,7 @@ const EmployeeAttendanceHistory = () => {
                   <th className="border px-2 border-dorika-blue text-center bg-orange-500">TA</th>
                   <th className="border px-2 border-dorika-blue text-center bg-orange-500">TO</th>
                   <th className="border px-2 border-dorika-blue text-center bg-orange-500">TL</th>
+                  <th className="border px-2 border-dorika-blue text-center bg-orange-500">TOT</th>
                 </tr>
               </thead>
 
@@ -364,6 +377,10 @@ const EmployeeAttendanceHistory = () => {
                     </td>
                     <td className="border border-dorika-blue text-center font-bold text-orange-600">
                       {attendanceMap?.[emp.employeeUserId]?.totalLeave || 0}
+                    </td>
+                    {/* Total OT Column */}
+                    <td className="border border-dorika-blue text-center font-bold text-red-600">
+                      {formatOTDisplay(attendanceMap?.[emp.employeeUserId]?.totalOTHours || 0)}
                     </td>
                   </tr>
                 ))}
