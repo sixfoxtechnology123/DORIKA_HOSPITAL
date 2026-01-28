@@ -62,16 +62,30 @@ const EmployeeAttendance = () => {
     }
   }, []);
 
-  // Today's date reference
+// --- NEW LOGIC FOR NIGHT SHIFT ---
   const todayStr = new Date().toISOString().split('T')[0];
   
-  // Find today's record in the history to toggle button state
-  const todaysRecord = history.length > 0 
-    ? history[0].records.find(rec => rec.date === todayStr) 
-    : null;
+  // Get Yesterday's date string
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+  
+  const allRecords = history.length > 0 ? history[0].records : [];
+  
+  // Find records for both days
+  const todaysRecord = allRecords.find(rec => rec.date === todayStr);
+  const yesterdaysRecord = allRecords.find(rec => rec.date === yesterdayStr);
 
-  const hasIn = !!todaysRecord?.checkInTime;
-  const hasOut = !!todaysRecord?.checkOutTime;
+  // Check if Yesterday's night shift is still waiting for a Punch Out
+  const isNightShiftPending = yesterdaysRecord && 
+                             yesterdaysRecord.checkInTime && 
+                             (!yesterdaysRecord.checkOutTime || yesterdaysRecord.checkOutTime === "--" || yesterdaysRecord.checkOutTime === "");
+
+  // Update button status
+  // If night shift is pending, we use yesterday's status. Otherwise, use today's.
+  const hasIn = isNightShiftPending || (todaysRecord && !!todaysRecord.checkInTime);
+  const hasOut = isNightShiftPending ? false : (todaysRecord && !!todaysRecord.checkOutTime && todaysRecord.checkOutTime !== "--");
+  // ---------------------------------
 
   const handleAttendanceAction = async () => {
     if (!loggedUser || !loggedUser.employeeUserId) {
@@ -133,7 +147,6 @@ const EmployeeAttendance = () => {
               />
             </div>
 
-            {/* In/Out Toggle Button */}
             <button
               onClick={handleAttendanceAction}
               disabled={loading || (hasIn && hasOut)}
@@ -141,7 +154,15 @@ const EmployeeAttendance = () => {
                 hasIn ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700"
               } text-white px-8 py-2 rounded-lg font-bold transition-all shadow-md disabled:bg-gray-400 whitespace-nowrap`}
             >
-              {loading ? "Processing..." : (hasIn && !hasOut) ? "OUT" : (hasIn && hasOut) ? "MARKED" : "IN"}
+              {loading 
+                ? "Processing..." 
+                : isNightShiftPending 
+                  ? "OUT" // This shows OUT because the worker needs to finish yesterday's shift
+                  : (hasIn && !hasOut) 
+                    ? "OUT" 
+                    : (hasIn && hasOut) 
+                      ? "MARKED" 
+                      : "IN"}
             </button>
 
             <div className="text-blue-600 font-semibold whitespace-nowrap">

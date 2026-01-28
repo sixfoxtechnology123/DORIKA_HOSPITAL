@@ -11,138 +11,187 @@ import jsPDF from "jspdf";
 const GeneratePaySlip = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  // mode can be 'edit' or 'generate'
-  const mode = location.state?.mode || "generate"; // default to generate
-
-
-  // Check if editing
+  const mode = location.state?.mode || "generate";
   const editingData = location.state?.editingData || null;
 
-  // Prepare selectedEmployee from editingData or passed state
   const selectedEmployee = editingData
     ? {
         employeeID: editingData.employeeId,
         employeeUserId: editingData.employeeUserId,
         salutation: "", 
         firstName: editingData.employeeName,
-        permanentAddress: {
-          mobile: editingData.mobile,
-          email: editingData.email
-        }
+        permanentAddress: { mobile: editingData.mobile, email: editingData.email }
       }
     : location.state?.selectedEmployee || null;
 
-  // Month & year
+  // 1. ALL STATES FIRST
   const [month, setMonth] = useState(editingData?.month || location.state?.month || "");
   const [year, setYear] = useState(editingData?.year || location.state?.year || "");
-
   const [allHeads, setAllHeads] = useState([]);
-  
   const [earningDetails, setEarningDetails] = useState(
-    editingData?.earnings.map(e => ({
-      headName: e.headName,
-      headType: e.headType || "FIXED",
-      value: e.amount || 0
-    })) || [{ headName: "", headType: "FIXED", value: 0 }]
+    editingData?.earnings.map(e => ({ headName: e.headName, headType: e.headType || "FIXED", value: e.amount || 0 })) || [{ headName: "", headType: "FIXED", value: 0 }]
   );
-
   const [deductionDetails, setDeductionDetails] = useState(
-    editingData?.deductions.map(d => ({
-      headName: d.headName,
-      headType: d.headType || "FIXED",
-      value: d.amount || 0
-    })) || [{ headName: "", headType: "FIXED", value: 0 }]
+    editingData?.deductions.map(d => ({ headName: d.headName, headType: d.headType || "FIXED", value: d.amount || 0 })) || [{ headName: "", headType: "FIXED", value: 0 }]
   );
-
   const [monthDays, setMonthDays] = useState(editingData?.monthDays || "");
   const [totalWorkingDays, setTotalWorkingDays] = useState(editingData?.totalWorkingDays || "");
   const [LOP, setLOP] = useState(editingData?.LOP || "");
   const [leaves, setLeaves] = useState(editingData?.leaves || "");
+  const [totalOTHours, setTotalOTHours] = useState(editingData?.otHours ?? "");
+  const [otAmount, setOtAmount] = useState(editingData?.otAmount ?? 0);
 
-// Helper to get total days in a month
-const getDaysInMonth = (monthName, year) => {
-  if (!monthName || !year) return 0;
-  const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth(); // Jan = 0
-  return new Date(year, monthIndex + 1, 0).getDate(); // Last day of month
-};
+  // 2. ALL MATH CALCULATIONS NEXT (This must be above useEffect)
+  const calculateTotal = (arr) => arr.reduce((sum, item) => sum + Number(item.value || 0), 0);
+  
+  const grossSalary = calculateTotal(earningDetails);
+  const totalDeduction = calculateTotal(deductionDetails);
+  const netSalary = grossSalary - totalDeduction;
+  const md = Number(monthDays) || 0;
+  const lopDays = Number(LOP) || 0;
+  const lopAmount = md > 0 ? (grossSalary / md) * lopDays : 0;
+
+  // New OT Math
+  const totalEarnings = grossSalary + otAmount;
+  const inHandSalary = totalEarnings - totalDeduction - lopAmount;
+const [isAlreadyGenerated, setIsAlreadyGenerated] = useState(false);
+  // 3. HELPERS
+  const getDaysInMonth = (monthName, year) => {
+    if (!monthName || !year) return 0;
+    const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth();
+    return new Date(year, monthIndex + 1, 0).getDate();
+  };
 
 useEffect(() => {
-  if (month && year) {
-    const days = getDaysInMonth(month, year);
-    setMonthDays(days);
-  }
-}, [month, year]);
+  const checkExistingPayslip = async () => {
+    setIsAlreadyGenerated(false); 
 
-useEffect(() => {
-  const fetchAttendanceTotals = async () => {
-    if (!selectedEmployee?.employeeUserId || !month || !year) return;
+    // Use employeeUserId for the check
+    if (mode === "edit" || !selectedEmployee?.employeeUserId || !month || !year) return;
 
     try {
-      const monthMap = { "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6, "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12 };
-      const monthNum = monthMap[month];
-
       const res = await axios.get(
-        `http://localhost:5002/api/attendance/history?month=${monthNum}&year=${year}`
+        `http://localhost:5002/api/payslips/employee?employeeUserId=${selectedEmployee.employeeUserId}&month=${month}&year=${year}`
       );
 
-      const empData = res.data.find(doc => doc.employeeUserId === selectedEmployee.employeeUserId);
-      
-      if (empData) {
-       
-        setTotalWorkingDays(empData.totalPresent || 0); 
-        setLOP(empData.totalAbsent || 0);               
-        setLeaves(empData.totalLeave || 0);             
+      if (res.data.success && res.data.data !== null) {
+        setIsAlreadyGenerated(true);
       }
     } catch (err) {
-      console.error("Error fetching attendance for payslip", err);
+      setIsAlreadyGenerated(false);
     }
   };
 
-  fetchAttendanceTotals();
-}, [selectedEmployee, month, year]);
+  checkExistingPayslip();
+  // Listen for changes in employeeUserId
+}, [selectedEmployee?.employeeUserId, month, year, mode]);
 
+  // 4. NOW ALL YOUR EFFECTS
   useEffect(() => {
-    const fetchEmployeeSalary = async () => {
-      if (!selectedEmployee?.employeeID || editingData) return;
+    if (month && year) {
+      const days = getDaysInMonth(month, year);
+      setMonthDays(days);
+    }
+  }, [month, year]);
 
-      try {
-        // Fetch latest payslip for this employee (with month/year)
-        const res = await axios.get(
-          `http://localhost:5002/api/payslips/employee/${selectedEmployee.employeeID}?month=${month}&year=${year}`
-        );
+useEffect(() => {
+  if (mode !== "edit" && !editingData && month && year && grossSalary > 0) {
+    const daysInMonth = getDaysInMonth(month, year);
+    let expectedHours = daysInMonth === 30 ? 205 : daysInMonth === 31 ? 212 : Math.round(daysInMonth * 6.85);
+    const calculated = (grossSalary / expectedHours) * Number(totalOTHours);
+    
+    // Only set if we don't have a value yet
+    if (otAmount === 0 || !otAmount) {
+        setOtAmount(Number(calculated.toFixed(2)));
+    }
+  }
+}, [totalOTHours, grossSalary, month, year, mode, editingData]);
 
-        if (res.data.success && res.data.data) {
-          const latestPayslip = res.data.data;
+useEffect(() => {
+  const loadMasterData = async () => {
+    // Stop if we are in Edit Mode (data is already in editingData) or missing info
+    if (editingData || mode === "edit" || !selectedEmployee?.employeeID || !month || !year) return;
 
-          setEarningDetails(
-            latestPayslip.earnings?.map(e => ({
-              headName: e.headName || "",
-              headType: e.headType || "FIXED",
-              value: e.value || 0
-            })) || [{ headName: "", headType: "", value: "" }]
-          );
+    try {
+      const monthMap = { "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6, "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12 };
+      
+      // 1. Fetch Salary and Attendance in parallel (Faster & Reliable)
+      const [salaryRes, attendanceRes] = await Promise.all([
+        axios.get(`http://localhost:5002/api/payslips/employee/${selectedEmployee.employeeID}?month=${month}&year=${year}`),
+        axios.get(`http://localhost:5002/api/attendance/history?month=${monthMap[month]}&year=${year}`)
+      ]);
 
-          setDeductionDetails(
-            latestPayslip.deductions?.map(d => ({
-              headName: d.headName || "",
-              headType: d.headType || "FIXED",
-              value: d.value || 0
-            })) || [{ headName: "", headType: "", value: "" }]
-          );
-
-        } else {
-          setEarningDetails([{ headName: "", headType: "", value: "" }]);
-          setDeductionDetails([{ headName: "", headType: "", value: "" }]);
-        }
-
-      } catch (err) {
-        console.error("Error fetching payslip:", err);
-        toast.error("Failed to fetch earnings and deductions");
+      // 2. Process Salary Data (Earnings/Deductions)
+      if (salaryRes.data.success && salaryRes.data.data) {
+        const latest = salaryRes.data.data;
+        setEarningDetails(latest.earnings.map(e => ({ headName: e.headName, headType: e.headType, value: e.amount || e.value })));
+        setDeductionDetails(latest.deductions.map(d => ({ headName: d.headName, headType: d.headType, value: d.amount || d.value })));
       }
-    };
 
-    fetchEmployeeSalary();
-  }, [selectedEmployee, editingData, month, year]);
+      // 3. Process Attendance Data (OT Hours)
+      const empAtt = attendanceRes.data.find(doc => doc.employeeUserId === selectedEmployee.employeeUserId);
+      if (empAtt) {
+        setTotalWorkingDays(empAtt.totalPresent || 0);
+        setLOP(empAtt.totalAbsent || 0);
+        setLeaves(empAtt.totalLeave || 0);
+        
+        // This is the key: set the hours immediately
+        const otHoursValue = empAtt.totalOTHours || 0;
+        setTotalOTHours(otHoursValue > 0 ? otHoursValue : "");
+
+        // 4. Calculate OT Amount immediately using current grossSalary
+        // This prevents needing a refresh to trigger the calculation
+        if (otHoursValue > 0 && grossSalary > 0) {
+          const daysInMonth = getDaysInMonth(month, year);
+          let expectedHours = daysInMonth === 30 ? 205 : daysInMonth === 31 ? 212 : Math.round(daysInMonth * 6.85);
+          const calculatedAmt = (grossSalary / expectedHours) * otHoursValue;
+          setOtAmount(Number(calculatedAmt.toFixed(2)));
+        }
+      }
+    } catch (err) {
+      console.error("Error loading master data:", err);
+    }
+  };
+
+  loadMasterData();
+}, [selectedEmployee, month, year, mode, editingData, grossSalary]); 
+
+useEffect(() => {
+  const fetchEmployeeSalary = async () => {
+    // 🟢 CHANGE: Ensure we don't fetch if editingData is already present
+    if (!selectedEmployee?.employeeID || editingData) return;
+
+    try {
+      const res = await axios.get(
+        `http://localhost:5002/api/payslips/employee/${selectedEmployee.employeeID}?month=${month}&year=${year}`
+      );
+
+      if (res.data.success && res.data.data) {
+        const latestPayslip = res.data.data;
+        
+        // 🟢 CHANGE: Explicitly set OT values from the DB result
+        setOtAmount(latestPayslip.otAmount || 0);
+        setTotalOTHours(latestPayslip.otHours || "");
+        
+        setEarningDetails(latestPayslip.earnings?.map(e => ({
+            headName: e.headName || "",
+            headType: e.headType || "FIXED",
+            value: e.amount || e.value || 0 // Check if your DB uses 'amount' or 'value'
+        })) || []);
+
+        setDeductionDetails(latestPayslip.deductions?.map(d => ({
+            headName: d.headName || "",
+            headType: d.headType || "FIXED",
+            value: d.amount || d.value || 0
+        })) || []);
+      }
+    } catch (err) {
+      console.error("Error fetching payslip:", err);
+    }
+  };
+
+  fetchEmployeeSalary();
+}, [selectedEmployee, editingData, month, year]);
 
   const earningHeads = Array.isArray(allHeads) ? allHeads.filter(h => h.headId.startsWith("EARN")) : [];
   const deductionHeads = Array.isArray(allHeads) ? allHeads.filter(h => h.headId.startsWith("DEDUCT")) : [];
@@ -159,16 +208,7 @@ useEffect(() => {
   const addEarningRow = () => setEarningDetails([...earningDetails, { headName: "", headType: "FIXED", value: 0 }]);
   const addDeductionRow = () => setDeductionDetails([...deductionDetails, { headName: "", headType: "FIXED", value: 0 }]);
 
-  const calculateTotal = (arr) => arr.reduce((sum, item) => sum + Number(item.value || 0), 0);
-  const grossSalary = calculateTotal(earningDetails);
-  const totalDeduction = calculateTotal(deductionDetails);
-  const netSalary = grossSalary - totalDeduction;
-  const md = Number(monthDays) || 0;
-  const lopDays = Number(LOP) || 0;
-  // LOP Amount = (Gross Salary / Total Calendar Days) * LOP Days
-  const lopAmount = md > 0 ? (grossSalary / md) * lopDays : 0;
-  // in-hand salary = netSalary - lopAmount
-  const inHandSalary = netSalary - lopAmount;
+
   
 const handleSave = async () => {
   if (!month || !year) {
@@ -206,13 +246,11 @@ const handleSave = async () => {
     earnings: earningsPayload,
     deductions: deductionsPayload,
     grossSalary: Number(grossSalary.toFixed(2)),
-    totalEarnings: Number(grossSalary.toFixed(2)),
-    // Updated to include LOP in the Total Deduction field
+    otHours: Number(totalOTHours), 
+    otAmount: Number(otAmount),  
+    totalEarnings: Number((grossSalary + otAmount).toFixed(2)),
     totalDeduction: Number((totalDeduction + lopAmount).toFixed(2)), 
-    
-    // Updated Net Salary to reflect the actual In-Hand amount after LOP
     netSalary: Number(inHandSalary.toFixed(2)), 
-    
     lopAmount: Number(lopAmount.toFixed(2)),
     inHandSalary: Number(inHandSalary.toFixed(2)),
     monthDays: Number(monthDays),
@@ -230,10 +268,22 @@ const handleSave = async () => {
       toast.success("Payslip Generated and Master Data Updated!");
     }
     navigate("/PaySlipGenerateEmployeeList");
-  } catch (err) {
-    console.error("Error saving payslip:", err);
-    toast.error("Error saving payslip");
+  // Inside your handleSave function, find the catch block:
+} catch (err) {
+  console.error("Error saving payslip:", err);
+  
+  // Extract the backend message
+  const backendMessage = err.response?.data?.message || "";
+  
+  if (backendMessage.toLowerCase().includes("already exists")) {
+    toast.error(`Error: Payslip for ${month} ${year} already exists!`, {
+      duration: 5000,
+      style: { border: '1px solid #f87171', color: '#b91c1c' }
+    });
+  } else {
+    toast.error(backendMessage || "Error saving payslip");
   }
+}
 };
 
   const TwoColRow = ({ label1, value1, label2, value2 }) => (
@@ -374,7 +424,6 @@ const handleSave = async () => {
          {/* EARNING + DEDUCTION HORIZONTAL */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            {/* EARNING TABLE */}
             <div>
               <h4 className="text-lg font-semibold text-white mb-2 pl-2 bg-blue-700 rounded-sm">
                 EARNING
@@ -385,12 +434,13 @@ const handleSave = async () => {
                   <tr>
                     <th className="border p-2 w-16">SL.NO.</th>
                     <th className="border p-2">HEAD NAME</th>
-                    <th className="border p-2">VALUE</th>
-                    <th className="border p-2 w-20 text-center">ACTION</th>
+                    <th className="border p-2">VALUE / HRS</th>
+                    <th className="border p-2 w-20 text-center">ACTION / AMT</th>
                   </tr>
                 </thead>
 
                 <tbody>
+                  {/* Dynamic Earning Heads (Basic, HRA, etc.) */}
                   {earningDetails.map((row, index) => (
                     <tr key={index} className="even:bg-gray-50">
                       <td className="border p-2 text-center">{index + 1}</td>
@@ -406,7 +456,7 @@ const handleSave = async () => {
                       </td>
 
                       <td className="border p-2">
-                       <input
+                        <input
                           type="number"
                           value={row.value}
                           onChange={(e) => {
@@ -416,18 +466,9 @@ const handleSave = async () => {
                           }}
                           className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm"
                         />
-
                       </td>
 
                       <td className="border p-2 text-center">
-                        <button
-                          type="button"
-                          disabled
-                          className="bg-gray-300 text-white px-2 rounded mr-1 cursor-not-allowed"
-                        >
-                          +
-                        </button>
-
                         {earningDetails.length > 1 && (
                           <button
                             type="button"
@@ -439,6 +480,7 @@ const handleSave = async () => {
                             className={`bg-red-500 hover:bg-red-600 text-white px-2 rounded ${
                               mode === "edit" ? "cursor-not-allowed" : ""
                             }`}
+                            disabled={mode === "edit"}
                           >
                             -
                           </button>
@@ -446,6 +488,36 @@ const handleSave = async () => {
                       </td>
                     </tr>
                   ))}
+
+                  {/* --- NEW OVERTIME (OT) SECTION --- */}
+                  <tr className="bg-green-50 font-bold border-t-2 border-green-200">
+                    <td className="border p-2 text-center text-green-700">
+                      {earningDetails.length + 1}
+                    </td>
+                    <td className="border p-2 text-green-700 uppercase">
+                      Overtime (OT)
+                    </td>
+                    <td className="border p-2">
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={totalOTHours} 
+                          onChange={(e) => setTotalOTHours(e.target.value)} 
+                          placeholder="Hrs"
+                          className="w-full pl-2 border border-green-300 rounded text-sm text-green-800 outline-none"
+                        />
+                        <span className="text-xs text-green-600 font-normal">Hrs</span>
+                      </div>
+                    </td>
+                    <td className="border p-2 text-center text-black bg-white">
+                      <input
+                        type="number"
+                        value={otAmount}
+                        onChange={(e) => setOtAmount(Number(e.target.value))} // 🟢 This allows manual editing
+                        className="w-full text-center bg-white border-none outline-none font-bold text-sm focus:ring-1 focus:ring-blue-400 rounded"
+                      />
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -586,50 +658,65 @@ const handleSave = async () => {
               </div>
               </>
             )}
-        {/* Total Summary and Actions */}
-          <div className="flex justify-between items-start mb-6">
-            {mode !== "edit" && (
-              <div className="border-2 border-gray-400 rounded-lg p-4 w-80 bg-white">
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-950 font-bold">Gross salary</span>
-                  <span className="font-bold">₹{grossSalary.toFixed(2)}</span>
-                </div>
 
-                <div className="flex justify-between mb-2 text-sm">
-                  <span className="text-gray-600">Total Earnings</span>
-                  <span className="font-semibold">: ₹{grossSalary.toFixed(2)}</span>
-                </div>
-
-                <div className="flex justify-between mb-2 text-sm">
-                  <span className="text-gray-600">Total Deduction</span>
-                  <span className="font-semibold">: ₹{(totalDeduction + lopAmount).toFixed(2)}</span>
-                </div>
-
-                <hr className="border-gray-400 my-2" />
-
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-950 font-bold">Net Salary</span>
-                  <span className="font-bold">₹{inHandSalary.toFixed(2)}</span>
-                </div>
-
-                <div className="flex justify-between mt-2 font-bold text-blue-800 border-t pt-2">
-                  <span>In Hand Salary</span>
-                  <span>₹{inHandSalary.toFixed(2)}</span>
-                </div>
+        <div className="flex justify-between items-start mb-6">
+          {mode !== "edit" && (
+            <div className="border-2 border-gray-400 rounded-lg p-4 w-80 bg-white shadow-sm">
+              
+              {/* Gross Salary (Fixed Salary from Earning Table) */}
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-950 font-bold">Gross Salary</span>
+                <span className="font-bold">₹{grossSalary.toFixed(2)}</span>
               </div>
-            )}
 
-            {mode !== "edit" && (
-              <div className="flex gap-3 mt-auto">
-                <button onClick={() => handleSave("submit")} className="px-4 py-1 rounded text-white bg-blue-600 hover:bg-blue-700 font-bold">
-                  Submit
-                </button>
-                {/* <button onClick={handlePrint} className="px-4 py-2 rounded text-white bg-gray-600 hover:bg-gray-700 font-bold">
-                  Print
-                </button> */}
+              {/* Total Earnings = Gross + OT (OT is calculated but hidden as a separate row here) */}
+              <div className="flex justify-between mb-2 text-sm border-t pt-1">
+                <span className="text-gray-950 font-bold">Total Earnings</span>
+                <span className="font-bold">: ₹{(grossSalary + otAmount).toFixed(2)}</span>
               </div>
-            )}
-          </div>
+
+              {/* Total Deduction includes regular deductions + LOP */}
+              <div className="flex justify-between mb-2 text-sm text-red-600">
+                <span className="font-medium">Total Deduction </span>
+                <span className="font-semibold">: ₹{(totalDeduction + lopAmount).toFixed(2)}</span>
+              </div>
+
+              <hr className="border-gray-400 my-2" />
+
+              {/* Net Salary calculation */}
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-950 font-bold">Net Salary</span>
+                <span className="font-bold text-lg">
+                  ₹{(grossSalary + otAmount - totalDeduction - lopAmount).toFixed(2)}
+                </span>
+              </div>
+
+              {/* Final In-Hand amount */}
+              <div className="flex justify-between mt-2 font-bold text-blue-800 border-t-2 border-blue-200 pt-2 text-xl">
+                <span>In Hand</span>
+                <span>₹{(grossSalary + otAmount - totalDeduction - lopAmount).toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+
+          {mode !== "edit" && (
+            <div className="flex flex-col items-end gap-2 mt-auto">
+              {isAlreadyGenerated && (
+                <span className="text-red-600 text-xs font-bold animate-pulse">
+                  ⚠️ Payslip already generated for {month} {year}
+                </span>
+              )}
+           <button 
+                onClick={() => handleSave("submit")} 
+                disabled={isAlreadyGenerated}
+                className={`px-6 py-2 rounded text-white font-bold shadow-md 
+                  ${isAlreadyGenerated ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
+              >
+                {isAlreadyGenerated ? "Already Generated" : "Submit"}
+              </button>
+            </div>
+          )}
+        </div>
 
         </div>
       </div>

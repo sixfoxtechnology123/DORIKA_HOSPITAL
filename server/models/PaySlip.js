@@ -34,6 +34,8 @@ const paySlipSchema = new mongoose.Schema(
     totalWorkingDays: { type: Number, default: 0 },
     LOP: { type: Number, default: 0 },
     leaves: { type: Number, default: 0 },
+    otHours: { type: Number, default: 0 },
+    otAmount: { type: Number, default: 0 },
 
   },
   { timestamps: true }

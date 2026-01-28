@@ -28,7 +28,8 @@ const [inHandSalary, setInHandSalary] = useState(0);
 const [totalWorkingDays, setTotalWorkingDays] = useState(0);
 const [LOP, setLOP] = useState(0);
 const [leaves, setLeaves] = useState(0);
-
+const [otHours, setOtHours] = useState(0);
+const [otAmount, setOtAmount] = useState(0);
 
   const [employees, setEmployees] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -145,14 +146,22 @@ const handlePrintAllOnePDF = async () => {
   pdf.save("Payslips.pdf");
 };
 
-
-
 const fetchLatestPayslip = async (emp) => {
   try {
     const res = await axios.get(`http://localhost:5002/api/payslips/latest/${emp.employeeID}`);
     const payslip = res.data;
 
-    // Map DB structure to print-friendly format
+    // Get the Month Name from your selectedMonth input (e.g., "2026-01" -> "January")
+    const [tYear, tMonthNum] = selectedMonth.split("-");
+    const tMonthName = monthNames[Number(tMonthNum) - 1];
+
+    // Check if the database has a record for THIS specific month/year
+    if (!payslip || payslip.month !== tMonthName || String(payslip.year) !== String(tYear)) {
+      toast.error(`No ${tMonthName} payslip generated for ${emp.firstName}`);
+      return null;
+    }
+
+    // Mapping logic (no changes here)
     const mappedEarnings = (payslip.earnings || []).map(e => ({
       headName: e.headName,
       headType: e.type || "FIXED",
@@ -165,10 +174,7 @@ const fetchLatestPayslip = async (emp) => {
       value: Number(d.amount || 0),
     }));
 
-    setSelectedEmployee({
-      ...emp,
-      employeeName: payslip.employeeName, // for display
-    });
+    setSelectedEmployee({ ...emp, employeeName: payslip.employeeName });
     setMonth(payslip.month);
     setYear(payslip.year);
     setEarningDetails(mappedEarnings);
@@ -181,14 +187,18 @@ const fetchLatestPayslip = async (emp) => {
     setTotalWorkingDays(Number(payslip.totalWorkingDays || 0));
     setLOP(Number(payslip.LOP || 0));
     setLeaves(Number(payslip.leaves || 0));
+    setOtHours(Number(payslip.otHours || 0));
+    setOtAmount(Number(payslip.otAmount || 0));
 
     return payslip;
   } catch (err) {
-    console.error(err);
-    toast.error("Failed to fetch latest payslip");
+    // This part triggers if the API call fails
+    const [tYear, tMonthNum] = selectedMonth.split("-");
+    const tMonthName = monthNames[Number(tMonthNum) - 1];
+    toast.error(`Payslip for ${emp.firstName} has not been generated for ${tMonthName}.`);
+    return null;
   }
 };
-
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -378,18 +388,17 @@ const fetchLatestPayslip = async (emp) => {
                   <FaPlusCircle />
                  
                 </button>
-
-             <button
+          <button
               onClick={async () => {
-                await fetchLatestPayslip(emp); // fetch latest payslip
-                handleDownloadPDF();           // then generate PDF
+                const payslip = await fetchLatestPayslip(emp); 
+                if (payslip) {
+                  handleDownloadPDF(); 
+                }
               }}
               className="text-blue-600 hover:text-blue-800"
             >
               <FaPrint />
             </button>
-
-
             </div>
               </td>
               </tr>
@@ -468,27 +477,42 @@ const fetchLatestPayslip = async (emp) => {
 </div>
 
 
-{/* EARNINGS + DEDUCTIONS */}
-<div className="grid grid-cols-2 gap-4 mb-4">
-  {/* Earnings */}
+  {/* EARNINGS + DEDUCTIONS */}
+  <div className="grid grid-cols-2 gap-4 mb-4">
+    {/* Earnings */}
   <div className="border border-black p-2">
-    <h3 className="text-xl font-semibold mb-3">Earnings</h3>
-    <table className="w-full border border-black text-lg">
-      <thead>
-        <tr className="bg-gray-200 text-center">
-          <th className="border p-1">SL No</th>
-          <th className="border p-1">Head</th>
-          <th className="border p-1">Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        {earningDetails.map((e, i) => (
-          <tr key={i}>
-            <td className="border p-2 text-center">{i + 1}</td>
-            <td className="border p-2 font-semibold text-left">{e.headName}</td>
-            <td className="border p-2 text-center font-semibold">₹{Number(e.value).toFixed(2)}</td>
+      <h3 className="text-xl font-semibold mb-3">Earnings</h3>
+      <table className="w-full border border-black text-lg">
+        <thead>
+          <tr className="bg-gray-200 text-center">
+            <th className="border p-1">SL No</th>
+            <th className="border p-1">Head</th>
+            <th className="border p-1">Amount</th>
           </tr>
-        ))}
+        </thead>
+        <tbody>
+          {earningDetails.map((e, i) => (
+            <tr key={i}>
+              <td className="border p-2 text-center">{i + 1}</td>
+              <td className="border p-2 font-semibold text-left">{e.headName}</td>
+              <td className="border p-2 text-center font-semibold">₹{Number(e.value).toFixed(2)}</td>
+            </tr>
+          ))}
+
+          {/* --- ADD THIS OT ROW BELOW --- */}
+          <tr className="bg-green-50 font-bold border-t border-green-200 text-black">
+            <td className="border p-2 text-center">
+            {earningDetails.length + 1}
+          </td>
+          <td className="border p-2 text-left">
+            OT ({otHours || 0} HRS)
+          </td>
+          <td className="border p-2 text-center">
+            ₹{(otAmount || 0).toFixed(2)}
+          </td>
+        </tr>
+        {/* ----------------------------- */}
+        
       </tbody>
     </table>
   </div>
@@ -531,15 +555,18 @@ const fetchLatestPayslip = async (emp) => {
 </div>
 
 
-<div className="border-2 border-gray-400 rounded-lg p-4 w-80 bg-white shadow-sm mt-4">
+<div className="border-2 border-gray-400 rounded-lg px-4 py-2 w-80 bg-white shadow-sm mt-4">
   <div className="flex justify-between mb-2">
     <span className="text-gray-950 font-bold">Gross salary</span>
     <span className="font-bold">₹{grossSalary.toFixed(2)}</span>
   </div>
 
+  {/* Updated Total Earnings to include OT Amount */}
   <div className="flex justify-between mb-2 text-sm">
     <span className="text-gray-600 font-medium">Total Earnings</span>
-    <span className="font-semibold">: ₹{grossSalary.toFixed(2)}</span>
+    <span className="font-semibold">
+      : ₹{(grossSalary + (otAmount || 0)).toFixed(2)}
+    </span>
   </div>
 
   <div className="flex justify-between mb-2 text-sm">

@@ -44,7 +44,10 @@ export const createPaySlip = async (req, res) => {
       monthDays,
       totalWorkingDays,
       LOP,
-      leaves
+      leaves,
+      otHours,  
+      otAmount,  
+      totalEarnings,
     } = req.body;
 
     if (!month || !year) return res.status(400).json({ error: "Month & Year required" });
@@ -92,16 +95,17 @@ export const createPaySlip = async (req, res) => {
       earnings: mappedEarnings,
       deductions: mappedDeductions,
       grossSalary: Number(grossSalary || 0),
-      
-      totalDeduction: Number(totalDeduction || 0),
-      totalEarnings: Number(grossSalary || 0),
       netSalary: Number(netSalary || 0),
       lopAmount: Number(lopAmount || 0),
       inHandSalary: Number(inHandSalary || 0),
       monthDays: Number(monthDays || 0),
       totalWorkingDays: Number(totalWorkingDays || 0),
       LOP: Number(LOP || 0),
-      leaves: Number(leaves || 0)
+      leaves: Number(leaves || 0),
+      otHours: Number(otHours || 0),  
+      otAmount: Number(otAmount || 0), 
+      totalEarnings: Number(totalEarnings|| 0),
+      totalDeduction: Number(totalDeduction || 0),
     });
 
  
@@ -130,7 +134,10 @@ export const updatePaySlip = async (req, res) => {
       monthDays,
       totalWorkingDays,
       LOP,
-      leaves
+      leaves,
+      otHours,      
+      otAmount,     
+      totalEarnings,
     } = req.body;
 
     // 1. Update the Payslip Document
@@ -140,6 +147,9 @@ export const updatePaySlip = async (req, res) => {
         $set: {
           earnings,
           deductions,
+          otHours,       
+          otAmount,      
+          totalEarnings,
           grossSalary,
           totalDeduction,
           netSalary,
@@ -188,15 +198,20 @@ export const getAllPaySlips = async (req, res) => {
   }
 };
 
-// GET payslip by employee + month + year
 export const getPaySlipByEmp = async (req, res) => {
-  const { employeeId, month, year } = req.query;
+  // Use employeeUserId here
+  const { employeeUserId, month, year } = req.query;
 
   try {
-    const slip = await PaySlip.findOne({ employeeId, month, year });
+    const slip = await PaySlip.findOne({ 
+      employeeUserId: employeeUserId, 
+      month: month, 
+      year: year 
+    });
+
     res.json({ success: true, data: slip });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch employee payslip" });
+    res.status(500).json({ success: false, error: "Database error" });
   }
 };
 

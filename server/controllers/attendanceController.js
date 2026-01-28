@@ -85,48 +85,77 @@ const markDailyAttendance = async (req, res) => {
       });
     }
 
-// 2. CHECK FOR CHECK-OUT
+// --- 2. UPDATED CHECK FOR CHECK-OUT (Night Shift Aware) ---
+
+// A. First, check if there is an unclosed punch from YESTERDAY
+const yesterday = new Date(now);
+yesterday.setDate(yesterday.getDate() - 1);
+const yesterdayStr = yesterday.toLocaleDateString('en-CA');
+
+const yesterdayIndex = attendance.records.findIndex(r => r.date === yesterdayStr);
 const todayIndex = attendance.records.findIndex(r => r.date === todayStr);
-if (todayIndex !== -1) {
-  const record = attendance.records[todayIndex];
-  if (record.checkInTime && (!record.checkOutTime || record.checkOutTime === "" || record.checkOutTime === "--")) {
-    record.checkOutTime = currentTime;
-    
-    // 1. Calculate durations in minutes
-    const shiftStartMin = parseTimeToMinutes(record.shiftStartTime);
-    let shiftEndMin = parseTimeToMinutes(record.shiftEndTime);
-    if (shiftEndMin < shiftStartMin) shiftEndMin += 1440; // Midnight cross
-    
-    const scheduledMinutes = shiftEndMin - shiftStartMin;
 
-    const punchInMin = parseTimeToMinutes(record.checkInTime);
-    let punchOutMin = parseTimeToMinutes(currentTime);
-    if (punchOutMin < punchInMin) punchOutMin += 1440; // Midnight cross
-    
-    const actualMinutes = punchOutMin - punchInMin;
+let recordToUpdate = null;
 
-
-
-// 2. OT LOGIC: UPDATED FOR TEST (Threshold of 2 minutes)
-    const extraMinutes = actualMinutes - scheduledMinutes;
-
-    // Use > 2 or >= 2 based on your preference
-    if (extraMinutes > 240) { 
-      record.isOT = true;
-      // Store the exact extra time as decimal hours
-      record.otHours = parseFloat((extraMinutes / 60).toFixed(4));
-    } else {
-      record.isOT = false;
-      record.otHours = 0;
-    }
-
-    // Standard string displays
-    record.workDuration = calculateDuration(record.shiftStartTime, record.shiftEndTime);
-    record.actualWorkDuration = calculateActualDuration(record.checkInTime, currentTime);
-
-    await attendance.save();
-    return res.status(200).json({ message: "Check-out recorded!" });
+if (yesterdayIndex !== -1) {
+  const rec = attendance.records[yesterdayIndex];
+  // If yesterday has a Check-In but NO Check-Out, this is the one we close
+  if (rec.checkInTime && (!rec.checkOutTime || rec.checkOutTime === "" || rec.checkOutTime === "--")) {
+    recordToUpdate = rec;
   }
+}
+
+// B. If no pending record yesterday, check today
+if (!recordToUpdate && todayIndex !== -1) {
+  const rec = attendance.records[todayIndex];
+  if (rec.checkInTime && (!rec.checkOutTime || rec.checkOutTime === "" || rec.checkOutTime === "--")) {
+    recordToUpdate = rec;
+  }
+}
+
+// C. If we found a record to close (either yesterday's night shift or today's day shift)
+if (recordToUpdate) {
+  recordToUpdate.checkOutTime = currentTime;
+
+  const shiftStartMin = parseTimeToMinutes(recordToUpdate.shiftStartTime);
+  let shiftEndMin = parseTimeToMinutes(recordToUpdate.shiftEndTime);
+  if (shiftEndMin < shiftStartMin) shiftEndMin += 1440; // Midnight cross for shift
+
+  const scheduledMinutes = shiftEndMin - shiftStartMin;
+
+  const punchInMin = parseTimeToMinutes(recordToUpdate.checkInTime);
+  let punchOutMin = parseTimeToMinutes(currentTime);
+  
+  // If we are updating YESTERDAY'S record, the current time is on a new day
+  // So we must add 24 hours to the punch-out time for duration calculation
+  if (recordToUpdate.date === yesterdayStr) {
+    punchOutMin += 1440;
+  } else if (punchOutMin < punchInMin) {
+    // Handling midnight cross for today's record (unlikely but safe)
+    punchOutMin += 1440;
+  }
+
+  const actualMinutes = punchOutMin - punchInMin;
+  const extraMinutes = actualMinutes - scheduledMinutes;
+
+  if (extraMinutes > 240) {
+    recordToUpdate.isOT = true;
+    recordToUpdate.otHours = parseFloat((extraMinutes / 60).toFixed(4));
+  } else {
+    recordToUpdate.isOT = false;
+    recordToUpdate.otHours = 0;
+  }
+
+  // Use the existing helper but ensure it handles cross-day
+  recordToUpdate.workDuration = calculateDuration(recordToUpdate.shiftStartTime, recordToUpdate.shiftEndTime);
+  
+  // Recalculate Actual Duration manually to ensure night-shift accuracy
+  const h = Math.floor(actualMinutes / 60);
+  const m = actualMinutes % 60;
+  recordToUpdate.actualWorkDuration = `${h}h ${m}m`;
+
+  await attendance.save();
+  return res.status(200).json({ message: "Check-out recorded successfully!" });
 }
 
 // --- 3. GAP-FILLING LOGIC ---
