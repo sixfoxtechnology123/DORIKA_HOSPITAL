@@ -30,7 +30,8 @@ const attendanceSchema = new mongoose.Schema({
   totalAbsent: { type: Number, default: 0 },
   totalOff: { type: Number, default: 0 },
   totalLeave: { type: Number, default: 0 },
-  totalOTHours: { type: Number, default: 0 } // <-- Added this below totalLeave
+  totalOTHours: { type: Number, default: 0 },
+  totalPaidDays: { type: Number, default: 0 },
 }, { timestamps: true });
 
 attendanceSchema.index({ employeeUserId: 1, month: 1, year: 1 }, { unique: true });

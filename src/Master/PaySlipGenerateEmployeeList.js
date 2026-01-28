@@ -30,7 +30,8 @@ const [LOP, setLOP] = useState(0);
 const [leaves, setLeaves] = useState(0);
 const [otHours, setOtHours] = useState(0);
 const [otAmount, setOtAmount] = useState(0);
-
+const [paidDaysSalary, setPaidDaysSalary] = useState(0);
+const [totalPaidDays, setTotalPaidDays] = useState(0); // Add this line 
   const [employees, setEmployees] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState(() => {
   return localStorage.getItem("selectedMonth") || "";
@@ -181,11 +182,13 @@ const fetchLatestPayslip = async (emp) => {
     setDeductionDetails(mappedDeductions);
     setGrossSalary(Number(payslip.grossSalary || 0));
     setTotalDeduction(Number(payslip.totalDeduction || 0));
+    setPaidDaysSalary(Number(payslip.paidDaysSalary || 0));
     setNetSalary(Number(payslip.netSalary || 0));
     setLopAmount(Number(payslip.lopAmount || 0));
     setInHandSalary(Number(payslip.inHandSalary || 0));
     setTotalWorkingDays(Number(payslip.totalWorkingDays || 0));
-    setLOP(Number(payslip.LOP || 0));
+    setLOP(Number(payslip.lopDays || 0));
+    setTotalPaidDays(Number(payslip.totalPaidDays || 0));
     setLeaves(Number(payslip.leaves || 0));
     setOtHours(Number(payslip.otHours || 0));
     setOtAmount(Number(payslip.otAmount || 0));
@@ -463,16 +466,25 @@ const fetchLatestPayslip = async (emp) => {
     <TwoColRow label1="Pay Month" value1={`${month} ${year}`} />
   </div>
 
-  {/* Right Section (1/3) */}
-  <div className="col-span-1 border border-gray-300 rounded px-4 py-2 bg-green-50 text-left">
-    <p className="text-2xl font-semibold">₹{inHandSalary.toFixed(2)}</p>
-    <p className="text-lg text-gray-800">Total Payable</p>
-    <div className="mt-2 text-left space-y-1">
-      <TwoColRow label1="Working Days" value1={totalWorkingDays} />
-      <TwoColRow label1="LOP" value1={LOP} />
-      <TwoColRow label1="Leaves" value1={leaves} />
+{/* Right Section (1/3) */}
+<div className="col-span-1 border border-gray-300 rounded px-4 py-2 bg-green-50 text-left">
+  <p className="text-2xl font-semibold">₹{inHandSalary.toFixed(2)}</p>
+  <p className="text-lg text-gray-800">Total Payable</p>
+  
+  <div className="mt-2 text-left space-y-1">
+    {/* Row 1: Working Days and LOP */}
+    <div className="flex justify-between text-lg">
+       <div className="flex-1">Working days: <span className="font-semibold">{totalWorkingDays}</span></div>
+       <div className="flex-1 text-right">Lop: <span className="font-semibold">{LOP}</span></div>
+    </div>
+
+    {/* Row 2: Total Paid days and Leaves */}
+    <div className="flex justify-between text-lg">
+       <div className="flex-1">Total paid days: <span className="font-semibold">{totalPaidDays}</span></div>
+       <div className="flex-1 text-right">Leaves: <span className="font-semibold">{leaves}</span></div>
     </div>
   </div>
+</div>
 </div>
 </div>
 
@@ -537,7 +549,7 @@ const fetchLatestPayslip = async (emp) => {
           </tr>
         ))}
 
-        {/* LOP added at the bottom of the table body */}
+        {/* LOP added at the bottom of the table body
         <tr className="bg-red-50 font-bold border-t border-red-200 text-black">
           <td className="border p-2 text-center">
             {deductionDetails.length + 1}
@@ -548,42 +560,54 @@ const fetchLatestPayslip = async (emp) => {
           <td className="border p-2 text-center">
             ₹{lopAmount.toFixed(2)}
           </td>
-        </tr>
+        </tr> */}
       </tbody>
     </table>
   </div>
 </div>
 
 
+{/* --- UPDATED SUMMARY BOX (LEFT ALIGNED) --- */}
 <div className="border-2 border-gray-400 rounded-lg px-4 py-2 w-80 bg-white shadow-sm mt-4">
+  
+  {/* 1. Gross Salary */}
   <div className="flex justify-between mb-2">
-    <span className="text-gray-950 font-bold">Gross salary</span>
+    <span className="text-gray-950 font-bold">Gross Salary</span>
     <span className="font-bold">₹{grossSalary.toFixed(2)}</span>
   </div>
 
-  {/* Updated Total Earnings to include OT Amount */}
-  <div className="flex justify-between mb-2 text-sm">
-    <span className="text-gray-600 font-medium">Total Earnings</span>
-    <span className="font-semibold">
-      : ₹{(grossSalary + (otAmount || 0)).toFixed(2)}
-    </span>
+  {/* 2. Total Earning (Matches Gross Salary) */}
+  <div className="flex justify-between mb-2 text-sm border-t pt-1">
+    <span className="text-gray-950 font-bold text-sm">Total Earning</span>
+    <span className="font-bold text-sm">: ₹{grossSalary.toFixed(2)}</span>
   </div>
 
-  <div className="flex justify-between mb-2 text-sm">
-    <span className="text-gray-600 font-medium">Total Deduction</span>
+  {/* 3. Total Deduction (Deduction Heads only - NO LOP Amount) */}
+  <div className="flex justify-between mb-2 text-sm text-red-600">
+    <span className="font-medium">Total Deduction</span>
     <span className="font-semibold">: ₹{totalDeduction.toFixed(2)}</span>
   </div>
 
   <hr className="border-gray-400 my-2" />
 
+  {/* 4. Total Salary (Gross - Head Deductions) */}
   <div className="flex justify-between mb-2">
-    <span className="text-gray-950 font-bold">Net Salary</span>
-    <span className="font-bold">₹{inHandSalary.toFixed(2)}</span>
+    <span className="text-gray-950 font-bold text-sm">Total Salary</span>
+    <span className="font-bold text-sm">₹{(grossSalary - totalDeduction).toFixed(2)}</span>
   </div>
 
-  <div className="flex justify-between mt-2 font-bold text-blue-800 border-t pt-2">
-    <span>In Hand Salary</span>
-    <span>₹{inHandSalary.toFixed(2)}</span>
+  {/* 5. Paid Days Salary (Net minus OT) */}
+  <div className="flex justify-between mb-2 bg-blue-50 p-1 rounded">
+    <span className="text-gray-950 font-bold text-sm">Paid Days Salary</span>
+    <span className="font-bold text-sm">
+      ₹{(netSalary - otAmount).toFixed(2)}
+    </span>
+  </div>
+
+  {/* 6. Net Salary (Final In-hand) */}
+  <div className="flex justify-between mt-2 font-bold text-blue-800 border-t-2 border-blue-200 pt-2 text-xl">
+    <span>Net Salary</span>
+    <span>₹{netSalary.toFixed(2)}</span>
   </div>
 </div>
 </div>

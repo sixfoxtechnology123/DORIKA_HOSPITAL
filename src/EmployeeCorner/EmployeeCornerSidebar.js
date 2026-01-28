@@ -24,9 +24,9 @@ const EmployeeCornerSidebar = () => {
   const location = useLocation();
 
   const menus = [
-    { name: "Dashboard", path: "/EmployeeLeaveDetails", icon: ClipboardList },
-    { name: "My Leave Details", path: "/employeeHome", icon: LayoutDashboard },
-    { name: "Attendance", path: "/EmployeeAttendance", icon: CalendarCheck },
+     { name: "Attendance", path: "/EmployeeAttendance", icon: CalendarCheck },
+    { name: "Leave Approval", path: "/EmployeeLeaveDetails", icon: ClipboardList },
+    { name: "My Leave Status", path: "/employeeHome", icon: LayoutDashboard },
     {
       name: "Employee Access",
       icon: Users,

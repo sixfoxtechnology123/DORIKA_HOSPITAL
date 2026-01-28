@@ -36,26 +36,39 @@ const GeneratePaySlip = () => {
   );
   const [monthDays, setMonthDays] = useState(editingData?.monthDays || "");
   const [totalWorkingDays, setTotalWorkingDays] = useState(editingData?.totalWorkingDays || "");
-  const [LOP, setLOP] = useState(editingData?.LOP || "");
+  const [LOP, setLOP] = useState(editingData?.lopDays || "");
   const [leaves, setLeaves] = useState(editingData?.leaves || "");
   const [totalOTHours, setTotalOTHours] = useState(editingData?.otHours ?? "");
   const [otAmount, setOtAmount] = useState(editingData?.otAmount ?? 0);
+  const [totalOff, setTotalOff] = useState(editingData?.totalOff || 0);
+  const [totalPaidDays, setTotalPaidDays] = useState(editingData?.totalPaidDays || 0);
 
-  // 2. ALL MATH CALCULATIONS NEXT (This must be above useEffect)
-  const calculateTotal = (arr) => arr.reduce((sum, item) => sum + Number(item.value || 0), 0);
-  
-  const grossSalary = calculateTotal(earningDetails);
-  const totalDeduction = calculateTotal(deductionDetails);
-  const netSalary = grossSalary - totalDeduction;
-  const md = Number(monthDays) || 0;
-  const lopDays = Number(LOP) || 0;
-  const lopAmount = md > 0 ? (grossSalary / md) * lopDays : 0;
-
-  // New OT Math
-  const totalEarnings = grossSalary + otAmount;
-  const inHandSalary = totalEarnings - totalDeduction - lopAmount;
 const [isAlreadyGenerated, setIsAlreadyGenerated] = useState(false);
-  // 3. HELPERS
+// --- ALL MATH CALCULATIONS (Top Level) ---
+const calculateTotal = (arr) => arr.reduce((sum, item) => sum + Number(item.value || 0), 0);
+
+// 1. Core Totals
+const grossSalary = calculateTotal(earningDetails);
+const totalEarning = grossSalary; 
+const totalDeduction = calculateTotal(deductionDetails); // PF, PT, ESI only
+const totalSalary = totalEarning - totalDeduction;
+// 2. Paid Days Logic
+const md = Number(monthDays) || 0;
+const totalPaid = Number(totalPaidDays || 0);
+const totalAfterDeduction = totalEarning - totalDeduction;
+
+// paid days salary = (total / month days) * totalPaidDays
+const paidDaysSalary = md > 0 ? (totalAfterDeduction / md) * totalPaid : 0;
+
+// 3. Final Net Salary
+// net salary = paid days salary + OT amount
+const netSalary = paidDaysSalary + Number(otAmount || 0);
+
+// 4. Compatibility Helpers (for your existing code)
+const lopAmount = md > 0 ? (grossSalary / md) * Number(LOP || 0) : 0;
+const inHandSalary = netSalary;
+
+
   const getDaysInMonth = (monthName, year) => {
     if (!monthName || !year) return 0;
     const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth();
@@ -94,18 +107,19 @@ useEffect(() => {
     }
   }, [month, year]);
 
+// --- FIND AND REPLACE THIS SPECIFIC BLOCK ---
 useEffect(() => {
-  if (mode !== "edit" && !editingData && month && year && grossSalary > 0) {
+  if (month && year && grossSalary > 0) {
     const daysInMonth = getDaysInMonth(month, year);
     let expectedHours = daysInMonth === 30 ? 205 : daysInMonth === 31 ? 212 : Math.round(daysInMonth * 6.85);
-    const calculated = (grossSalary / expectedHours) * Number(totalOTHours);
     
-    // Only set if we don't have a value yet
-    if (otAmount === 0 || !otAmount) {
-        setOtAmount(Number(calculated.toFixed(2)));
-    }
+    // We calculate the value based on current hours
+    const calculated = (grossSalary / expectedHours) * Number(totalOTHours || 0);
+    
+    // Logic: Always update otAmount whenever totalOTHours or grossSalary changes
+    setOtAmount(Number(calculated.toFixed(2)));
   }
-}, [totalOTHours, grossSalary, month, year, mode, editingData]);
+}, [totalOTHours, grossSalary, month, year]);
 
 useEffect(() => {
   const loadMasterData = async () => {
@@ -134,13 +148,11 @@ useEffect(() => {
         setTotalWorkingDays(empAtt.totalPresent || 0);
         setLOP(empAtt.totalAbsent || 0);
         setLeaves(empAtt.totalLeave || 0);
-        
+        setTotalOff(empAtt.totalOff || 0); 
+        setTotalPaidDays(empAtt.totalPaidDays || 0);
         // This is the key: set the hours immediately
         const otHoursValue = empAtt.totalOTHours || 0;
         setTotalOTHours(otHoursValue > 0 ? otHoursValue : "");
-
-        // 4. Calculate OT Amount immediately using current grossSalary
-        // This prevents needing a refresh to trigger the calculation
         if (otHoursValue > 0 && grossSalary > 0) {
           const daysInMonth = getDaysInMonth(month, year);
           let expectedHours = daysInMonth === 30 ? 205 : daysInMonth === 31 ? 212 : Math.round(daysInMonth * 6.85);
@@ -158,7 +170,7 @@ useEffect(() => {
 
 useEffect(() => {
   const fetchEmployeeSalary = async () => {
-    // 🟢 CHANGE: Ensure we don't fetch if editingData is already present
+   
     if (!selectedEmployee?.employeeID || editingData) return;
 
     try {
@@ -169,7 +181,7 @@ useEffect(() => {
       if (res.data.success && res.data.data) {
         const latestPayslip = res.data.data;
         
-        // 🟢 CHANGE: Explicitly set OT values from the DB result
+      
         setOtAmount(latestPayslip.otAmount || 0);
         setTotalOTHours(latestPayslip.otHours || "");
         
@@ -207,8 +219,6 @@ useEffect(() => {
 
   const addEarningRow = () => setEarningDetails([...earningDetails, { headName: "", headType: "FIXED", value: 0 }]);
   const addDeductionRow = () => setDeductionDetails([...deductionDetails, { headName: "", headType: "FIXED", value: 0 }]);
-
-
   
 const handleSave = async () => {
   if (!month || !year) {
@@ -216,19 +226,20 @@ const handleSave = async () => {
     return;
   }
 
-  const fullName = `${selectedEmployee.salutation} ${selectedEmployee.firstName} ${selectedEmployee.middleName || ""} ${selectedEmployee.lastName || ""}`.trim();
+  const fullName = `${selectedEmployee.salutation || ""} ${selectedEmployee.firstName} ${selectedEmployee.middleName || ""} ${selectedEmployee.lastName || ""}`.trim();
 
-  // FIX: This maps exactly what you see on screen (after using '-' or changing amounts)
+  // Filter and map Earnings
   const earningsPayload = earningDetails
-    .filter(e => e.headName && e.headName.trim() !== "") // Removes empty/deleted rows
+    .filter(e => e.headName && e.headName.trim() !== "")
     .map(e => ({
       headName: e.headName,
       type: e.headType || "FIXED",
       amount: Number(e.value) || 0
     }));
 
+  // Filter and map Deductions
   const deductionsPayload = deductionDetails
-    .filter(d => d.headName && d.headName.trim() !== "") // Removes empty/deleted rows
+    .filter(d => d.headName && d.headName.trim() !== "")
     .map(d => ({
       headName: d.headName,
       type: d.headType || "FIXED",
@@ -246,44 +257,54 @@ const handleSave = async () => {
     earnings: earningsPayload,
     deductions: deductionsPayload,
     grossSalary: Number(grossSalary.toFixed(2)),
-    otHours: Number(totalOTHours), 
-    otAmount: Number(otAmount),  
-    totalEarnings: Number((grossSalary + otAmount).toFixed(2)),
-    totalDeduction: Number((totalDeduction + lopAmount).toFixed(2)), 
-    netSalary: Number(inHandSalary.toFixed(2)), 
+    otHours: Number(totalOTHours || 0), 
+    otAmount: Number(otAmount || 0),  
+    
+    // --- CALCULATIONS BASED ON YOUR STRICT RULES ---
+    totalEarnings: Number(grossSalary.toFixed(2)),        // totalearnings = grosssalary
+    totalDeduction: Number(totalDeduction.toFixed(2)),   // Only deduction heads (NO lopAmount)
+    totalSalary: Number((grossSalary - totalDeduction).toFixed(2)), // earning - deduction
+    
+    paidDaysSalary: Number(paidDaysSalary.toFixed(2)),
+    netSalary: Number(netSalary.toFixed(2)),             // paid days salary + OT
+    inHandSalary: Number(netSalary.toFixed(2)),          // inHandSalary = net salary
+    
+    // --- STORAGE FIELDS ---
+    lopDays: Number(LOP || 0),                           // Maps to dbs lopDays
     lopAmount: Number(lopAmount.toFixed(2)),
-    inHandSalary: Number(inHandSalary.toFixed(2)),
     monthDays: Number(monthDays),
     totalWorkingDays: Number(totalWorkingDays),
-    LOP: Number(LOP),
+    totalOff: Number(totalOff), 
+    totalPaidDays: Number(totalPaidDays),
+    LOP: Number(LOP || 0),                               // Keeping for frontend compatibility
     leaves: Number(leaves)
   };
 
   try {
     if (editingData && editingData._id) {
+      // Update existing record
       await axios.put(`http://localhost:5002/api/payslips/${editingData._id}`, payload);
-      toast.success("Payslip and Master Data Updated!");
+      toast.success("Payslip Updated Successfully!");
     } else {
+      // Create new record (Backend will check for duplicate month/employee)
       await axios.post("http://localhost:5002/api/payslips", payload);
-      toast.success("Payslip Generated and Master Data Updated!");
+      toast.success("Payslip Generated Successfully!");
     }
     navigate("/PaySlipGenerateEmployeeList");
-  // Inside your handleSave function, find the catch block:
-} catch (err) {
-  console.error("Error saving payslip:", err);
-  
-  // Extract the backend message
-  const backendMessage = err.response?.data?.message || "";
-  
-  if (backendMessage.toLowerCase().includes("already exists")) {
-    toast.error(`Error: Payslip for ${month} ${year} already exists!`, {
+  } catch (err) {
+    // Extract specific validation message from backend (e.g., "Already exists")
+    const backendMessage = err.response?.data?.message || "Error saving payslip";
+    
+    toast.error(backendMessage, {
       duration: 5000,
-      style: { border: '1px solid #f87171', color: '#b91c1c' }
+      style: {
+        border: '1px solid #f87171',
+        padding: '16px',
+        color: '#991b1b',
+      },
     });
-  } else {
-    toast.error(backendMessage || "Error saving payslip");
+    console.error("Save Error:", err);
   }
-}
 };
 
   const TwoColRow = ({ label1, value1, label2, value2 }) => (
@@ -605,118 +626,136 @@ const handleSave = async () => {
               </tbody>
             </table>
           </div>
-
           </div>
 
-
-
-          {/* ADDITIONAL FIELDS */}
-            {mode !== "edit" && (
+        {mode !== "edit" && (
           <>
-              <h4 className="text-lg font-semibold text-white mb-2 pl-2 bg-blue-700 rounded-sm">ADDITIONAL INFO</h4>
-              <div className="grid grid-cols-4 gap-4 mb-6 text-sm">
-                <div>
-                  <label className="font-semibold">Month Days</label>
-                 <input
-                    type="number"
-                    value={monthDays}
-                    readOnly
-                     className="font-semibold w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 cursor-not-allowed"
-                  />
-
-                </div>
-                <div>
-                  <label className="font-semibold">Total Working Days</label>
-                  <input
-                    type="number"
-                    value={totalWorkingDays}
-                    readOnly
-                    onChange={(e) => setTotalWorkingDays(Number(e.target.value))}
-                     className="font-semibold w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 cursor-not-allowed"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold">LOP</label>
-                  <input
-                    type="number"
-                    value={LOP}
-                    readOnly
-                    onChange={(e) => setLOP(Number(e.target.value))}
-                     className="font-semibold w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 cursor-not-allowed"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold">Leaves</label>
-                  <input
-                    type="number"
-                    value={leaves}
-                    readOnly
-                    onChange={(e) => setLeaves(Number(e.target.value))}
-                     className="font-semibold w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150 cursor-not-allowed"
-                  />
-                </div>
+            <h4 className="text-lg font-semibold text-white mb-2 pl-2 bg-blue-700 rounded-sm uppercase">
+              Additional Info
+            </h4>
+            {/* Changed grid-cols-4 to grid-cols-6 */}
+            <div className="grid grid-cols-6 gap-4 mb-6 text-sm">
+              <div>
+                <label className="font-semibold">Month Days</label>
+                <input
+                  type="number"
+                  value={monthDays}
+                  readOnly
+                  className="font-semibold w-full pl-2 pr-1 border border-gray-300 rounded text-sm bg-gray-50 cursor-not-allowed"
+                />
               </div>
-              </>
+              <div>
+                <label className="font-semibold text-green-600">Total Working</label>
+                <input
+                  type="number"
+                  value={totalWorkingDays}
+                  readOnly
+                  className="font-semibold w-full pl-2 pr-1 border border-gray-300 rounded text-sm bg-gray-50 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="font-semibold text-blue-600">Total OFF</label>
+                <input
+                  type="number"
+                  value={totalOff}
+                  readOnly
+                  className="font-semibold w-full pl-2 pr-1 border border-gray-300 rounded text-sm bg-gray-50 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="font-semibold text-orange-600">Leaves</label>
+                <input
+                  type="number"
+                  value={leaves}
+                  readOnly
+                  className="font-semibold w-full pl-2 pr-1 border border-gray-300 rounded text-sm bg-gray-50 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="font-semibold text-red-600">LOP (Absent)</label>
+                <input
+                  type="number"
+                  value={LOP}
+                  readOnly
+                  className="font-semibold w-full pl-2 pr-1 border border-gray-300 rounded text-sm bg-gray-50 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="font-semibold text-indigo-700">Total Paid Days</label>
+                <input
+                  type="number"
+                  value={totalPaidDays}
+                  readOnly
+                  className="font-bold w-full pl-2 pr-1 border border-indigo-300 bg-indigo-50 rounded text-sm cursor-not-allowed text-indigo-800"
+                />
+              </div>
+            </div>
+          </>
+        )}
+       <div className="flex justify-between items-start mb-6">
+        {mode !== "edit" && (
+          <div className="border-2 border-gray-400 rounded-lg p-4 w-80 bg-white shadow-sm">
+            
+            {/* 1. Gross Salary */}
+            <div className="flex justify-between mb-2">
+              <span className="text-gray-950 font-bold">Gross Salary</span>
+              <span className="font-bold">₹{grossSalary.toFixed(2)}</span>
+            </div>
+
+            {/* 2. Total Earning */}
+            <div className="flex justify-between mb-2 text-sm border-t pt-1">
+              <span className="text-gray-950 font-bold">Total Earning</span>
+              <span className="font-bold">: ₹{totalEarning.toFixed(2)}</span>
+            </div>
+
+            {/* 3. Total Deduction (PF, PT, ESI only) */}
+            <div className="flex justify-between mb-2 text-sm text-red-600">
+              <span className="font-medium">Total Deduction</span>
+              <span className="font-semibold">: ₹{totalDeduction.toFixed(2)}</span>
+            </div>
+
+            <hr className="border-gray-400 my-2" />
+
+            {/* 4. Total Salary (Earning - Deduction) */}
+            <div className="flex justify-between mb-2">
+              <span className="text-gray-950 font-bold text-sm">Total Salary</span>
+              <span className="font-bold text-sm">₹{totalSalary.toFixed(2)}</span>
+            </div>
+
+            {/* 5. Paid Days Salary */}
+            <div className="flex justify-between mb-2 bg-blue-50 p-1 rounded">
+              <span className="text-gray-950 font-bold text-sm">Paid Days Salary</span>
+              <span className="font-bold text-sm">
+                ₹{paidDaysSalary.toFixed(2)}
+              </span>
+            </div>
+
+            {/* 6. Net Salary (Paid Days Salary + OT) */}
+            <div className="flex justify-between mt-2 font-bold text-blue-800 border-t-2 border-blue-200 pt-2 text-xl">
+              <span>Net Salary</span>
+              <span>₹{netSalary.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
+
+        {mode !== "edit" && (
+          <div className="flex flex-col items-end gap-2 mt-auto">
+            {isAlreadyGenerated && (
+              <span className="text-red-600 text-xs font-bold animate-pulse">
+                ⚠️ Payslip already generated for {month} {year}
+              </span>
             )}
-
-        <div className="flex justify-between items-start mb-6">
-          {mode !== "edit" && (
-            <div className="border-2 border-gray-400 rounded-lg p-4 w-80 bg-white shadow-sm">
-              
-              {/* Gross Salary (Fixed Salary from Earning Table) */}
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-950 font-bold">Gross Salary</span>
-                <span className="font-bold">₹{grossSalary.toFixed(2)}</span>
-              </div>
-
-              {/* Total Earnings = Gross + OT (OT is calculated but hidden as a separate row here) */}
-              <div className="flex justify-between mb-2 text-sm border-t pt-1">
-                <span className="text-gray-950 font-bold">Total Earnings</span>
-                <span className="font-bold">: ₹{(grossSalary + otAmount).toFixed(2)}</span>
-              </div>
-
-              {/* Total Deduction includes regular deductions + LOP */}
-              <div className="flex justify-between mb-2 text-sm text-red-600">
-                <span className="font-medium">Total Deduction </span>
-                <span className="font-semibold">: ₹{(totalDeduction + lopAmount).toFixed(2)}</span>
-              </div>
-
-              <hr className="border-gray-400 my-2" />
-
-              {/* Net Salary calculation */}
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-950 font-bold">Net Salary</span>
-                <span className="font-bold text-lg">
-                  ₹{(grossSalary + otAmount - totalDeduction - lopAmount).toFixed(2)}
-                </span>
-              </div>
-
-              {/* Final In-Hand amount */}
-              <div className="flex justify-between mt-2 font-bold text-blue-800 border-t-2 border-blue-200 pt-2 text-xl">
-                <span>In Hand</span>
-                <span>₹{(grossSalary + otAmount - totalDeduction - lopAmount).toFixed(2)}</span>
-              </div>
-            </div>
-          )}
-
-          {mode !== "edit" && (
-            <div className="flex flex-col items-end gap-2 mt-auto">
-              {isAlreadyGenerated && (
-                <span className="text-red-600 text-xs font-bold animate-pulse">
-                  ⚠️ Payslip already generated for {month} {year}
-                </span>
-              )}
-           <button 
-                onClick={() => handleSave("submit")} 
-                disabled={isAlreadyGenerated}
-                className={`px-6 py-2 rounded text-white font-bold shadow-md 
-                  ${isAlreadyGenerated ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
-              >
-                {isAlreadyGenerated ? "Already Generated" : "Submit"}
-              </button>
-            </div>
-          )}
-        </div>
+            <button 
+              onClick={() => handleSave("submit")} 
+              disabled={isAlreadyGenerated}
+              className={`px-6 py-2 rounded text-white font-bold shadow-md 
+                ${isAlreadyGenerated ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
+            >
+              {isAlreadyGenerated ? "Already Generated" : "Submit"}
+            </button>
+          </div>
+        )}
+      </div>
 
         </div>
       </div>
