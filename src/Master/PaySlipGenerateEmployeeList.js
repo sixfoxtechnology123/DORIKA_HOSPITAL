@@ -149,7 +149,7 @@ const handlePrintAllOnePDF = async () => {
 
 const fetchLatestPayslip = async (emp) => {
   try {
-    const res = await axios.get(`http://localhost:5002/api/payslips/latest/${emp.employeeID}`);
+    const res = await axios.get(`http://localhost:5002/api/payslips/latest/${emp.employeeUserId}`);
     const payslip = res.data;
 
     // Get the Month Name from your selectedMonth input (e.g., "2026-01" -> "January")
@@ -175,7 +175,12 @@ const fetchLatestPayslip = async (emp) => {
       value: Number(d.amount || 0),
     }));
 
-    setSelectedEmployee({ ...emp, employeeName: payslip.employeeName });
+    setSelectedEmployee({ 
+      ...emp, 
+      employeeName: payslip.employeeName, 
+      employeeUserId: payslip.employeeUserId,
+      employeeID: payslip.employeeId // Ensure the old ID is visible on the slip
+    });
     setMonth(payslip.month);
     setYear(payslip.year);
     setEarningDetails(mappedEarnings);

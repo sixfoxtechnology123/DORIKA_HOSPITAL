@@ -146,10 +146,13 @@ export const getLatestPayslipByEmployee = async (req, res) => {
   try {
     const { employeeId } = req.params;
 
-    const latestPayslip = await PaySlip.find({ employeeId: employeeId.toUpperCase() })
-      .sort({ createdAt: -1 }) // latest first
+    // Search by employeeUserId instead of employeeId
+    const latestPayslip = await PaySlip.find({ 
+      employeeUserId: employeeId.toUpperCase() 
+    })
+      .sort({ createdAt: -1 }) 
       .limit(1)
-      .lean(); // return plain JS object
+      .lean(); 
 
     if (!latestPayslip || latestPayslip.length === 0) {
       return res.status(404).json({ error: "No payslip found for this employee" });

@@ -245,6 +245,8 @@ const handleSave = async () => {
     employeeId: selectedEmployee.employeeID,
     employeeUserId: selectedEmployee.employeeUserId,
     employeeName: fullName,
+    designationName: selectedEmployee.designationName || "",
+    doj: selectedEmployee.doj || "",
     mobile: selectedEmployee.permanentAddress?.mobile || "",
     email: selectedEmployee.permanentAddress?.email || "",
     month,

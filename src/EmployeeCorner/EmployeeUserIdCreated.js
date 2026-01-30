@@ -149,18 +149,22 @@ const EmployeeUserIdCreated = () => {
 
             {/* Changed grid to 5 columns to accommodate the new field */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <div>
+             <div>
                 <label className="block text-sm font-medium text-dorika-blue">Employee ID</label>
                 <input
-                  placeholder="Enter ID and press Enter"
+                  placeholder="e.g. TP-00001"
                   value={formData.employeeId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, employeeId: e.target.value.toUpperCase() })
-                  }
+                  onChange={(e) => {
+                    let value = e.target.value.toUpperCase();
+                    let cleanValue = value.replace(/-/g, "");
+                    let formattedValue = cleanValue.replace(/^([A-Z]+)(\d+)/, "$1-$2");
+                    
+                    setFormData({ ...formData, employeeId: formattedValue });
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleFetchEmployee(formData.employeeId);
                   }}
-                  className="border border-dorika-blue p-0 pl-2 rounded w-full uppercase"
+                  className="border border-dorika-blue p-0 pl-2 rounded w-full uppercase font-semibold"
                 />
               </div>
 

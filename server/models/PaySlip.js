@@ -20,6 +20,8 @@ const paySlipSchema = new mongoose.Schema(
     employeeId: { type: String, required: true },
     employeeName: { type: String, required: true },
     employeeUserId: { type: String }, // Added per request
+    designationName: { type: String }, 
+    doj: { type: String },
     mobile: { type: String },
     email: { type: String },
     month: { type: String, required: true },
