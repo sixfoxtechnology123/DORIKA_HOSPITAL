@@ -60,7 +60,7 @@ const AdminLogin = () => {
 
         localStorage.setItem("userPermissions", JSON.stringify(userData.permissions));
 
-        navigate(loginType === "admin" ? "/LeaveHistory" : "/EmployeeDashboard");
+        navigate(loginType === "admin" ? "/Dashboard" : "/EmployeeDashboard");
       } else {
         setError("Invalid credentials");
       }

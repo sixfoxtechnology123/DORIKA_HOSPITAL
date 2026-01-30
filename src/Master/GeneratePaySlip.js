@@ -58,14 +58,14 @@ const totalPaid = Number(totalPaidDays || 0);
 const totalAfterDeduction = totalEarning - totalDeduction;
 
 // paid days salary = (total / month days) * totalPaidDays
-const paidDaysSalary = md > 0 ? (totalAfterDeduction / md) * totalPaid : 0;
+const paidDaysSalary = md > 0 ? Math.round((totalAfterDeduction / md) * totalPaid) : 0;
 
 // 3. Final Net Salary
 // net salary = paid days salary + OT amount
-const netSalary = paidDaysSalary + Number(otAmount || 0);
+const netSalary = Math.round(paidDaysSalary + Number(otAmount || 0));
 
 // 4. Compatibility Helpers (for your existing code)
-const lopAmount = md > 0 ? (grossSalary / md) * Number(LOP || 0) : 0;
+const lopAmount = md > 0 ? Math.round((grossSalary / md) * Number(LOP || 0)) : 0;
 const inHandSalary = netSalary;
 
 
@@ -107,19 +107,14 @@ useEffect(() => {
     }
   }, [month, year]);
 
-// --- FIND AND REPLACE THIS SPECIFIC BLOCK ---
 useEffect(() => {
-  if (month && year && grossSalary > 0) {
+  if (month && year && grossSalary > 0 && totalOTHours > 0) {
     const daysInMonth = getDaysInMonth(month, year);
     let expectedHours = daysInMonth === 30 ? 205 : daysInMonth === 31 ? 212 : Math.round(daysInMonth * 6.85);
-    
-    // We calculate the value based on current hours
     const calculated = (grossSalary / expectedHours) * Number(totalOTHours || 0);
-    
-    // Logic: Always update otAmount whenever totalOTHours or grossSalary changes
-    setOtAmount(Number(calculated.toFixed(2)));
+    setOtAmount(Math.round(calculated));
   }
-}, [totalOTHours, grossSalary, month, year]);
+}, [totalOTHours, month, year]);
 
 useEffect(() => {
   const loadMasterData = async () => {
@@ -157,7 +152,7 @@ useEffect(() => {
           const daysInMonth = getDaysInMonth(month, year);
           let expectedHours = daysInMonth === 30 ? 205 : daysInMonth === 31 ? 212 : Math.round(daysInMonth * 6.85);
           const calculatedAmt = (grossSalary / expectedHours) * otHoursValue;
-          setOtAmount(Number(calculatedAmt.toFixed(2)));
+          setOtAmount(Number(calculatedAmt));
         }
       }
     } catch (err) {
@@ -166,44 +161,44 @@ useEffect(() => {
   };
 
   loadMasterData();
-}, [selectedEmployee, month, year, mode, editingData, grossSalary]); 
+}, [selectedEmployee, month, year, mode, editingData]); 
 
-useEffect(() => {
-  const fetchEmployeeSalary = async () => {
+// useEffect(() => {
+//   const fetchEmployeeSalary = async () => {
    
-    if (!selectedEmployee?.employeeID || editingData) return;
+//     if (!selectedEmployee?.employeeID || editingData) return;
 
-    try {
-      const res = await axios.get(
-        `http://localhost:5002/api/payslips/employee/${selectedEmployee.employeeID}?month=${month}&year=${year}`
-      );
+//     try {
+//       const res = await axios.get(
+//         `http://localhost:5002/api/payslips/employee/${selectedEmployee.employeeID}?month=${month}&year=${year}`
+//       );
 
-      if (res.data.success && res.data.data) {
-        const latestPayslip = res.data.data;
+//       if (res.data.success && res.data.data) {
+//         const latestPayslip = res.data.data;
         
       
-        setOtAmount(latestPayslip.otAmount || 0);
-        setTotalOTHours(latestPayslip.otHours || "");
+//         setOtAmount(latestPayslip.otAmount || 0);
+//         setTotalOTHours(latestPayslip.otHours || "");
         
-        setEarningDetails(latestPayslip.earnings?.map(e => ({
-            headName: e.headName || "",
-            headType: e.headType || "FIXED",
-            value: e.amount || e.value || 0 // Check if your DB uses 'amount' or 'value'
-        })) || []);
+//         setEarningDetails(latestPayslip.earnings?.map(e => ({
+//             headName: e.headName || "",
+//             headType: e.headType || "FIXED",
+//             value: e.amount || e.value || 0 // Check if your DB uses 'amount' or 'value'
+//         })) || []);
 
-        setDeductionDetails(latestPayslip.deductions?.map(d => ({
-            headName: d.headName || "",
-            headType: d.headType || "FIXED",
-            value: d.amount || d.value || 0
-        })) || []);
-      }
-    } catch (err) {
-      console.error("Error fetching payslip:", err);
-    }
-  };
+//         setDeductionDetails(latestPayslip.deductions?.map(d => ({
+//             headName: d.headName || "",
+//             headType: d.headType || "FIXED",
+//             value: d.amount || d.value || 0
+//         })) || []);
+//       }
+//     } catch (err) {
+//       console.error("Error fetching payslip:", err);
+//     }
+//   };
 
-  fetchEmployeeSalary();
-}, [selectedEmployee, editingData, month, year]);
+//   fetchEmployeeSalary();
+// }, [selectedEmployee, editingData, month, year]);
 
   const earningHeads = Array.isArray(allHeads) ? allHeads.filter(h => h.headId.startsWith("EARN")) : [];
   const deductionHeads = Array.isArray(allHeads) ? allHeads.filter(h => h.headId.startsWith("DEDUCT")) : [];
@@ -234,7 +229,7 @@ const handleSave = async () => {
     .map(e => ({
       headName: e.headName,
       type: e.headType || "FIXED",
-      amount: Number(e.value) || 0
+      amount: Math.round(Number(e.value) || 0)
     }));
 
   // Filter and map Deductions
@@ -243,7 +238,7 @@ const handleSave = async () => {
     .map(d => ({
       headName: d.headName,
       type: d.headType || "FIXED",
-      amount: Number(d.value) || 0
+      amount: Math.round(Number(d.value) || 0)
     }));
 
   const payload = {
@@ -256,27 +251,24 @@ const handleSave = async () => {
     year,
     earnings: earningsPayload,
     deductions: deductionsPayload,
-    grossSalary: Number(grossSalary.toFixed(2)),
+   grossSalary: Math.round(grossSalary),
     otHours: Number(totalOTHours || 0), 
-    otAmount: Number(otAmount || 0),  
+    otAmount: Math.round(otAmount),
     
-    // --- CALCULATIONS BASED ON YOUR STRICT RULES ---
-    totalEarnings: Number(grossSalary.toFixed(2)),        // totalearnings = grosssalary
-    totalDeduction: Number(totalDeduction.toFixed(2)),   // Only deduction heads (NO lopAmount)
-    totalSalary: Number((grossSalary - totalDeduction).toFixed(2)), // earning - deduction
+    totalEarnings: Math.round(grossSalary),
+    totalDeduction: Math.round(totalDeduction),
+    totalSalary: Math.round(grossSalary - totalDeduction),
+    paidDaysSalary: Math.round(paidDaysSalary),
+    netSalary: Math.round(netSalary),
+    inHandSalary: Math.round(netSalary),
+    lopAmount: Math.round(lopAmount),
     
-    paidDaysSalary: Number(paidDaysSalary.toFixed(2)),
-    netSalary: Number(netSalary.toFixed(2)),             // paid days salary + OT
-    inHandSalary: Number(netSalary.toFixed(2)),          // inHandSalary = net salary
-    
-    // --- STORAGE FIELDS ---
-    lopDays: Number(LOP || 0),                           // Maps to dbs lopDays
-    lopAmount: Number(lopAmount.toFixed(2)),
+    lopDays: Number(LOP || 0),
     monthDays: Number(monthDays),
     totalWorkingDays: Number(totalWorkingDays),
     totalOff: Number(totalOff), 
     totalPaidDays: Number(totalPaidDays),
-    LOP: Number(LOP || 0),                               // Keeping for frontend compatibility
+    LOP: Number(LOP || 0),
     leaves: Number(leaves)
   };
 
@@ -477,16 +469,20 @@ const handleSave = async () => {
                       </td>
 
                       <td className="border p-2">
-                        <input
-                          type="number"
-                          value={row.value}
-                          onChange={(e) => {
-                            const updated = [...earningDetails];
-                            updated[index].value = Number(e.target.value);
-                            setEarningDetails(updated);
-                          }}
-                          className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm"
-                        />
+                    <input
+                        type="number"
+                        // Allow empty string so user can backspace fully
+                        value={row.value === 0 ? "" : row.value} 
+                        onChange={(e) => {
+                          const val = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                          setEarningDetails(prev => {
+                            const updated = [...prev];
+                            updated[index] = { ...updated[index], value: val };
+                            return updated;
+                          });
+                        }}
+                        className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm"
+                      />
                       </td>
 
                       <td className="border p-2 text-center">
@@ -609,7 +605,7 @@ const handleSave = async () => {
                   </td>
                   {/* Column 4: LOP Amount */}
                   <td  colSpan="2" className="border p-2 text-center text-red-700">
-                    ₹{lopAmount.toFixed(2)}
+                    ₹{lopAmount}
                   </td>
                 </tr>
                 
@@ -619,7 +615,7 @@ const handleSave = async () => {
                     Total Deduction:
                   </td>
                   <td className="border p-2 text-center">
-                    ₹{(totalDeduction + lopAmount).toFixed(2)}
+                    ₹{(totalDeduction + lopAmount)}
                   </td>
                   <td className="border p-2"></td>
                 </tr> */}
@@ -699,19 +695,19 @@ const handleSave = async () => {
             {/* 1. Gross Salary */}
             <div className="flex justify-between mb-2">
               <span className="text-gray-950 font-bold">Gross Salary</span>
-              <span className="font-bold">₹{grossSalary.toFixed(2)}</span>
+              <span className="font-bold">₹{Math.round(grossSalary)}</span>
             </div>
 
             {/* 2. Total Earning */}
             <div className="flex justify-between mb-2 text-sm border-t pt-1">
               <span className="text-gray-950 font-bold">Total Earning</span>
-              <span className="font-bold">: ₹{totalEarning.toFixed(2)}</span>
+              <span className="font-bold">: ₹{Math.round(totalEarning)}</span>
             </div>
 
             {/* 3. Total Deduction (PF, PT, ESI only) */}
             <div className="flex justify-between mb-2 text-sm text-red-600">
               <span className="font-medium">Total Deduction</span>
-              <span className="font-semibold">: ₹{totalDeduction.toFixed(2)}</span>
+              <span className="font-semibold">: ₹{Math.round(totalDeduction)}</span>
             </div>
 
             <hr className="border-gray-400 my-2" />
@@ -719,21 +715,21 @@ const handleSave = async () => {
             {/* 4. Total Salary (Earning - Deduction) */}
             <div className="flex justify-between mb-2">
               <span className="text-gray-950 font-bold text-sm">Total Salary</span>
-              <span className="font-bold text-sm">₹{totalSalary.toFixed(2)}</span>
+              <span className="font-bold text-sm">₹{Math.round(totalSalary)}</span>
             </div>
 
             {/* 5. Paid Days Salary */}
             <div className="flex justify-between mb-2 bg-blue-50 p-1 rounded">
               <span className="text-gray-950 font-bold text-sm">Paid Days Salary</span>
               <span className="font-bold text-sm">
-                ₹{paidDaysSalary.toFixed(2)}
+                ₹{Math.round(paidDaysSalary)}
               </span>
             </div>
 
             {/* 6. Net Salary (Paid Days Salary + OT) */}
             <div className="flex justify-between mt-2 font-bold text-blue-800 border-t-2 border-blue-200 pt-2 text-xl">
               <span>Net Salary</span>
-              <span>₹{netSalary.toFixed(2)}</span>
+              <span>₹{Math.round(netSalary)}</span>
             </div>
           </div>
         )}
@@ -792,7 +788,7 @@ const handleSave = async () => {
 
 {/* Right Section (1/3) of the Header info */}
 <div className="col-span-1 border border-gray-300 rounded p-4 bg-green-50 text-left">
-  <p className="text-2xl font-semibold">₹{inHandSalary.toFixed(2)}</p>
+  <p className="text-2xl font-semibold">₹{inHandSalary}</p>
   <p className="text-lg text-gray-800">Total Payable</p>
   <div className="mt-2 text-left space-y-1">
     {/* Updated labels below */}
@@ -825,7 +821,7 @@ const handleSave = async () => {
               <td className="border p-2 text-center">{i + 1}</td>
               <td className="border p-2 text-center font-semibold">{e.headName}</td>
               <td className="border p-2 text-center font-semibold">{e.headType}</td>
-              <td className="border p-2 text-center font-semibold">₹{Number(e.value).toFixed(2)}</td>
+              <td className="border p-2 text-center font-semibold">₹{Number(e.value)}</td>
             </tr>
           ))}
         </tbody>
@@ -850,7 +846,7 @@ const handleSave = async () => {
               <td className="border p-2 text-center">{i + 1}</td>
               <td className="border p-2 text-center font-semibold">{d.headName}</td>
               <td className="border p-2 text-center font-semibold">{d.headType}</td>
-              <td className="border p-2 text-center font-semibold">₹{Number(d.value).toFixed(2)}</td>
+              <td className="border p-2 text-center font-semibold">₹{Number(d.value)}</td>
             </tr>
           ))}
         </tbody>
@@ -860,13 +856,13 @@ const handleSave = async () => {
 
   {/* SUMMARY */}
   <div className="border border-black p-3 text-lg space-y-2">
-    <p><span className="font-semibold">Gross Salary:</span> ₹{grossSalary.toFixed(2)}</p>
-    <p><span className="font-semibold">Total Deduction:</span> ₹{totalDeduction.toFixed(2)}</p>
-    <p><span className="font-semibold">Net Salary:</span> ₹{netSalary.toFixed(2)}</p>
-    <p><span className="font-semibold">LOP Deduction:</span> ₹{lopAmount.toFixed(2)}</p>
+    <p><span className="font-semibold">Gross Salary:</span> ₹{grossSalary}</p>
+    <p><span className="font-semibold">Total Deduction:</span> ₹{totalDeduction}</p>
+    <p><span className="font-semibold">Net Salary:</span> ₹{netSalary}</p>
+    <p><span className="font-semibold">LOP Deduction:</span> ₹{lopAmount}</p>
 
     <h3 className="text-2xl font-semibold mt-2">
-      In-hand Salary: ₹{inHandSalary.toFixed(2)}
+      In-hand Salary: ₹{inHandSalary}
     </h3>
   </div>
 </div>

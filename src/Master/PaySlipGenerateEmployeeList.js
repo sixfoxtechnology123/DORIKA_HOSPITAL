@@ -262,11 +262,18 @@ const fetchLatestPayslip = async (emp) => {
   const imgData = canvas.toDataURL("image/png");
   const pdf = new jsPDF("p", "mm", "a4");
 
+// --- Centering Logic ---
   const pdfWidth = pdf.internal.pageSize.getWidth();
-  const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+  const margin = 10; 
+  const printableWidth = pdfWidth - (margin * 2);
+  const pdfHeight = (canvas.height * printableWidth) / canvas.width;
+  const xOffset = (pdfWidth - printableWidth) / 2; // This ensures equal left/right space
 
-  pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-  pdf.save(`Payslip-${selectedEmployee.employeeID}.pdf`);
+  pdf.addImage(imgData, "PNG", xOffset, margin, printableWidth, pdfHeight);
+
+  // --- Dynamic File Name ---
+  const fileName = `${selectedEmployee.employeeID}-${selectedEmployee.firstName}_${selectedEmployee.lastName}.pdf`;
+  pdf.save(fileName);
 
   // Restore original display
   el.style.display = "";
@@ -468,7 +475,7 @@ const fetchLatestPayslip = async (emp) => {
 
 {/* Right Section (1/3) */}
 <div className="col-span-1 border border-gray-300 rounded px-4 py-2 bg-green-50 text-left">
-  <p className="text-2xl font-semibold">₹{inHandSalary.toFixed(2)}</p>
+  <p className="text-2xl font-semibold">₹{inHandSalary}</p>
   <p className="text-lg text-gray-800">Total Payable</p>
   
   <div className="mt-2 text-left space-y-1">
@@ -507,7 +514,7 @@ const fetchLatestPayslip = async (emp) => {
             <tr key={i}>
               <td className="border p-2 text-center">{i + 1}</td>
               <td className="border p-2 font-semibold text-left">{e.headName}</td>
-              <td className="border p-2 text-center font-semibold">₹{Number(e.value).toFixed(2)}</td>
+              <td className="border p-2 text-center font-semibold">₹{Number(e.value)}</td>
             </tr>
           ))}
 
@@ -520,7 +527,7 @@ const fetchLatestPayslip = async (emp) => {
             OT ({otHours || 0} HRS)
           </td>
           <td className="border p-2 text-center">
-            ₹{(otAmount || 0).toFixed(2)}
+            ₹{(otAmount || 0)}
           </td>
         </tr>
         {/* ----------------------------- */}
@@ -545,7 +552,7 @@ const fetchLatestPayslip = async (emp) => {
           <tr key={i}>
             <td className="border p-2 text-center">{i + 1}</td>
             <td className="border p-2 font-semibold uppercase text-left">{d.headName}</td>
-            <td className="border p-2 text-center font-semibold">₹{Number(d.value).toFixed(2)}</td>
+            <td className="border p-2 text-center font-semibold">₹{Number(d.value)}</td>
           </tr>
         ))}
 
@@ -558,7 +565,7 @@ const fetchLatestPayslip = async (emp) => {
             LOP ({LOP} DAYS)
           </td>
           <td className="border p-2 text-center">
-            ₹{lopAmount.toFixed(2)}
+            ₹{lopAmount}
           </td>
         </tr> */}
       </tbody>
@@ -567,47 +574,55 @@ const fetchLatestPayslip = async (emp) => {
 </div>
 
 
-{/* --- UPDATED SUMMARY BOX (LEFT ALIGNED) --- */}
-<div className="border-2 border-gray-400 rounded-lg px-4 py-2 w-80 bg-white shadow-sm mt-4">
-  
-  {/* 1. Gross Salary */}
-  <div className="flex justify-between mb-2">
-    <span className="text-gray-950 font-bold">Gross Salary</span>
-    <span className="font-bold">₹{grossSalary.toFixed(2)}</span>
+<div className="flex justify-between items-end mt-4">
+  {/* Left Side: Salary Summary Box */}
+  <div className="border-2 border-gray-400 rounded-lg px-4 py-2 w-96 bg-white shadow-sm">
+    {/* 1. Gross Salary */}
+    <div className="flex justify-between mb-2 text-xl">
+      <span className="text-gray-950 font-bold">Gross Salary</span>
+      <span className="font-bold">₹{grossSalary}</span>
+    </div>
+
+    {/* 2. Total Earning */}
+    <div className="flex justify-between mb-2 text-lg border-t pt-1">
+      <span className="text-gray-950 font-bold">Total Earning</span>
+      <span className="font-bold">: ₹{grossSalary}</span>
+    </div>
+
+    {/* 3. Total Deduction */}
+    <div className="flex justify-between mb-2 text-lg text-red-600">
+      <span className="font-bold">Total Deduction</span>
+      <span className="font-bold">: ₹{totalDeduction}</span>
+    </div>
+
+    <hr className="border-gray-400 my-2" />
+
+    {/* 4. Total Salary */}
+    <div className="flex justify-between mb-2 text-lg">
+      <span className="text-gray-950 font-bold">Total Salary</span>
+      <span className="font-bold">₹{(grossSalary - totalDeduction)}</span>
+    </div>
+
+    {/* 5. Paid Days Salary */}
+    <div className="flex justify-between mb-2 bg-blue-50 p-2 rounded text-lg">
+      <span className="text-gray-950 font-bold">Paid Days Salary</span>
+      <span className="font-bold">
+        ₹{(netSalary - otAmount)}
+      </span>
+    </div>
+
+    {/* 6. Net Salary */}
+    <div className="flex justify-between my-2 font-bold text-blue-800 border-t-2 border-blue-200 pt-2 text-2xl">
+      <span>Net Salary</span>
+      <span>₹{netSalary}</span>
+    </div>
   </div>
 
-  {/* 2. Total Earning (Matches Gross Salary) */}
-  <div className="flex justify-between mb-2 text-sm border-t pt-1">
-    <span className="text-gray-950 font-bold text-sm">Total Earning</span>
-    <span className="font-bold text-sm">: ₹{grossSalary.toFixed(2)}</span>
-  </div>
-
-  {/* 3. Total Deduction (Deduction Heads only - NO LOP Amount) */}
-  <div className="flex justify-between mb-2 text-sm text-red-600">
-    <span className="font-medium">Total Deduction</span>
-    <span className="font-semibold">: ₹{totalDeduction.toFixed(2)}</span>
-  </div>
-
-  <hr className="border-gray-400 my-2" />
-
-  {/* 4. Total Salary (Gross - Head Deductions) */}
-  <div className="flex justify-between mb-2">
-    <span className="text-gray-950 font-bold text-sm">Total Salary</span>
-    <span className="font-bold text-sm">₹{(grossSalary - totalDeduction).toFixed(2)}</span>
-  </div>
-
-  {/* 5. Paid Days Salary (Net minus OT) */}
-  <div className="flex justify-between mb-2 bg-blue-50 p-1 rounded">
-    <span className="text-gray-950 font-bold text-sm">Paid Days Salary</span>
-    <span className="font-bold text-sm">
-      ₹{(netSalary - otAmount).toFixed(2)}
-    </span>
-  </div>
-
-  {/* 6. Net Salary (Final In-hand) */}
-  <div className="flex justify-between mt-2 font-bold text-blue-800 border-t-2 border-blue-200 pt-2 text-xl">
-    <span>Net Salary</span>
-    <span>₹{netSalary.toFixed(2)}</span>
+  {/* Right Side Bottom: Disclaimer Line */}
+  <div className="text-right pb-1">
+    <p className="text-sm font-semibold italic text-gray-700 border-t border-gray-400 pt-1">
+      This is a computer-generated document and does not require a physical signature.
+    </p>
   </div>
 </div>
 </div>

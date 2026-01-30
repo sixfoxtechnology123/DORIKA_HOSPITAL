@@ -491,32 +491,32 @@ setDesignations(
 }, []);
 
 const calculatePayStructure = (grossInput) => {
-  const S = parseFloat(grossInput) || 0;
+  const S = Math.round(parseFloat(grossInput) || 0);
  setGrossSalary(S);
-  const basic = S * 0.50;
-  const hra = basic * 0.40;
+  const basic = Math.round(S * 0.50);
+  const hra = Math.round(basic * 0.40);
   const mobile = 500;
-  const bonus = basic / 6;
-  const managementAllowance = S - (basic + hra + mobile + bonus);
+  const bonus = Math.round(basic / 6);
+  const managementAllowance = Math.round(S - (basic + hra + mobile + bonus));
 
   // Deductions
-  const pf = basic * 0.12;
-  const pt = S > 25000 ? 208 : (S >= 15000 ? 180 : 0);
-  const esi = S * 0.0075;
+  const pf = Math.round(basic * 0.12);
+  const pt = Math.round(S > 25000 ? 208 : (S >= 15000 ? 180 : 0));
+  const esi = Math.round(S * 0.0075);
 
   setEarningDetails([
-    { headName: "Basic", headType: "EARNING", value: basic.toFixed(2) },
-    { headName: "HRA", headType: "EARNING", value: hra.toFixed(2) },
-    { headName: "Mobile Allowance", headType: "EARNING", value: mobile.toFixed(2) },
-    { headName: "Bonus", headType: "EARNING", value: bonus.toFixed(2) },
-    { headName: "Management Allowance", headType: "EARNING", value: managementAllowance.toFixed(2) },
+    { headName: "Basic", headType: "EARNING", value: basic},
+    { headName: "HRA", headType: "EARNING", value: hra},
+    { headName: "Mobile Allowance", headType: "EARNING", value: mobile},
+    { headName: "Bonus", headType: "EARNING", value: bonus},
+    { headName: "Management Allowance", headType: "EARNING", value: managementAllowance},
     // { headName: "OT", headType: "EARNING", value: "0" }
   ]);
 
   setDeductionDetails([
-    { headName: "PF", headType: "DEDUCTION", value: pf.toFixed(2) },
-    { headName: "PT", headType: "DEDUCTION", value: pt.toFixed(2) },
-    { headName: "ESI", headType: "DEDUCTION", value: esi.toFixed(2) }
+    { headName: "PF", headType: "DEDUCTION", value: pf},
+    { headName: "PT", headType: "DEDUCTION", value: pt},
+    { headName: "ESI", headType: "DEDUCTION", value: esi}
   ]);
 };
 
@@ -630,9 +630,15 @@ const payload = {
     payLevel,
     aadhaarNo,
   },
-  grossSalary,
-  earnings: earningDetails,
-  deductions: deductionDetails,
+  grossSalary: Math.round(Number(grossSalary) || 0),
+  earnings: earningDetails.map(e => ({
+    ...e,
+    value: Math.round(Number(e.value) || 0)
+  })),
+ deductions: deductionDetails.map(d => ({
+    ...d,
+    value: Math.round(Number(d.value) || 0)
+  })),
   hardCopyDocuments: employeeData.hardCopyDocuments,
 
 };
@@ -1845,107 +1851,109 @@ const handleSubmit = async (e) => {
           )}
 
           {/* ---------- STEP 5 : PAY STRUCTURE ---------- */}
-        {step === 5 && (
-      <div className="space-y-6">
-        <h3 className="text-xl font-semibold text-sky-600 border-b pb-2">Pay Structure</h3>
-        
-        {/* Gross Salary Input */}
-        <div className="flex items-center gap-4 bg-sky-50 p-4 rounded-lg border border-sky-100">
-          <label className="font-bold text-gray-700">Enter Gross Salary :</label>
-          <input 
-            type="number" 
-           value={grossSalary}
-            className="border-2 border-sky-600 p-2 rounded w-48 focus:outline-none focus:ring-2 focus:ring-sky-300"
-            placeholder="e.g. 30000"
-            onChange={(e) => calculatePayStructure(e.target.value)}
-          />
-        </div>
+          {step === 5 && (
+            <div className="space-y-6">
+              <h3 className="text-xl font-semibold text-sky-600 border-b pb-2">Pay Structure</h3>
+              
+              {/* Gross Salary Input */}
+              <div className="flex items-center gap-4 bg-sky-50 p-4 rounded-lg border border-sky-100">
+                <label className="font-bold text-gray-700">Enter Gross Salary :</label>
+                <input 
+                  type="number" 
+                  value={grossSalary || ''} // Change 2: Shows blank if 0 or null
+                  className="border-2 border-sky-600 p-2 rounded w-48 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  placeholder="e.g. 30000"
+                  onChange={(e) => calculatePayStructure(e.target.value)}
+                />
+              </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Earnings Table */}
-          <div className="border rounded-lg overflow-hidden shadow-sm">
-            <div className="bg-sky-600 text-white p-2 font-bold text-center">EARNINGS</div>
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="p-2 border-b text-left">Head Name</th>
-                  <th className="p-2 border-b text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {earningDetails.map((item, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="p-2 border-b font-semibold">{item.headName}</td>
-                    <td className="p-2 border-b ">
-                      <input 
-                        type="number"
-                        value={item.value}
-                        className="w-full text-right border rounded p-1 font-semibold"
-                        onChange={(e) => {
-                          const updated = [...earningDetails];
-                          updated[index].value = e.target.value;
-                          setEarningDetails(updated);
-                        }}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Earnings Table */}
+                <div className="border rounded-lg overflow-hidden shadow-sm">
+                  <div className="bg-sky-600 text-white p-2 font-bold text-center">EARNINGS</div>
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="p-2 border-b text-left">Head Name</th>
+                        <th className="p-2 border-b text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {earningDetails.map((item, index) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="p-2 border-b font-semibold">{item.headName}</td>
+                          <td className="p-2 border-b ">
+                            <input 
+                              type="number"
+                              // Change 1 & 2: Rounding and blank if 0
+                              value={item.value ? Math.round(item.value) : ''}
+                              className="w-full text-right border rounded p-1 font-semibold"
+                              onChange={(e) => {
+                                const updated = [...earningDetails];
+                                updated[index].value = e.target.value;
+                                setEarningDetails(updated);
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-          {/* Deductions Table */}
-          <div className="border rounded-lg overflow-hidden shadow-sm">
-            <div className="bg-red-600 text-white p-2 font-bold text-center">DEDUCTIONS</div>
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="p-2 border-b text-left">Head Name</th>
-                  <th className="p-2 border-b text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {deductionDetails.map((item, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="p-2 border-b font-semibold">{item.headName}</td>
-                    <td className="p-2 border-b">
-                      <input 
-                        type="number"
-                        value={item.value}
-                        className="w-full text-right border rounded p-1 font-semibold"
-                        onChange={(e) => {
-                          const updated = [...deductionDetails];
-                          updated[index].value = e.target.value;
-                          setDeductionDetails(updated);
-                        }}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                {/* Deductions Table */}
+                <div className="border rounded-lg overflow-hidden shadow-sm">
+                  <div className="bg-red-600 text-white p-2 font-bold text-center">DEDUCTIONS</div>
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="p-2 border-b text-left">Head Name</th>
+                        <th className="p-2 border-b text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {deductionDetails.map((item, index) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="p-2 border-b font-semibold">{item.headName}</td>
+                          <td className="p-2 border-b">
+                            <input 
+                              type="number"
+                              // Change 1 & 2: Rounding and blank if 0
+                              value={item.value ? Math.round(item.value) : ''}
+                              className="w-full text-right border rounded p-1 font-semibold"
+                              onChange={(e) => {
+                                const updated = [...deductionDetails];
+                                updated[index].value = e.target.value;
+                                setDeductionDetails(updated);
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-        {/* Footer Navigation */}
-        <div className="flex justify-between items-center pt-6 border-t">
-          <button 
-            type="button"
-            onClick={() => setStep(4)}
-           className="bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-800"
-          >
-            ← Back
-          </button>
-          <button 
-            type="button"
-            onClick={handleSaveAndNext}
-            className="flex items-center gap-1 px-3 py-1 rounded text-white bg-sky-600 hover:bg-sky-700"
-          >
-            Save & Next →
-          </button>
-        </div>
-      </div>
-    )}
+              {/* Footer Navigation */}
+              <div className="flex justify-between items-center pt-6 border-t">
+                <button 
+                  type="button"
+                  onClick={() => setStep(4)}
+                  className="bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-800"
+                >
+                  ← Back
+                </button>
+                <button 
+                  type="button"
+                  onClick={handleSaveAndNext}
+                  className="flex items-center gap-1 px-3 py-1 rounded text-white bg-sky-600 hover:bg-sky-700"
+                >
+                  Save & Next →
+                </button>
+              </div>
+            </div>
+          )}
 
 
           {/* ---------- STEP 6 : DOCUMENT MANAGEMENT ---------- */}

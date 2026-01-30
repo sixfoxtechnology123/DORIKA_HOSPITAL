@@ -6,7 +6,8 @@ const {
   updatePaySlip,
   deletePaySlip,
   getEmployeeById,
-  getLatestPayslipByEmployee
+  getLatestPayslipByEmployee,
+  getAllPayslipsByEmployee
 } = require("../controllers/paySlipController");
 
 const router = express.Router();
@@ -21,5 +22,5 @@ router.delete("/:id", deletePaySlip);
 // Employee details (must be after other routes)
 router.get("/employee/:employeeId", getEmployeeById);
 router.get("/latest/:employeeId", getLatestPayslipByEmployee);
-
+router.get("/view-all/:empUserId", getAllPayslipsByEmployee);
 module.exports = router;

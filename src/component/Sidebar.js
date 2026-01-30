@@ -34,7 +34,7 @@ const Sidebar = () => {
 
   const menus = [
     //{ name: "Dashboard", path: "/Dashboard", icon: LayoutDashboard, permission: "Dashboard_View" },
-    { name: "Dashboard", path: "/LeaveHistory", icon: LayoutDashboard, permission: "Dashboard_View" },
+    { name: "Dashboard", path: "/Dashboard", icon: LayoutDashboard, permission: "Dashboard_View" },
     {
       name: "Reminder",
       path: "/ReminderPage",
@@ -80,6 +80,11 @@ const Sidebar = () => {
         {
             name: "Attendance History",
             path: "/EmployeeAttendanceHistory",
+            icon: ClipboardList,
+          },
+            {
+            name: "Leave History",
+            path: "/LeaveHistory",
             icon: ClipboardList,
           },
     {

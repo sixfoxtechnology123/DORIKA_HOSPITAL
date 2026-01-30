@@ -28,11 +28,18 @@ const LeaveHistory = () => {
     fetchLeaveHistory();
   }, []);
 
-  const formatDate = (date) =>
-    date ? new Date(date).toLocaleDateString("en-GB") : "-";
+const formatDate = (date) =>
+  date
+    ? new Date(date).toLocaleDateString("en-GB").replace(/\//g, "-")
+    : "-";
 
-  const formatDateTime = (date) =>
-    date ? new Date(date).toLocaleString("en-GB") : "-";
+const formatDateTime = (date) =>
+  date
+    ? new Date(date)
+        .toLocaleString("en-GB")
+        .replace(/\//g, "-")
+    : "-";
+
 
   const getByRole = (history = [], role) =>
     history.find((h) => h.role === role) || {};
@@ -54,7 +61,7 @@ const LeaveHistory = () => {
 
           {/* Table */}
           <table className="w-full border border-dorika-blue text-sm border-collapse">
-            <thead className="bg-dorika-blue text-white">
+            <thead className="bg-dorika-blue text-white text-xs">
               <tr>
                 <th className="border px-2 py-1">Emp ID</th>
                 <th className="border px-2 py-1">Emp Name</th>
@@ -85,7 +92,7 @@ const LeaveHistory = () => {
                   const dh = getByRole(leave.history, "Department Head");
 
                   return (
-                    <tr key={leave._id} className="hover:bg-dorika-blueLight transition">
+                    <tr key={leave._id} className="hover:bg-dorika-blueLight transition text-xs">
                       <td className="border px-2 py-1">{leave.employeeId}</td>
                       <td className="border px-2 py-1">{leave.employeeName}</td>
 

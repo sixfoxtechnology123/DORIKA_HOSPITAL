@@ -161,3 +161,19 @@ export const getLatestPayslipByEmployee = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+export const getAllPayslipsByEmployee = async (req, res) => {
+  try {
+    const { empUserId } = req.params; // This receives "DH-00004" from the URL
+
+    // We search the 'employeeUserId' field in your MongoDB collection
+    const slips = await PaySlip.find({ employeeUserId: empUserId })
+      .sort({ year: -1, month: -1 });
+
+    // Return the array directly to the frontend
+    res.status(200).json(slips); 
+  } catch (err) {
+    console.error("Error in getAllPayslipsByEmployee:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
