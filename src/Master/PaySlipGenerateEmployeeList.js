@@ -583,13 +583,13 @@ const fetchLatestPayslip = async (emp) => {
       <span className="font-bold">₹{grossSalary}</span>
     </div>
 
-    {/* 2. Total Earning */}
-    <div className="flex justify-between mb-2 text-lg border-t pt-1">
+   
+    {/* <div className="flex justify-between mb-2 text-lg border-t pt-1">
       <span className="text-gray-950 font-bold">Total Earning</span>
       <span className="font-bold">: ₹{grossSalary}</span>
     </div>
 
-    {/* 3. Total Deduction */}
+ 
     <div className="flex justify-between mb-2 text-lg text-red-600">
       <span className="font-bold">Total Deduction</span>
       <span className="font-bold">: ₹{totalDeduction}</span>
@@ -597,19 +597,18 @@ const fetchLatestPayslip = async (emp) => {
 
     <hr className="border-gray-400 my-2" />
 
-    {/* 4. Total Salary */}
     <div className="flex justify-between mb-2 text-lg">
       <span className="text-gray-950 font-bold">Total Salary</span>
       <span className="font-bold">₹{(grossSalary - totalDeduction)}</span>
     </div>
 
-    {/* 5. Paid Days Salary */}
+  
     <div className="flex justify-between mb-2 bg-blue-50 p-2 rounded text-lg">
       <span className="text-gray-950 font-bold">Paid Days Salary</span>
       <span className="font-bold">
         ₹{(netSalary - otAmount)}
       </span>
-    </div>
+    </div> */}
 
     {/* 6. Net Salary */}
     <div className="flex justify-between my-2 font-bold text-blue-800 border-t-2 border-blue-200 pt-2 text-2xl">
@@ -619,9 +618,9 @@ const fetchLatestPayslip = async (emp) => {
   </div>
 
   {/* Right Side Bottom: Disclaimer Line */}
-  <div className="text-right pb-1">
-    <p className="text-sm font-semibold italic text-gray-700 border-t border-gray-400 pt-1">
-      This is a computer-generated document and does not require a physical signature.
+  <div className="text-right pb-1 pr-24">
+    <p className="text-sm font-semibold italic text-gray-700 border-t border-gray-400 pt-1 ">
+      This is a computer-generated payslip and does not require a physical signature.
     </p>
   </div>
 </div>
