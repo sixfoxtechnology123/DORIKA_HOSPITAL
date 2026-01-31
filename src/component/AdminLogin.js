@@ -60,7 +60,7 @@ const AdminLogin = () => {
 
         localStorage.setItem("userPermissions", JSON.stringify(userData.permissions));
 
-        navigate(loginType === "admin" ? "/Dashboard" : "/EmployeeDashboard");
+        navigate(loginType === "admin" ? "/Dashboard" : "/AttendanceSignIn");
       } else {
         setError("Invalid credentials");
       }
@@ -72,16 +72,21 @@ const AdminLogin = () => {
 
   return (
     <div 
-      className="h-screen w-full flex items-center justify-center bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: `url(${hospitalBg})` }}
-    >
+        className="min-h-screen w-full flex items-center justify-center bg-cover bg-center bg-no-repeat"
+        style={{ 
+          backgroundImage: `url(${hospitalBg})`,
+          backgroundPosition: 'center',
+          backgroundSize: 'cover',
+        }}
+      >
+
       {/* Overlay to make the form stand out more against the image */}
       <div className="absolute inset-0 bg-black/50"></div>
 
      
-      <div className="relative z-10 bg-white/10 backdrop-blur-xl py-3 px-8 rounded-2xl shadow-2xl w-[90%] sm:w-[420px] border border-white/20">
+      <div className="relative z-10 bg-white/10 backdrop-blur-xl py-6 px-4 sm:px-8 rounded-2xl shadow-2xl w-full max-w-sm border border-white/20">
       <div className="text-center mb-1">
-        <h2 className="text-2xl font-black text-white tracking-tighter sm:tracking-normal drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+        <h2 className="text-xl sm:text-2xl font-black text-white tracking-tighter sm:tracking-normal drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
          DORIKA HOSPITAL
         </h2>
         <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-purple-500 to-transparent mt-1"></div>
@@ -95,7 +100,7 @@ const AdminLogin = () => {
         {error && <p className="text-red-400 text-center mb-3 text-sm">{error}</p>}
 
         {/* Toggle Buttons */}
-        <div className="flex justify-center mb-5 gap-4">
+        <div className="flex flex-col sm:flex-row justify-center mb-5 gap-3 sm:gap-4">
           <button
             type="button"
             className={`px-4 py-2 rounded-lg font-semibold ${
@@ -134,7 +139,7 @@ const AdminLogin = () => {
                 const value = e.target.value;
                 setUserId(loginType === "employee" ? value.toUpperCase() : value);
               }}
-              className="w-full px-4 py-2 rounded-lg bg-white/20 text-white placeholder-gray-300 outline-none focus:ring-2 focus:ring-purple-500"
+             className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-white/20 text-white text-sm sm:text-base placeholder-gray-300 outline-none focus:ring-2 focus:ring-purple-500"
               required
             />
           </div>
@@ -151,7 +156,7 @@ const AdminLogin = () => {
             />
             <button
               type="button"
-              className="absolute right-3 top-3 text-white" // Changed to white for better visibility
+              className="absolute right-2 sm:right-3 top-2 sm:top-3 text-white text-lg sm:text-xl" // Changed to white for better visibility
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}
