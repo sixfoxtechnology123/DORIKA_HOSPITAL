@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
+import bgImage from "../assets/dorikaLogo1.jpg";
+
 
 const AttendanceSignIn = () => {
   const navigate = useNavigate();
@@ -116,11 +118,22 @@ const AttendanceSignIn = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-2 sm:p-0">
-      <div className="w-full max-w-sm sm:max-w-md bg-white rounded shadow-lg overflow-hidden mx-2">        
+   <div
+      className="fixed inset-0 flex items-center justify-center z-50 p-2 sm:p-0"
+      style={{
+        backgroundImage: `url(${bgImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      <div className="absolute inset-0 bg-black/60"></div>
+
+      
+       <div className="relative z-10 w-full max-w-xs sm:max-w-sm bg-white rounded-lg shadow-xl overflow-hidden mx-auto lg:mx-0 lg:ml-auto lg:mr-[30%]">      
         <div className="bg-indigo-600 text-white px-3 sm:px-4 py-2 flex justify-between items-center">
           <span className="font-semibold">Attendance Sign In</span>
-          <button onClick={() => navigate("/EmployeeAttendance")} className="text-xl font-bold">×</button>
+          <button onClick={() => navigate("/Userprofile")} className="text-xl font-bold">×</button>
         </div>
 
         <div className="p-4 text-center">
@@ -134,7 +147,7 @@ const AttendanceSignIn = () => {
         </div>
 
        <div className="overflow-x-auto">
-            <table className="w-full border border-gray-300 text-sm sm:text-base">
+            <table className="w-full border border-gray-300 text-sm sm:text-sm">
             <tbody>
               <tr>
                 <td className="border py-1 px-4  bg-gray-100 text-gray-600 font-medium">Date</td>
@@ -160,12 +173,12 @@ const AttendanceSignIn = () => {
           <button 
             onClick={handleOkClick}
             disabled={loading || alreadyMarked || shiftTimes.start === "WEEK OFF" || shiftTimes.start === "--:--"}
-            className="bg-indigo-600 text-white px-6 sm:px-8 py-2 sm:py-1.5 rounded font-bold shadow hover:bg-indigo-700 w-full sm:w-auto disabled:bg-gray-400 transition-all"
+            className="bg-indigo-600 text-white px-3 sm:px-4 py-1 sm:py-1 rounded font-bold shadow hover:bg-indigo-700 w-full sm:w-auto disabled:bg-gray-400 transition-all"
           >
-            {alreadyMarked ? "MARKED" : loading ? "..." : "OK"}
+            {alreadyMarked ? "MARKED" : loading ? "..." : "YES"}
           </button>
-          <button onClick={() => navigate("/UserProfile")} className="bg-gray-500 text-white px-8 py-1.5 rounded font-bold shadow hover:bg-gray-600 transition-all">
-            {alreadyMarked ? "CLOSE" : "CANCEL"}
+          <button onClick={() => navigate("/UserProfile")} className="bg-gray-500 text-white px-3 py-1 rounded font-bold shadow hover:bg-gray-600 transition-all">
+            {alreadyMarked ? "CLOSE" : "NO"}
           </button>
         </div>
       </div>
