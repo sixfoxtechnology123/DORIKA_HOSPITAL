@@ -133,7 +133,7 @@ const AttendanceSignIn = () => {
        <div className="relative z-10 w-full max-w-xs sm:max-w-sm bg-white rounded-lg shadow-xl overflow-hidden mx-auto lg:mx-0 lg:ml-auto lg:mr-[30%]">      
         <div className="bg-indigo-600 text-white px-3 sm:px-4 py-2 flex justify-between items-center">
           <span className="font-semibold">Attendance Sign In</span>
-          <button onClick={() => navigate("/Userprofile")} className="text-xl font-bold">×</button>
+          <button onClick={() => navigate("/EmployeeAttendance")} className="text-xl font-bold">×</button>
         </div>
 
         <div className="p-4 text-center">
@@ -177,7 +177,7 @@ const AttendanceSignIn = () => {
           >
             {alreadyMarked ? "MARKED" : loading ? "..." : "YES"}
           </button>
-          <button onClick={() => navigate("/UserProfile")} className="bg-gray-500 text-white px-3 py-1 rounded font-bold shadow hover:bg-gray-600 transition-all">
+          <button onClick={() => navigate("/EmployeeAttendance")} className="bg-gray-500 text-white px-3 py-1 rounded font-bold shadow hover:bg-gray-600 transition-all">
             {alreadyMarked ? "CLOSE" : "NO"}
           </button>
         </div>
