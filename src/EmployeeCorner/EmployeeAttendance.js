@@ -22,6 +22,7 @@ const formatOTDisplay = (otValue) => {
 
 const EmployeeAttendance = () => {
   const [history, setHistory] = useState([]);
+  const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [employeeFullName, setEmployeeFullName] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
@@ -87,6 +88,24 @@ const EmployeeAttendance = () => {
   const hasOut = isNightShiftPending ? false : (todaysRecord && !!todaysRecord.checkOutTime && todaysRecord.checkOutTime !== "--");
   // ---------------------------------
 
+  const getLocation = () => {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject("Geolocation not supported");
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        resolve({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+      },
+      () => reject("Location permission denied")
+    );
+  });
+};
+
   const handleAttendanceAction = async () => {
     if (!loggedUser || !loggedUser.employeeUserId) {
       toast.error("You must be logged in!");
@@ -97,11 +116,13 @@ const EmployeeAttendance = () => {
   try {
     const storageName = `${loggedUser.firstName || ""} ${loggedUser.lastName || ""}`.trim();
     const nameToStore = employeeFullName || storageName || loggedUser.employeeUserId;
-
+    const loc = await getLocation();
     const res = await axios.post("http://localhost:5002/api/attendance/mark", {
       employeeId: loggedUser.employeeID,
       employeeUserId: loggedUser.employeeUserId,
       employeeName: nameToStore,
+      latitude: loc.latitude,
+      longitude: loc.longitude,
     });
     
     // Check if the backend returned a successful save but with an "Absent" status

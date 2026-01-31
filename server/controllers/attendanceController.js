@@ -3,6 +3,25 @@ const Leave = require("../models/LeaveApplication");
 const ShiftMaster = require("../models/Shift");
 const ShiftManagement = require("../models/ShiftManagement");
 
+const OFFICE_LAT = 22.965624;
+const OFFICE_LNG = 88.457152;
+// const OFFICE_LAT = 22.158725;
+// const OFFICE_LNG = 87.675912;
+const ALLOWED_DISTANCE = 100;
+
+const getDistance = (lat1, lng1, lat2, lng2) => {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) *
+    Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+
 const calculateTotalPaidDays = (records) => {
   // 1. Count Present
   const presentCount = records.filter(r => r.status === "Present").length;
@@ -58,7 +77,11 @@ const calculateDuration = (shiftStart, shiftEnd) => {
 
 const markDailyAttendance = async (req, res) => {
   try {
-    const { employeeId, employeeUserId, employeeName } = req.body;
+    const { employeeId, employeeUserId, employeeName, latitude, longitude } = req.body;
+    if (latitude == null || longitude == null) {
+      return res.status(400).json({ message: "Location not received" });
+    }
+
     const now = new Date();
     const todayStr = now.toLocaleDateString('en-CA');
     const dayKey = now.getDate();
@@ -137,9 +160,20 @@ const markDailyAttendance = async (req, res) => {
 
       // Update Paid Days before save
       attendance.totalPaidDays = calculateTotalPaidDays(attendance.records);
+      recordToUpdate.geoTag = {
+        latitude,
+        longitude
+      };
+
       await attendance.save();
       return res.status(200).json({ message: "Check-out recorded successfully!" });
     }
+
+      const distance = getDistance(latitude, longitude, OFFICE_LAT, OFFICE_LNG);
+
+      if (distance > ALLOWED_DISTANCE) {
+        return res.status(400).json({ message: "You are Not inside office location" });
+      }
 
     // --- 3. GAP-FILLING LOGIC ---
     if (attendance.records.length > 0) {
@@ -248,10 +282,15 @@ const markDailyAttendance = async (req, res) => {
       shiftCode: assignedShiftCode,
       shiftStartTime: shiftStartTime, 
       shiftEndTime: shiftEndTime,      
-      isLate: lateEntry                                     
+      isLate: lateEntry,
+        geoTag: {
+        latitude,
+        longitude
+      }                                     
     });
 
     attendance.totalPaidDays = calculateTotalPaidDays(attendance.records);
+
     await attendance.save();
 
     return res.status(200).json({ 

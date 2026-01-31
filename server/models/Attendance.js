@@ -23,7 +23,12 @@ const attendanceSchema = new mongoose.Schema({
       isLate: { type: Boolean, default: false },
       isOT: { type: Boolean, default: false }, // Store if OT triggered
       otHours: { type: Number, default: 0 },   // Store day-wise OT hours
-      source: { type: String, default: "Web" }
+      source: { type: String, default: "Web" },
+      geoTag: {
+        latitude: { type: Number },
+        longitude: { type: Number }
+      }
+
     }
   ],
   totalPresent: { type: Number, default: 0 },
