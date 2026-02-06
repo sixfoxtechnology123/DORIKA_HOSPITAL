@@ -43,6 +43,8 @@ const paySlipRoutes = require("./routes/paySlipRoutes");
 const shiftManagementRoutes = require("./routes/shiftManagementRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
 const leaveRoutes = require("./routes/leaveRoutes");
+const otRateRoutes = require("./routes/otRateRoutes");
+
 
 app.use("/api/master", masterRoutes);
 app.use("/api/departments", departmentRoutes);
@@ -67,6 +69,7 @@ app.use("/api/payslips", paySlipRoutes);
 app.use("/api/shift-management", shiftManagementRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api", leaveRoutes);
+app.use("/api/ot", otRateRoutes);
 
 // ----------------- Create Default Admin -----------------
 const createDefaultAdmin = async () => {

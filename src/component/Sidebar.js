@@ -35,6 +35,22 @@ const Sidebar = () => {
   const menus = [
     //{ name: "Dashboard", path: "/Dashboard", icon: LayoutDashboard, permission: "Dashboard_View" },
     { name: "Dashboard", path: "/Dashboard", icon: LayoutDashboard, permission: "Dashboard_View" },
+        {
+      name: "Master",
+      icon: Building2,
+      permission: "Master_View",
+      submenus: [
+        { name: "Departments", path: "/DepartmentList" },
+        { name: "Designations", path: "/DesignationList" },
+        
+        // { name: "Holidays", path: "/HolidayList" },
+        //  { name: "Shifts Manage", path: "/ShiftList" },
+        // { name: "Duty Roaster", path: "/ShiftManagement" },
+        // { name: "Policies", path: "/PolicyList" },
+        // { name: "Locations", path: "/LocationList" },
+        // { name: "Payroll", path: "/PayrollComponentList" },
+      ],
+    },
     {
       name: "Reminder",
       path: "/ReminderPage",
@@ -60,6 +76,7 @@ const Sidebar = () => {
           submenus: [
             //{ name: "Dashboard", path: "/LeaveDashboard" },
             { name: "Manage Leave Type", path: "/LeaveTypeList" },
+            { name: "Leave History", path: "/LeaveHistory" },
             // { name: "Leave Rule", path: "/LeaveRuleList" },
             // { name: "Leave Allocation", path: "/LeaveAllocationList" },
           ],
@@ -75,6 +92,9 @@ const Sidebar = () => {
             {
               name:"Duty Roaster", path:"/ShiftManagement"
             },
+            {
+              name:"OT Rate", path:"/OTRateList"
+            },
           ]
         },
         {
@@ -82,27 +102,12 @@ const Sidebar = () => {
             path: "/EmployeeAttendanceHistory",
             icon: ClipboardList,
           },
-            {
-            name: "Leave History",
-            path: "/LeaveHistory",
-            icon: ClipboardList,
-          },
-    {
-      name: "Master",
-      icon: Building2,
-      permission: "Master_View",
-      submenus: [
-        { name: "Departments", path: "/DepartmentList" },
-        { name: "Designations", path: "/DesignationList" },
-        
-        // { name: "Holidays", path: "/HolidayList" },
-        //  { name: "Shifts Manage", path: "/ShiftList" },
-        // { name: "Duty Roaster", path: "/ShiftManagement" },
-        // { name: "Policies", path: "/PolicyList" },
-        // { name: "Locations", path: "/LocationList" },
-        // { name: "Payroll", path: "/PayrollComponentList" },
-      ],
-    },
+          //   {
+          //   name: "Leave History",
+          //   path: "/LeaveHistory",
+          //   icon: ClipboardList,
+          // },
+
     {
       name: "Admin Panel",
       icon: Users,

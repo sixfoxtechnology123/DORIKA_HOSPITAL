@@ -135,10 +135,19 @@ const AdminLogin = () => {
               type="text"
               placeholder={`Enter ${loginType} userId`}
               value={userId}
-              onChange={(e) => {
-                const value = e.target.value;
-                setUserId(loginType === "employee" ? value.toUpperCase() : value);
-              }}
+            onChange={(e) => {
+            let value = e.target.value;
+            if (loginType === "employee") {
+              value = value.toUpperCase(); // Convert to Capital letters
+              if (value.length > 1 && /^[A-Z]+[0-9]/.test(value) && !value.includes("-")) {
+                const firstDigitIndex = value.search(/\d/);
+                if (firstDigitIndex !== -1) {
+                  value = value.slice(0, firstDigitIndex) + "-" + value.slice(firstDigitIndex);
+                }
+              }
+            }
+            setUserId(value);
+          }}
              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-white/20 text-white text-sm sm:text-base placeholder-gray-300 outline-none focus:ring-2 focus:ring-purple-500"
               required
             />

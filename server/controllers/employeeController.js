@@ -4,6 +4,7 @@ const Department = require("../models/Department");
 const Designation = require("../models/Designation");
 const EmployeeUserId = require("../models/EmployeeUserId");
 const LeaveApplication = require("../models/LeaveApplication");
+const OtRate = require("../models/OtRate");
 
 const generateEmployeeUserId = async () => {
   try {
@@ -212,9 +213,13 @@ exports.updateEmployee = async (req, res) => {
     Object.assign(employee, req.body);
     const updated = await employee.save();
 
-    // 2. IMPORTANT: If THIS employee's ID changed (prefix change), 
-    // update everyone who reports to them so they don't get a blank manager field.
     if (oldEmployeeID !== updated.employeeID) {
+
+  
+ await OtRate.updateMany(
+        { employeeId: oldEmployeeID }, // Find the old ID (e.g., TR-001)
+        { employeeId: updated.employeeID } // Change it to new ID (e.g., PER-001)
+      );
       // Update Login Table
       await EmployeeUserId.findOneAndUpdate(
         { employeeId: oldEmployeeID }, 
@@ -267,6 +272,7 @@ exports.deleteEmployee = async (req, res) => {
       
       // Delete all leave applications for this user
       LeaveApplication.deleteMany({ employeeUserId: targetUserId }),
+      OtRate.deleteMany({ employeeId: targetEmpId }),
       
     ]);
 
