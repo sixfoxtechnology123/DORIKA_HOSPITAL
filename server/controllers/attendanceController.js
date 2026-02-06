@@ -23,16 +23,22 @@ const getDistance = (lat1, lng1, lat2, lng2) => {
 
 
 const calculateTotalPaidDays = (records) => {
-  // 1. Count Present
-  const presentCount = records.filter(r => r.status === "Present").length;
+  // 1. Count Present (Check for double-credit shift codes)
+  const presentCount = records.reduce((total, r) => {
+    if (r.status === "Present") {
+      const shift = r.shiftCode || "";
+      const isDouble = (shift.length === 2 && !["G", "OFF"].includes(shift)) || ["DD", "ME", "EN"].includes(shift);
+      return total + (isDouble ? 2 : 1);
+    }
+    return total;
+  }, 0);
 
-  // 2. Count Off (Matches "OFF", "SL(OFF)", "CL(OFF)")
+  // 2. Count Off
   const offCount = records.filter(r => r.status === "OFF" || r.status.includes("(OFF)")).length;
 
-  // 3. Count Leaves (Matches "SL", "CL", "SL(OFF)", "CL(OFF)")
+  // 3. Count Leaves
   const leaveCount = records.filter(r => r.status.includes("SL") || r.status.includes("CL")).length;
 
-  // 4. Final Sum: 4 + 2 + 8 = 14
   return presentCount + offCount + leaveCount;
 };
 

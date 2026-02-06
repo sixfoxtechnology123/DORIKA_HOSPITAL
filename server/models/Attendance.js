@@ -90,18 +90,20 @@ attendanceSchema.pre("save", function (next) {
       if (!record.date || processedDates.has(record.date)) return;
       processedDates.add(record.date);
 
-      const status = record.status;
-      const shift = record.shiftCode || "";
-      const isDoubleShift = shift.length === 2 && !["DD", "G", "OFF"].includes(shift);
+   const status = record.status;
+    const shift = record.shiftCode || "";
+    // Count as double if shift is 2 characters (excluding G/OFF) OR specifically DD, ME, or EN
+    const isDoubleShift = (shift.length === 2 && !["G", "OFF"].includes(shift)) || ["DD", "ME", "EN"].includes(shift);
 
-      if (status === "Present") {
-        if (isDoubleShift) {
-          presentCount += 2;
-          doubleShiftCredits += 1;
-        } else {
-          presentCount += 1;
-        }
-      } else if (status === "Absent") {
+    if (status === "Present") {
+      if (isDoubleShift) {
+        presentCount += 2;
+        // doubleShiftCredits helps offset the totalAbsent calculation
+        doubleShiftCredits += 1;
+      } else {
+        presentCount += 1;
+      }
+    }else if (status === "Absent") {
         absentCount += 1;
       } else if (status === "OFF") {
         offCount += 1;
