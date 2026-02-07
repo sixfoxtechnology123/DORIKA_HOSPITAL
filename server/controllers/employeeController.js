@@ -272,7 +272,7 @@ exports.deleteEmployee = async (req, res) => {
       
       // Delete all leave applications for this user
       LeaveApplication.deleteMany({ employeeUserId: targetUserId }),
-      OtRate.deleteMany({ employeeId: targetEmpId }),
+      OtRate.deleteMany({ employeeId: employee.employeeID }),
       
     ]);
 

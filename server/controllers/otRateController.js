@@ -33,9 +33,13 @@ const getOtRates = async (req, res) => {
 };
 
 const getOtRateByRule = async (req, res) => {
-  const { employeeId, designationName, departmentName } = req.query;
+ 
+  const { employeeId, employeeUserId, designationName, departmentName } = req.query;
 
   const rate =
+    // 1. Check by the unique User ID (DH-00002) first - Most Accurate
+    (await OtRate.findOne({ employeeUserId })) || 
+    // 2. Fallback to others if User ID isn't found
     (await OtRate.findOne({ rateType: "EMPLOYEE", employeeId })) ||
     (await OtRate.findOne({ rateType: "DESIGNATION", designationName })) ||
     (await OtRate.findOne({ rateType: "DEPARTMENT", departmentName }));

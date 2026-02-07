@@ -25,6 +25,7 @@ const GeneratePaySlip = () => {
     : location.state?.selectedEmployee || null;
 
   // 1. ALL STATES FIRST
+  const [otRateFromMaster, setOtRateFromMaster] = useState(0);
   const [month, setMonth] = useState(editingData?.month || location.state?.month || "");
   const [year, setYear] = useState(editingData?.year || location.state?.year || "");
   const [allHeads, setAllHeads] = useState([]);
@@ -107,52 +108,58 @@ useEffect(() => {
     }
   }, [month, year]);
 
-useEffect(() => {
-  if (month && year && grossSalary > 0 && totalOTHours > 0) {
-    const daysInMonth = getDaysInMonth(month, year);
-    let expectedHours = daysInMonth === 30 ? 205 : daysInMonth === 31 ? 212 : Math.round(daysInMonth * 6.85);
-    const calculated = (grossSalary / expectedHours) * Number(totalOTHours || 0);
-    setOtAmount(Math.round(calculated));
-  }
-}, [totalOTHours, month, year]);
+
 
 useEffect(() => {
   const loadMasterData = async () => {
-    // Stop if we are in Edit Mode (data is already in editingData) or missing info
     if (editingData || mode === "edit" || !selectedEmployee?.employeeID || !month || !year) return;
 
     try {
       const monthMap = { "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6, "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12 };
       
-      // 1. Fetch Salary and Attendance in parallel (Faster & Reliable)
-      const [salaryRes, attendanceRes] = await Promise.all([
+      const [salaryRes, attendanceRes, otRateRes] = await Promise.all([
         axios.get(`http://localhost:5002/api/payslips/employee/${selectedEmployee.employeeID}?month=${month}&year=${year}`),
-        axios.get(`http://localhost:5002/api/attendance/history?month=${monthMap[month]}&year=${year}`)
+        axios.get(`http://localhost:5002/api/attendance/history?month=${monthMap[month]}&year=${year}`),
+        axios.get(`http://localhost:5002/api/ot/ot-rate/rule?employeeUserId=${selectedEmployee.employeeUserId}`)
       ]);
 
-      // 2. Process Salary Data (Earnings/Deductions)
+      // --- DEBUG: See if the data is arriving ---
+      console.log("OT Master Response:", otRateRes.data);
+
       if (salaryRes.data.success && salaryRes.data.data) {
         const latest = salaryRes.data.data;
         setEarningDetails(latest.earnings.map(e => ({ headName: e.headName, headType: e.headType, value: e.amount || e.value })));
         setDeductionDetails(latest.deductions.map(d => ({ headName: d.headName, headType: d.headType, value: d.amount || d.value })));
       }
 
-      // 3. Process Attendance Data (OT Hours)
       const empAtt = attendanceRes.data.find(doc => doc.employeeUserId === selectedEmployee.employeeUserId);
+      
+      // We look for 'otRatePerHour' inside 'data'
+      let ratePerHour = 0;
+      if (otRateRes.data?.success && otRateRes.data?.data) {
+        ratePerHour = otRateRes.data.data.otRatePerHour;
+      } else if (otRateRes.data?.otRatePerHour) {
+        ratePerHour = otRateRes.data.otRatePerHour;
+      }
+      
+      setOtRateFromMaster(ratePerHour); 
+
       if (empAtt) {
         setTotalWorkingDays(empAtt.totalPresent || 0);
         setLOP(empAtt.totalAbsent || 0);
         setLeaves(empAtt.totalLeave || 0);
         setTotalOff(empAtt.totalOff || 0); 
         setTotalPaidDays(empAtt.totalPaidDays || 0);
-        // This is the key: set the hours immediately
+        
         const otHoursValue = empAtt.totalOTHours || 0;
         setTotalOTHours(otHoursValue > 0 ? otHoursValue : "");
-        if (otHoursValue > 0 && grossSalary > 0) {
-          const daysInMonth = getDaysInMonth(month, year);
-          let expectedHours = daysInMonth === 30 ? 205 : daysInMonth === 31 ? 212 : Math.round(daysInMonth * 6.85);
-          const calculatedAmt = (grossSalary / expectedHours) * otHoursValue;
-          setOtAmount(Number(calculatedAmt));
+
+        // Calculation: Use the local variable 'ratePerHour'
+        if (otHoursValue > 0 && ratePerHour > 0) {
+          const totalCalculated = Number(otHoursValue) * Number(ratePerHour);
+          setOtAmount(Math.round(totalCalculated));
+        } else {
+          setOtAmount(0);
         }
       }
     } catch (err) {
@@ -161,8 +168,19 @@ useEffect(() => {
   };
 
   loadMasterData();
-}, [selectedEmployee, month, year, mode, editingData]); 
+}, [selectedEmployee, month, year, mode, editingData]);
 
+useEffect(() => {
+  // Use numbers to ensure manual calculation works when typing
+  const hours = parseFloat(totalOTHours) || 0;
+  const rate = parseFloat(otRateFromMaster) || 0;
+
+  if (hours > 0 && rate > 0) {
+    setOtAmount(Math.round(hours * rate));
+  } else {
+    setOtAmount(0);
+  }
+}, [totalOTHours, otRateFromMaster]);
 // useEffect(() => {
 //   const fetchEmployeeSalary = async () => {
    
