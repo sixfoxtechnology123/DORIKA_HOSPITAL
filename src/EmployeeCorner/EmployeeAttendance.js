@@ -151,46 +151,54 @@ const EmployeeAttendance = () => {
       <EmployeeCornerSidebar />
       <div className="flex-1 p-4 sm:p-6">
         
-        {/* Top Header Section */}
-        <div className="bg-white rounded-xl shadow-md p-4 mb-6 border-t-4 border-dorika-blue">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <h2 className="text-xl font-bold text-gray-800 whitespace-nowrap">
-              Daily Attendance
-            </h2>
+      {/* Top Header Section */}
+      <div className="bg-white rounded-xl shadow-md p-4 mb-6 border-t-4 border-dorika-blue">
+        {/* Changed flex-col to a grid on mobile, and flex-row on larger screens */}
+        <div className="grid grid-cols-2 md:flex md:flex-row items-center justify-between gap-4">
+          
+          {/* 1. Title - Stays left */}
+          <h2 className="text-lg md:text-xl font-bold text-gray-800 whitespace-nowrap order-1">
+            Daily Attendance
+          </h2>
 
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-500">Filter:</span>
-              <input 
-                type="month" 
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="border rounded-md p-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
+          {/* 2. Today's Date - Moves to top right on mobile */}
+          <div className="text-blue-600 font-semibold whitespace-nowrap text-sm md:text-base text-right order-2 md:order-4">
+            {formatDateDisplay(todayStr)}
+          </div>
 
+          {/* 3. Filter - Bottom left on mobile */}
+          <div className="flex items-center gap-2 order-3 md:order-2">
+            <span className="text-xs md:text-sm font-medium text-gray-500">Filter:</span>
+            <input 
+              type="month" 
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="border rounded-md p-1 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-full max-w-[120px]"
+            />
+          </div>
+
+          {/* 4. Action Button - Bottom right on mobile */}
+          <div className="flex justify-end order-4 md:order-3">
             <button
               onClick={handleAttendanceAction}
               disabled={loading || (hasIn && hasOut)}
               className={`${
                 hasIn ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700"
-              } text-white px-8 py-2 rounded-lg font-bold transition-all shadow-md disabled:bg-gray-400 whitespace-nowrap`}
+              } text-white px-4 md:px-8 py-2 rounded-lg font-bold transition-all shadow-md disabled:bg-gray-400 whitespace-nowrap text-sm md:text-base w-full md:w-auto`}
             >
               {loading 
-                ? "Processing..." 
+                ? "..." 
                 : isNightShiftPending 
-                  ? "OUT" // This shows OUT because the worker needs to finish yesterday's shift
+                  ? "OUT" 
                   : (hasIn && !hasOut) 
                     ? "OUT" 
                     : (hasIn && hasOut) 
                       ? "MARKED" 
                       : "IN"}
             </button>
-
-            <div className="text-blue-600 font-semibold whitespace-nowrap">
-              Today: {formatDateDisplay(todayStr)}
-            </div>
           </div>
         </div>
+      </div>
 
         {/* History Table */}
         <div className="bg-white rounded-xl shadow-md overflow-hidden">

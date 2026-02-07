@@ -51,15 +51,21 @@ const UserProfile = () => {
 // Inside your UserProfile component, before return
 const TwoColRow = ({ label1, value1, label2, value2 }) => {
   return (
-    <div className="flex flex-col sm:flex-row text-xs sm:text-sm gap-1 sm:gap-0">
-      <div className="flex flex-1">
-        <div className="sm:min-w-[160px] font-semibold">{label1}</div>
-        <div>: {value1 || "--"}</div>
+    /* We use grid or flex-row consistently to keep the side-by-side look */
+    <div className="flex flex-col md:flex-row text-xs sm:text-sm gap-2 md:gap-4 mb-2">
+      
+      {/* Column 1 */}
+      <div className="flex items-start flex-1">
+        {/* 'w-32' or 'min-w-[120px]' ensures the colon always starts at the same spot */}
+        <div className="w-32 sm:w-40 font-semibold shrink-0">{label1}</div>
+        <div className="flex-1">: {value1 || "--"}</div>
       </div>
+
+      {/* Column 2 */}
       {label2 && (
-        <div className="flex flex-1">
-         <div className="sm:min-w-[150px] font-semibold">{label2}</div>
-          <div>: {value2 || "--"}</div>
+        <div className="flex items-start flex-1">
+          <div className="w-32 sm:w-40 font-semibold shrink-0">{label2}</div>
+          <div className="flex-1">: {value2 || "--"}</div>
         </div>
       )}
     </div>
@@ -74,33 +80,51 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
       {/* Profile Section */}
       <div className="flex-1 p-2 sm:p-3 w-full">
         <div className="w-full mx-auto bg-white shadow-xl rounded-2xl overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-700 to-blue-500 text-white px-4 sm:px-8 py-3 flex flex-col sm:flex-row gap-3 sm:justify-between sm:items-center">
-            <div>
-              <h2 className="text-lg sm:text-2xl font-bold text-center sm:text-left">
-                {employee?.firstName} {employee?.middleName} {employee?.lastName}
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-sm sm:text-base">
-                <p className="text-lg font-semibold">{employee?.designationName || "--"}</p>
-                <p className="text-lg font-semibold">{employee?.departmentName || "--"}</p>
-                <p className="text-lg font-semibold">{employee?.permanentAddress?.mobile || "--"}</p>
-                <p className="text-lg font-semibold">{employee?.permanentAddress?.email || "--"}</p>
-              </div>
+       {/* Header Section */}
+      <div className="bg-slate-800 text-white px-4 md:px-8 py-6 flex flex-col md:flex-row gap-4 justify-between items-center">
+        <div className="w-full">
+          {/* Name: Centered on mobile, left-aligned on desktop */}
+          <h2 className="text-xl md:text-3xl font-bold text-center md:text-left mb-2">
+            {employee?.firstName} {employee?.middleName} {employee?.lastName}
+          </h2>
+
+          {/* Info Grid: 1 column on mobile, 2 on tablet, 4 on desktop for maximum "desktop style" alignment */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm md:text-base border-t border-slate-600 pt-3">
+            <div className="flex flex-col">
+              <span className="text-slate-400 text-xs uppercase tracking-wider">Designation</span>
+              <p className="font-medium">{employee?.designationName || "--"}</p>
             </div>
-            <div className="flex flex-col items-center">
-              <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center text-gray-500 font-semibold">
-                {employee?.photoUrl ? (
-                  <img
-                    src={employee.photoUrl}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  "NO IMAGE"
-                )}
-              </div>
+            <div className="flex flex-col">
+              <span className="text-slate-400 text-xs uppercase tracking-wider">Department</span>
+              <p className="font-medium">{employee?.departmentName || "--"}</p>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-slate-400 text-xs uppercase tracking-wider">Mobile</span>
+              <p className="font-medium">{employee?.permanentAddress?.mobile || "--"}</p>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-slate-400 text-xs uppercase tracking-wider">Email</span>
+              <p className="font-medium break-all">{employee?.permanentAddress?.email || "--"}</p>
             </div>
           </div>
+        </div>
+
+        {/* Image section commented out but preserved */}
+        {/* <div className="flex flex-col items-center">
+          <div className="w-20 h-20 md:w-28 md:h-28 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center text-gray-500 font-semibold">
+            {employee?.photoUrl ? (
+              <img
+                src={employee.photoUrl}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              "NO IMAGE"
+            )}
+          </div>
+        </div> 
+        */}
+      </div>
 
       {/* Content */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-2 sm:gap-3 p-2 sm:p-3">
@@ -217,8 +241,8 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
           {/* Authority Details */}
          <div className="bg-yellow-50 border rounded-xl p-3 shadow-sm">
            <h3 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3">🧾 Authority Details</h3>
-              <TwoColRow  label1="Reporting Authority" value1={employee?.reportingManager || "--"} />
-              <TwoColRow label1="Leave Sanction Authority" value1={employee?.departmentHead || "--"} />
+              <TwoColRow  label1="Reporting Manager" value1={employee?.reportingManager || "--"} />
+              <TwoColRow label1="Department Head" value1={employee?.departmentHead || "--"} />
             </div>
             
            {/* Bank Details */}
