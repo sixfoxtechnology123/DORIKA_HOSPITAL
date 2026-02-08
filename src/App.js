@@ -54,6 +54,7 @@ import EmployeePayslipView from "./EmployeeCorner/EmployeePayslipView";
 import AttendanceSignIn from "./component/AttendanceSignIn";
 import OtRateMaster from "./Master/OtRateMaster";
 import OTRateList from "./Master/OTRateList";
+import GenerateAllEmployeePayslip from "./Master/GenerateAllEmployeePayslip";
 
 export default function App(){
   return (
@@ -112,6 +113,7 @@ export default function App(){
       <Route path="/AttendanceSignIn" element={<AttendanceSignIn/>} />
       <Route path="/OtRateMaster" element={<OtRateMaster/>} />
       <Route path="/OTRateList" element={<OTRateList/>} />
+      <Route path="/GenerateAllEmployeePayslip" element={<GenerateAllEmployeePayslip/>} />
 
      </Routes>
         <Toaster

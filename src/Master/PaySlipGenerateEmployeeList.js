@@ -71,6 +71,9 @@ const handleSelectEmployee = (e, empId) => {
 };
 
 const handlePrintAllOnePDF = async () => {
+
+  const [tYear, tMonthNum] = selectedMonth.split("-");
+  const tMonthName = monthNames[Number(tMonthNum) - 1];
   if (selectedEmployees.length === 0) {
     toast.error("Please select at least one employee");
     return;
@@ -95,8 +98,8 @@ const handlePrintAllOnePDF = async () => {
       doj: payslip.doj || emp.doj || "",
     };
 
-    setMonth(payslip.month);
-    setYear(payslip.year);
+    setMonth(tMonthName);
+    setYear(tYear);
     setEarningDetails((payslip.earnings || []).map(e => ({
       headName: e.headName,
       headType: e.type || "FIXED",
@@ -149,61 +152,57 @@ const handlePrintAllOnePDF = async () => {
 
 const fetchLatestPayslip = async (emp) => {
   try {
-    const res = await axios.get(`http://localhost:5002/api/payslips/latest/${emp.employeeUserId}`);
-    const payslip = res.data;
-
-    // Get the Month Name from your selectedMonth input (e.g., "2026-01" -> "January")
     const [tYear, tMonthNum] = selectedMonth.split("-");
     const tMonthName = monthNames[Number(tMonthNum) - 1];
 
-    // Check if the database has a record for THIS specific month/year
-    if (!payslip || payslip.month !== tMonthName || String(payslip.year) !== String(tYear)) {
-      toast.error(`No ${tMonthName} payslip generated for ${emp.firstName}`);
+    // 1. Fetch the Batch
+    const res = await axios.get(`http://localhost:5002/api/payslips/check-batch?month=${tMonthName}&year=${tYear}`);
+    
+    if (!res.data.exists || !res.data.data) {
+      toast.error(`No payslip batch found for ${tMonthName} ${tYear}`);
       return null;
     }
 
-    // Mapping logic (no changes here)
-    const mappedEarnings = (payslip.earnings || []).map(e => ({
-      headName: e.headName,
-      headType: e.type || "FIXED",
-      value: Number(e.amount || 0),
-    }));
+    const batchHeader = res.data.data; // This contains the month/year
 
-    const mappedDeductions = (payslip.deductions || []).map(d => ({
-      headName: d.headName,
-      headType: d.type || "FIXED",
-      value: Number(d.amount || 0),
-    }));
+    // 2. FIND the specific employee in the array
+    const employeeData = batchHeader.employeePayslips.find(
+      (s) => s.employeeUserId === emp.employeeUserId
+    );
 
+    if (!employeeData) {
+      toast.error(`Employee ${emp.firstName} not found in this batch.`);
+      return null;
+    }
+
+    // 3. Update States
     setSelectedEmployee({ 
       ...emp, 
-      employeeName: payslip.employeeName, 
-      employeeUserId: payslip.employeeUserId,
-      employeeID: payslip.employeeId // Ensure the old ID is visible on the slip
+      employeeName: employeeData.employeeName, 
+      employeeUserId: employeeData.employeeUserId,
+      employeeID: employeeData.employeeId 
     });
-    setMonth(payslip.month);
-    setYear(payslip.year);
-    setEarningDetails(mappedEarnings);
-    setDeductionDetails(mappedDeductions);
-    setGrossSalary(Number(payslip.grossSalary || 0));
-    setTotalDeduction(Number(payslip.totalDeduction || 0));
-    setPaidDaysSalary(Number(payslip.paidDaysSalary || 0));
-    setNetSalary(Number(payslip.netSalary || 0));
-    setLopAmount(Number(payslip.lopAmount || 0));
-    setInHandSalary(Number(payslip.inHandSalary || 0));
-    setTotalWorkingDays(Number(payslip.totalWorkingDays || 0));
-    setLOP(Number(payslip.lopDays || 0));
-    setTotalPaidDays(Number(payslip.totalPaidDays || 0));
-    setLeaves(Number(payslip.leaves || 0));
-    setOtHours(Number(payslip.otHours || 0));
-    setOtAmount(Number(payslip.otAmount || 0));
 
-    return payslip;
+    // FIX: Pull Month and Year from the Batch Header (Parent), not the employee
+    setMonth(batchHeader.month); 
+    setYear(batchHeader.year);
+
+    setEarningDetails((employeeData.earnings || []).map(e => ({ headName: e.headName, value: e.amount })));
+    setDeductionDetails((employeeData.deductions || []).map(d => ({ headName: d.headName, value: d.amount })));
+    setGrossSalary(employeeData.grossSalary);
+    setNetSalary(employeeData.netSalary);
+    setInHandSalary(employeeData.inHandSalary);
+    setTotalWorkingDays(employeeData.totalWorkingDays);
+    setLOP(employeeData.lopDays);
+    setTotalPaidDays(employeeData.totalPaidDays);
+    setLeaves(employeeData.leaves);
+    setOtHours(employeeData.otHours);
+    setOtAmount(employeeData.otAmount);
+
+    return employeeData;
   } catch (err) {
-    // This part triggers if the API call fails
-    const [tYear, tMonthNum] = selectedMonth.split("-");
-    const tMonthName = monthNames[Number(tMonthNum) - 1];
-    toast.error(`Payslip for ${emp.firstName} has not been generated for ${tMonthName}.`);
+    console.error(err);
+    toast.error("Database connection error.");
     return null;
   }
 };
@@ -365,7 +364,7 @@ const fetchLatestPayslip = async (emp) => {
               <td className="border border-blue-500 py-1">
                   <div className="flex justify-center gap-2">
                 {/* Edit Button */}
-                <button
+                {/* <button
                   onClick={() =>
                     navigate("/GeneratePaySlip", {
                       state: {
@@ -381,10 +380,10 @@ const fetchLatestPayslip = async (emp) => {
                   className="text-blue-600 hover:text-blue-800"
                 >
                   <FaEye />
-                </button>
+                </button> */}
 
                 {/* Generate Button */}
-                <button
+                {/* <button
                   onClick={() =>
                     navigate("/GeneratePaySlip", {
                       state: {
@@ -402,7 +401,7 @@ const fetchLatestPayslip = async (emp) => {
                 >
                   <FaPlusCircle />
                  
-                </button>
+                </button> */}
           <button
               onClick={async () => {
                 const payslip = await fetchLatestPayslip(emp); 

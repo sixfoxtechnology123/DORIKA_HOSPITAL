@@ -14,46 +14,44 @@ const deductionSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
 });
 
-const paySlipSchema = new mongoose.Schema(
+// Individual Employee Payslip Entry
+const employeeEntrySchema = new mongoose.Schema({
+  employeeId: { type: String, required: true },
+  employeeName: { type: String, required: true },
+  employeeUserId: { type: String },
+  designationName: { type: String }, 
+  doj: { type: String },
+  mobile: { type: String },
+  email: { type: String },
+  earnings: [earningSchema],
+  deductions: [deductionSchema],
+  otHours: { type: Number, default: 0 },
+  otAmount: { type: Number, default: 0 },
+  lopDays: { type: Number, default: 0 },
+  lopAmount: { type: Number, default: 0 },
+  monthDays: { type: Number, default: 0 },
+  totalWorkingDays: { type: Number, default: 0 },
+  totalOff: { type: Number, default: 0 },
+  leaves: { type: Number, default: 0 },
+  totalPaidDays: { type: Number, default: 0 },
+  grossSalary: { type: Number, default: 0 },
+  totalEarnings: { type: Number, default: 0 },
+  totalDeduction: { type: Number, default: 0 },
+  totalSalary: { type: Number, default: 0 },
+  paidDaysSalary: { type: Number, default: 0 },
+  netSalary: { type: Number, default: 0 },
+  inHandSalary: { type: Number, default: 0 },
+});
+
+const monthlyBatchSchema = new mongoose.Schema(
   {
-    // Basic Info
-    employeeId: { type: String, required: true },
-    employeeName: { type: String, required: true },
-    employeeUserId: { type: String }, // Added per request
-    designationName: { type: String }, 
-    doj: { type: String },
-    mobile: { type: String },
-    email: { type: String },
     month: { type: String, required: true },
     year: { type: String, required: true },
-
-    // Breakdown Lists
-    earnings: [earningSchema],
-    deductions: [deductionSchema],
-
-    // OT & LOP Details
-    otHours: { type: Number, default: 0 },
-    otAmount: { type: Number, default: 0 },
-    lopDays: { type: Number, default: 0 }, // LOP Days
-    lopAmount: { type: Number, default: 0 },
-
-    // Attendance Stats
-    monthDays: { type: Number, default: 0 },
-    totalWorkingDays: { type: Number, default: 0 }, // Total Working
-    totalOff: { type: Number, default: 0 },
-    leaves: { type: Number, default: 0 },
-    totalPaidDays: { type: Number, default: 0 },
-
-    // Salary Logic Totals
-    grossSalary: { type: Number, default: 0 },
-    totalEarnings: { type: Number, default: 0 },
-    totalDeduction: { type: Number, default: 0 },
-    totalSalary: { type: Number, default: 0 },      // Total Salary = Earning - Deduction
-    paidDaysSalary: { type: Number, default: 0 },
-    netSalary: { type: Number, default: 0 },
-    inHandSalary: { type: Number, default: 0 },     // netsalary
+    // This array holds all payslips for this specific month
+    employeePayslips: [employeeEntrySchema],
   },
   { timestamps: true }
 );
 
-export default mongoose.model("PaySlip", paySlipSchema);
+// We keep the model name "PaySlip" so your existing imports don't break
+export default mongoose.model("PaySlip", monthlyBatchSchema);

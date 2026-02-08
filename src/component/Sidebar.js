@@ -42,6 +42,9 @@ const Sidebar = () => {
       submenus: [
         { name: "Departments", path: "/DepartmentList" },
         { name: "Designations", path: "/DesignationList" },
+        {
+         name:"OT Rate", path:"/OTRateList"
+        },  
         
         // { name: "Holidays", path: "/HolidayList" },
         //  { name: "Shifts Manage", path: "/ShiftList" },
@@ -58,17 +61,7 @@ const Sidebar = () => {
       permission: "Reminder_View",
     },
     { name: "New Employee Reg", path: "/EmployeeList", icon: Users, permission: "Employee_View" },
-    {
-      name:"Pay Slip",
-      icon:BookA,
-      permission:"",
-      submenus:[
-        // { name: "Salary Fee Heads",path: "/SalarySlipHeadList"},
-        { name: "Pay Slip Generate",path: "/PaySlipGenerateEmployeeList"},
-        { name: "History",path: "/PaySlipHistory"},
-      ]
-
-    },
+   
     {
           name: "Leave Management",
           icon: FaCalendarAlt,
@@ -92,9 +85,7 @@ const Sidebar = () => {
             {
               name:"Duty Roaster", path:"/ShiftManagement"
             },
-            {
-              name:"OT Rate", path:"/OTRateList"
-            },
+          
           ]
         },
         {
@@ -108,6 +99,18 @@ const Sidebar = () => {
           //   icon: ClipboardList,
           // },
 
+           {
+      name:"Pay Slip",
+      icon:BookA,
+      permission:"",
+      submenus:[
+        // { name: "Salary Fee Heads",path: "/SalarySlipHeadList"},
+        { name: "Payslip Generate",path: "/GenerateAllEmployeePayslip"},
+        { name: "Payslip Print",path: "/PaySlipGenerateEmployeeList"},
+        { name: "History",path: "/PaySlipHistory"},
+      ]
+
+    },
     {
       name: "Admin Panel",
       icon: Users,

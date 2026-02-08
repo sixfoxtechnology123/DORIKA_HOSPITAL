@@ -25,7 +25,7 @@ const GeneratePaySlip = () => {
     : location.state?.selectedEmployee || null;
 
   // 1. ALL STATES FIRST
-  const [otRateFromMaster, setOtRateFromMaster] = useState(0);
+  const [otRateFromMaster, setOtRateFromMaster] = useState("");
   const [month, setMonth] = useState(editingData?.month || location.state?.month || "");
   const [year, setYear] = useState(editingData?.year || location.state?.year || "");
   const [allHeads, setAllHeads] = useState([]);
@@ -159,7 +159,7 @@ useEffect(() => {
           const totalCalculated = Number(otHoursValue) * Number(ratePerHour);
           setOtAmount(Math.round(totalCalculated));
         } else {
-          setOtAmount(0);
+          setOtAmount("");
         }
       }
     } catch (err) {
@@ -178,7 +178,7 @@ useEffect(() => {
   if (hours > 0 && rate > 0) {
     setOtAmount(Math.round(hours * rate));
   } else {
-    setOtAmount(0);
+    setOtAmount("");
   }
 }, [totalOTHours, otRateFromMaster]);
 // useEffect(() => {
@@ -546,12 +546,13 @@ const handleSave = async () => {
                         <span className="text-xs text-green-600 font-normal">Hrs</span>
                       </div>
                     </td>
-                    <td className="border p-2 text-center text-black bg-white">
+                    <td className="border p-2 text-center text-black bg-green-50">
                       <input
                         type="number"
-                        value={otAmount}
+                        value={otAmount || ""}
                         onChange={(e) => setOtAmount(Number(e.target.value))} // 🟢 This allows manual editing
-                        className="w-full text-center bg-white border-none outline-none font-bold text-sm focus:ring-1 focus:ring-blue-400 rounded"
+                        placeholder="Amount"
+                         className="w-full text-center bg-white border border-green-400  outline-none  text-sm  rounded"
                       />
                     </td>
                   </tr>

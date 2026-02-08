@@ -2,25 +2,23 @@ const express = require("express");
 const {
   createPaySlip,
   getAllPaySlips,
-  getPaySlipByEmp,
-  updatePaySlip,
   deletePaySlip,
   getEmployeeById,
-  getLatestPayslipByEmployee,
-  getAllPayslipsByEmployee
+  checkBatchStatus,
 } = require("../controllers/paySlipController");
 
 const router = express.Router();
 
-// Payslip routes
-router.post("/", createPaySlip);
+// MATCHING FRONTEND: axios.post("/api/payslips/bulk")
+router.post("/bulk", createPaySlip); 
+
+// MATCHING FRONTEND: axios.get("/api/payslips/check-batch")
+router.get("/check-batch", checkBatchStatus);
+
 router.get("/", getAllPaySlips);
-router.get("/by-emp", getPaySlipByEmp); // query: ?employeeId=EMP1&month=Nov&year=2025
-router.put("/:id", updatePaySlip);
 router.delete("/:id", deletePaySlip);
 
-// Employee details (must be after other routes)
+// Employee details
 router.get("/employee/:employeeId", getEmployeeById);
-router.get("/latest/:employeeId", getLatestPayslipByEmployee);
-router.get("/view-all/:empUserId", getAllPayslipsByEmployee);
+
 module.exports = router;

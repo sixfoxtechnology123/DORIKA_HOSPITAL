@@ -15,117 +15,123 @@ const PaySlipHistory = () => {
       try {
         const res = await axios.get("http://localhost:5002/api/payslips");
         if (res.data.success) {
-          setPaySlips(res.data.data);
+          // MODIFIED LOGIC: Pull month and year from the Batch (parent) 
+          // and spread them into each individual employee (child)
+          const allEmployees = res.data.data.flatMap(batch => 
+            batch.employeePayslips.map(slip => ({
+              ...slip,
+              month: batch.month, // Borrow from Parent
+              year: batch.year,   // Borrow from Parent
+              batchId: batch._id  // Reference for deletion
+            }))
+          );
+          setPaySlips(allEmployees);
         }
       } catch (err) {
-        console.error(err);
-       // toast.error("Failed to fetch payslips");
+        console.error("Fetch Error:", err);
       }
     };
 
     fetchPaySlips();
   }, []);
 
-  // DELETE payslip
-  const deletePaySlip = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this payslip?")) return;
+  const deletePaySlip = async (batchId) => {
+    if (!window.confirm("Warning: This will delete the entire monthly batch. Continue?")) return;
     try {
-      await axios.delete(`http://localhost:5002/api/payslips/${id}`);
-      setPaySlips(paySlips.filter((slip) => slip._id !== id));
-      toast.success("Payslip deleted successfully");
+      await axios.delete(`http://localhost:5002/api/payslips/${batchId}`);
+      // Remove all employees belonging to this batch from the UI
+      setPaySlips(prev => prev.filter((slip) => slip.batchId !== batchId));
+      toast.success("Monthly batch deleted successfully");
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to delete payslip");
+      toast.error("Failed to delete batch");
     }
   };
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    <div className="flex min-h-screen flex-col md:flex-row bg-gray-50">
       <Sidebar />
       <div className="flex-1 overflow-y-auto p-3">
-        <div className="bg-white shadow-md rounded-md p-3">
-          <div className="bg-blue-50 border w-full border-blue-300 rounded-lg shadow-md p-2 mb-4 
+        <div className="bg-white shadow-lg rounded-md p-3">
+          <div className="bg-blue-50 border w-full border-blue-300 rounded-lg shadow-sm p-2 mb-4 
             flex flex-col md:flex-row items-center justify-between gap-2">
-            <h2 className="text-xl font-bold text-blue-800 whitespace-nowrap">
-              Pay Slip History
+            <h2 className="text-xl font-bold text-blue-800 uppercase tracking-tight">
+              Pay Slip History (Batch Records)
             </h2>
             <div className="ml-auto">
               <BackButton />
             </div>
           </div>
 
-          <table className="w-full table-auto border border-blue-500 text-sm">
-            <thead className="bg-gray-200">
+          <table className="w-full table-auto border-collapse border border-blue-400 text-[10px]">
+            <thead className="bg-blue-800 text-white uppercase tracking-tighter">
               <tr>
-                <th className="border border-blue-500 px-1 py-0 w-5">SL NO.</th>
-                <th className="border border-blue-500 px-1 py-0">ID</th>
-                <th className="border border-blue-500 px-1 py-0">Name</th>
-                <th className="border border-blue-500 px-1 py-0">Mobile</th>
-                <th className="border border-blue-500 px-1 py-0">Email</th>
-                <th className="border border-blue-500 px-1 py-0">Month</th>
-                <th className="border border-blue-500 px-1 py-0">Year</th>
-                <th className="border border-blue-500 px-1 py-0">Earnings</th>
-                <th className="border border-blue-500 px-1 py-0">Deductions</th>
-                <th className="border border-blue-500 px-1 py-0">Gross</th>
-                <th className="border border-blue-500 px-1 py-0 w-10">Total Deduction</th>
-                <th className="border border-blue-500 px-1 py-0 w-10">LOP</th>
-                <th className="border border-blue-500 px-1 py-0 w-10">IN-Hand</th>
-                <th className="border border-blue-500 px-1 py-0">Action</th>
+                <th className="border border-blue-500 p-1 w-8">SL</th>
+                <th className="border border-blue-500 p-1">Emp ID</th>
+                <th className="border border-blue-500 p-1 min-w-[120px]">Name</th>
+                <th className="border border-blue-500 p-1 bg-blue-900">Month</th>
+                <th className="border border-blue-500 p-1 bg-blue-900">Year</th>
+                <th className="border border-blue-500 p-1">Earnings</th>
+                <th className="border border-blue-500 p-1">Deductions</th>
+                <th className="border border-blue-500 p-1">Gross</th>
+                <th className="border border-blue-500 p-1">OT Amt</th>
+                <th className="border border-blue-500 p-1 bg-green-700">Net Salary</th>
+                {/* <th className="border border-blue-500 p-1">Action</th> */}
               </tr>
             </thead>
-            <tbody className="text-center">
+            <tbody className="text-center font-semibold text-gray-700">
               {paySlips.length > 0 ? (
                 paySlips.map((slip, index) => (
-                  <tr key={slip._id} className="even:bg-gray-50 hover:bg-gray-100 transition">
-                    <td className="border border-blue-500 px-1 py-0">{index + 1}</td>
-                    <td className="border border-blue-500 px-1 py-0">{slip.employeeId}</td>
-                    <td className="border border-blue-500 px-1 py-0">{slip.employeeName}</td>
-                     <td className="border border-blue-500 px-1 py-0">
-                      {slip.mobile || "N/A"}
-                    </td>
-                    <td className="border border-blue-500 px-1 py-0">
-                      {slip.email || "N/A"}
-                    </td>
-                    <td className="border border-blue-500 px-1 py-0">{slip.month}</td>
-                    <td className="border border-blue-500 px-1 py-0">{slip.year}</td>
-                    <td className="border border-blue-500 text-xs px-1 py-0">
-                      {slip.earnings.map((e) => (
-                        <div key={e._id}>{e.headName}: ₹{e.amount}</div>
+                  <tr key={`${slip.batchId}-${index}`} className="even:bg-blue-50/30 hover:bg-yellow-50 transition">
+                    <td className="border border-blue-300 p-1">{index + 1}</td>
+                    <td className="border border-blue-300 p-1 text-blue-900">{slip.employeeUserId || slip.employeeId}</td>
+                    <td className="border border-blue-300 p-1 text-left px-2 uppercase">{slip.employeeName}</td>
+                    <td className="border border-blue-300 p-1 font-bold">{slip.month}</td>
+                    <td className="border border-blue-300 p-1 font-bold">{slip.year}</td>
+                    
+                    <td className="border border-blue-300 p-1 text-left">
+                      {slip.earnings?.map((e, i) => (
+                        <div key={i} className="flex justify-between border-b border-blue-100 last:border-0">
+                          <span className="text-gray-900">{e.headName}:</span> <span>₹{e.amount}</span>
+                        </div>
                       ))}
                     </td>
-                    <td className="border border-blue-500 text-xs  px-1 py-0">
-                      {slip.deductions.map((d) => (
-                        <div key={d._id}>{d.headName}: ₹{d.amount}</div>
+                    
+                    <td className="border border-blue-300 p-1 text-left">
+                      {slip.deductions?.map((d, i) => (
+                        <div key={i} className="flex justify-between border-b border-red-100 last:border-0">
+                          <span className="text-gray-900">{d.headName}:</span> <span>₹{d.amount}</span>
+                        </div>
                       ))}
                     </td>
-                    <td className="border border-blue-500 px-1 py-0">₹{slip.grossSalary}</td>
-                    <td className="border border-blue-500 px-1 py-0">₹{slip.totalDeduction}</td>
-                    <td className="border border-blue-500 px-1 py-0">₹{slip.lopAmount}</td>
-                    <td className="border border-blue-500 px-1 py-0">₹{slip.inHandSalary}</td>
-                    <td className="border border-blue-500 px-1 py-0">
-                      <div className="flex justify-center gap-2">
+
+                    <td className="border border-blue-300 p-1 text-blue-800 font-bold">₹{slip.grossSalary}</td>
+                    <td className="border border-blue-300 p-1 text-green-700">₹{slip.otAmount}</td>
+                    <td className="border border-blue-300 p-1 bg-green-50 text-green-900 font-black">₹{slip.netSalary}</td>
+                    
+                    {/* <td className="border border-blue-300 p-1">
+                      <div className="flex justify-center gap-3">
                         <button
-                          className="text-blue-600 hover:text-blue-800"
-                         onClick={() => navigate("/GeneratePaySlip", { state: { editingData: slip } })}
-
-
+                          title="View/Edit"
+                          className="text-blue-600 hover:text-blue-900 text-base transition-transform hover:scale-125"
+                          onClick={() => navigate("/GeneratePaySlip", { state: { editingData: slip, mode: "edit" } })}
                         >
                           <FaEdit />
                         </button>
                         <button
-                          className="text-red-600 hover:text-red-800"
-                          onClick={() => deletePaySlip(slip._id)}
+                          title="Delete Month Batch"
+                          className="text-red-500 hover:text-red-800 text-base transition-transform hover:scale-125"
+                          onClick={() => deletePaySlip(slip.batchId)}
                         >
                           <FaTrash />
                         </button>
                       </div>
-                    </td>
+                    </td> */}
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="11" className="text-center py-4 text-gray-500">
-                    No payslips found.
+                  <td colSpan="11" className="text-center py-20 text-gray-400 italic font-medium">
+                    No records found in the Monthly Batch History.
                   </td>
                 </tr>
               )}
