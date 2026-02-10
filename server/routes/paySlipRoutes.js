@@ -5,9 +5,13 @@ const {
   deletePaySlip,
   getEmployeeById,
   checkBatchStatus,
+  clearMonthData,
 } = require("../controllers/paySlipController");
 
 const router = express.Router();
+
+// MATCHING FRONTEND: axios.delete("/api/payslips/clean")
+router.delete("/clean", clearMonthData);
 
 // MATCHING FRONTEND: axios.post("/api/payslips/bulk")
 router.post("/bulk", createPaySlip); 

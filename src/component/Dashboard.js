@@ -116,8 +116,8 @@ const Dashboard = () => {
     { title: "Leave Management", value: counts.leaveTypes, path: "/LeaveTypeList", color: "bg-pink-500 text-white", icon: Calendar, permission: "Leave_Manage" },
     { title: "Shift Management", value: counts.shifts, path: "/ShiftManagement", color: "bg-yellow-500 text-gray-900", icon: Clock, permission: "Shift_Manage" },
     { title: "Attendance System", value: counts.holidays, path: "/EmployeeAttendanceHistory", color: "bg-red-500 text-white", icon: CalendarDays, permission: "Attendance_Manage" },
-    { title: "Payslips", value: counts.policies, path: "/PaySlipGenerateEmployeeList", color: "bg-indigo-500 text-white", icon: FileText, permission: "Policy_Manage" },
-    { title: "Remonder Section", value: counts.locations, path: "/ReminderPage", color: "bg-teal-500 text-white", icon: MapPin, permission: "Location_Manage" },
+    { title: "Payslips", value: counts.policies, path: "/GenerateAllEmployeePayslip", color: "bg-indigo-500 text-white", icon: FileText, permission: "Policy_Manage" },
+    { title: "Reminder Section", value: counts.locations, path: "/ReminderPage", color: "bg-teal-500 text-white", icon: MapPin, permission: "Location_Manage" },
     { title: "Controller", value: counts.payrollComponents, path: "/AdminManagement", color: "bg-orange-500 text-white", icon: Wallet, permission: "Payroll_Manage" },
   ];
 

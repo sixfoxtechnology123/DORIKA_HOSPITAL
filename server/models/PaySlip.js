@@ -19,6 +19,7 @@ const employeeEntrySchema = new mongoose.Schema({
   employeeId: { type: String, required: true },
   employeeName: { type: String, required: true },
   employeeUserId: { type: String },
+  departmentName: { type: String },
   designationName: { type: String }, 
   doj: { type: String },
   mobile: { type: String },
@@ -28,7 +29,7 @@ const employeeEntrySchema = new mongoose.Schema({
   otHours: { type: Number, default: 0 },
   otAmount: { type: Number, default: 0 },
   lopDays: { type: Number, default: 0 },
-  lopAmount: { type: Number, default: 0 },
+  // lopAmount: { type: Number, default: 0 },
   monthDays: { type: Number, default: 0 },
   totalWorkingDays: { type: Number, default: 0 },
   totalOff: { type: Number, default: 0 },
@@ -37,8 +38,8 @@ const employeeEntrySchema = new mongoose.Schema({
   grossSalary: { type: Number, default: 0 },
   totalEarnings: { type: Number, default: 0 },
   totalDeduction: { type: Number, default: 0 },
-  totalSalary: { type: Number, default: 0 },
-  paidDaysSalary: { type: Number, default: 0 },
+  // totalSalary: { type: Number, default: 0 },
+  // paidDaysSalary: { type: Number, default: 0 },
   netSalary: { type: Number, default: 0 },
   inHandSalary: { type: Number, default: 0 },
 });
@@ -47,11 +48,15 @@ const monthlyBatchSchema = new mongoose.Schema(
   {
     month: { type: String, required: true },
     year: { type: String, required: true },
-    // This array holds all payslips for this specific month
+    status: { 
+        type: String, 
+        enum: ["Draft", "Finalized"], 
+        default: "Draft" 
+      },
+    filterDept: { type: String, default: "All" },
     employeePayslips: [employeeEntrySchema],
   },
   { timestamps: true }
 );
-
-// We keep the model name "PaySlip" so your existing imports don't break
+monthlyBatchSchema.index({ month: 1, year: 1, filterDept: 1 }, { unique: true });
 export default mongoose.model("PaySlip", monthlyBatchSchema);

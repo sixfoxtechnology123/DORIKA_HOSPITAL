@@ -32,8 +32,8 @@ const [otHours, setOtHours] = useState(0);
 const [otAmount, setOtAmount] = useState(0);
 const [paidDaysSalary, setPaidDaysSalary] = useState(0);
 const [totalPaidDays, setTotalPaidDays] = useState(0); // Add this line 
-  const [employees, setEmployees] = useState([]);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
+const [employees, setEmployees] = useState([]);
+const [selectedMonth, setSelectedMonth] = useState(() => {
   return localStorage.getItem("selectedMonth") || "";
 });
 const [selectedYear, setSelectedYear] = useState(() => {
@@ -97,7 +97,7 @@ const handlePrintAllOnePDF = async () => {
       designationName: payslip.designationName || emp.designationName || "",
       doj: payslip.doj || emp.doj || "",
     };
-
+    setLOP(Number(payslip.lopDays || 0));
     setMonth(tMonthName);
     setYear(tYear);
     setEarningDetails((payslip.earnings || []).map(e => ({
@@ -116,12 +116,9 @@ const handlePrintAllOnePDF = async () => {
     setLopAmount(Number(payslip.lopAmount || 0));
     setInHandSalary(Number(payslip.inHandSalary || 0));
     setTotalWorkingDays(Number(payslip.totalWorkingDays || 0));
-    setLOP(Number(payslip.LOP || 0));
     setLeaves(Number(payslip.leaves || 0));
-
-    // Wait for React to update DOM
+    
     await new Promise(resolve => setTimeout(resolve, 300));
-
     const el = document.getElementById("print-section");
     if (!el) continue;
 
@@ -155,17 +152,19 @@ const fetchLatestPayslip = async (emp) => {
     const [tYear, tMonthNum] = selectedMonth.split("-");
     const tMonthName = monthNames[Number(tMonthNum) - 1];
 
-    // 1. Fetch the Batch
-    const res = await axios.get(`http://localhost:5002/api/payslips/check-batch?month=${tMonthName}&year=${tYear}`);
+    // Added filterDept to the URL to ensure it finds the correct batch
+    const res = await axios.get(
+      `http://localhost:5002/api/payslips/check-batch?month=${tMonthName}&year=${tYear}&filterDept=${emp.departmentName || "All"}`
+    );
     
     if (!res.data.exists || !res.data.data) {
       toast.error(`No payslip batch found for ${tMonthName} ${tYear}`);
       return null;
     }
 
-    const batchHeader = res.data.data; // This contains the month/year
+    const batchHeader = res.data.data;
 
-    // 2. FIND the specific employee in the array
+    // Find the specific employee in the array
     const employeeData = batchHeader.employeePayslips.find(
       (s) => s.employeeUserId === emp.employeeUserId
     );
@@ -175,29 +174,34 @@ const fetchLatestPayslip = async (emp) => {
       return null;
     }
 
-    // 3. Update States
+    // Update States for Printing
     setSelectedEmployee({ 
       ...emp, 
       employeeName: employeeData.employeeName, 
       employeeUserId: employeeData.employeeUserId,
-      employeeID: employeeData.employeeId 
+      employeeID: employeeData.employeeId,
+      designationName: employeeData.designationName || emp.designationName,
+      doj: employeeData.doj || emp.doj
     });
 
-    // FIX: Pull Month and Year from the Batch Header (Parent), not the employee
     setMonth(batchHeader.month); 
     setYear(batchHeader.year);
 
-    setEarningDetails((employeeData.earnings || []).map(e => ({ headName: e.headName, value: e.amount })));
-    setDeductionDetails((employeeData.deductions || []).map(d => ({ headName: d.headName, value: d.amount })));
-    setGrossSalary(employeeData.grossSalary);
-    setNetSalary(employeeData.netSalary);
-    setInHandSalary(employeeData.inHandSalary);
-    setTotalWorkingDays(employeeData.totalWorkingDays);
-    setLOP(employeeData.lopDays);
-    setTotalPaidDays(employeeData.totalPaidDays);
-    setLeaves(employeeData.leaves);
-    setOtHours(employeeData.otHours);
-    setOtAmount(employeeData.otAmount);
+    // Map DB 'amount' to Frontend 'value' so numbers show up
+    setEarningDetails((employeeData.earnings || []).map(e => ({ headName: e.headName, value: e.amount || 0 })));
+    setDeductionDetails((employeeData.deductions || []).map(d => ({ headName: d.headName, value: d.amount || 0 })));
+    
+    setGrossSalary(employeeData.grossSalary || 0);
+    setNetSalary(employeeData.netSalary || 0);
+    setInHandSalary(employeeData.inHandSalary || employeeData.netSalary || 0); 
+
+    // --- FIXED ATTENDANCE MAPPING ---
+    setTotalWorkingDays(employeeData.totalWorkingDays || 0); 
+    setLOP(Number(employeeData.lopDays || 0));                    
+    setTotalPaidDays(employeeData.totalPaidDays || 0);
+    setLeaves(employeeData.leaves || 0);
+    setOtHours(employeeData.otHours || 0);
+    setOtAmount(employeeData.otAmount || 0);
 
     return employeeData;
   } catch (err) {
