@@ -84,14 +84,6 @@ const deleteLeaveApplication = async (id) => {
           
           <div className="flex shrink-0">
             <BackButton />
-            {/* If you uncomment the button later, the 'flex' container here will keep them side-by-side */}
-            {/* <button
-              onClick={() => navigate("/LeaveApplicationForm")}
-              className="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs sm:text-sm font-semibold whitespace-nowrap"
-            >
-              Add New
-            </button> 
-            */}
           </div>
         </div>
         <div className="overflow-x-auto">

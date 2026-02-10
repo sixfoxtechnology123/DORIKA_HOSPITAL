@@ -115,10 +115,10 @@ const to24Hour = (time12) => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-300 flex">
+    <div className="min-h-screen bg-zinc-300 flex flex-col md:flex-row">
       <Sidebar />
-      <div className="flex-1 p-3 overflow-y-auto flex items-center justify-center">
-       <div className="bg-white shadow-lg rounded-lg p-4 w-full max-w-lg">
+     <div className="flex-1 p-2 sm:p-3 md:p-4 overflow-y-auto">
+       <div className="bg-white shadow-lg rounded-lg p-3 sm:p-4 w-full max-w-xl mx-auto">
           <h2 className="text-xl font-bold mb-4">
           {isEditMode ? "Update Shift" : "Shift"}
         </h2>
@@ -218,7 +218,7 @@ const to24Hour = (time12) => {
           </div>
 
           <div className="col-span-1 md:col-span-2 lg:col-span-3 flex justify-between mt-2">
-            <BackButton />
+            <div><BackButton/></div>
             <button
               type="submit"
               className={`px-4 py-1 rounded text-white ${

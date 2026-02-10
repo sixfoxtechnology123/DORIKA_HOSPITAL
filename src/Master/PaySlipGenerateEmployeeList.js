@@ -71,80 +71,73 @@ const handleSelectEmployee = (e, empId) => {
 };
 
 const handlePrintAllOnePDF = async () => {
-
   const [tYear, tMonthNum] = selectedMonth.split("-");
   const tMonthName = monthNames[Number(tMonthNum) - 1];
+  
   if (selectedEmployees.length === 0) {
     toast.error("Please select at least one employee");
     return;
   }
 
   const pdf = new jsPDF("p", "mm", "a4");
+  const loadingToast = toast.loading("Generating combined PDF... Please wait.");
 
   for (let i = 0; i < selectedEmployees.length; i++) {
     const empId = selectedEmployees[i];
     const emp = employees.find(e => e._id === empId);
     if (!emp) continue;
 
-    // Fetch latest payslip
+    // Fetch latest payslip data
     const payslip = await fetchLatestPayslip(emp);
     if (!payslip) continue;
 
-    // Use temp object for printing
-    const tempEmployee = {
-      ...emp,
-      employeeName: payslip.employeeName,
-      designationName: payslip.designationName || emp.designationName || "",
-      doj: payslip.doj || emp.doj || "",
-    };
-    setLOP(Number(payslip.lopDays || 0));
-    setMonth(tMonthName);
-    setYear(tYear);
-    setEarningDetails((payslip.earnings || []).map(e => ({
-      headName: e.headName,
-      headType: e.type || "FIXED",
-      value: Number(e.amount || 0)
-    })));
-    setDeductionDetails((payslip.deductions || []).map(d => ({
-      headName: d.headName,
-      headType: d.type || "FIXED",
-      value: Number(d.amount || 0)
-    })));
-    setGrossSalary(Number(payslip.grossSalary || 0));
-    setTotalDeduction(Number(payslip.totalDeduction || 0));
-    setNetSalary(Number(payslip.netSalary || 0));
-    setLopAmount(Number(payslip.lopAmount || 0));
-    setInHandSalary(Number(payslip.inHandSalary || 0));
-    setTotalWorkingDays(Number(payslip.totalWorkingDays || 0));
-    setLeaves(Number(payslip.leaves || 0));
-    
+    // Wait for React to update the DOM with new employee data
     await new Promise(resolve => setTimeout(resolve, 300));
+    
     const el = document.getElementById("print-section");
     if (!el) continue;
 
+    // --- SILENCE CONTAINER START (Prevents Dancing/Blinking) ---
+    const silenceContainer = document.createElement("div");
+    silenceContainer.style.position = "fixed";
+    silenceContainer.style.top = "0";
+    silenceContainer.style.left = "0";
+    silenceContainer.style.width = "100vw";
+    silenceContainer.style.height = "0";
+    silenceContainer.style.overflow = "hidden";
+    silenceContainer.style.zIndex = "-9999";
+    document.body.appendChild(silenceContainer);
+
     const clone = el.cloneNode(true);
     clone.style.display = "block";
-    clone.style.position = "absolute";
-    clone.style.top = "0";
-    clone.style.left = "0";
+    clone.style.position = "relative";
     clone.style.width = "100%";
     clone.style.background = "white";
-    document.body.appendChild(clone);
+    silenceContainer.appendChild(clone);
 
-    await new Promise(resolve => setTimeout(resolve, 200));
+    const canvas = await html2canvas(clone, { 
+      scale: 2, 
+      useCORS: true, 
+      allowTaint: true,
+      logging: false,
+      windowWidth: 1200, 
+      windowHeight: clone.scrollHeight
+    });
 
-    const canvas = await html2canvas(clone, { scale: 2, useCORS: true, allowTaint: true });
-    const imgData = canvas.toDataURL("image/jpeg", 1.0);
+    document.body.removeChild(silenceContainer);
+    // --- SILENCE CONTAINER END ---
+
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
 
     if (i > 0) pdf.addPage();
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
     pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
-
-    document.body.removeChild(clone);
   }
 
-  pdf.save("Payslips.pdf");
+  pdf.save(`All_Payslips_${tMonthName}_${tYear}.pdf`);
+  toast.dismiss(loadingToast);
+  toast.success("PDF Downloaded");
 };
 
 const fetchLatestPayslip = async (emp) => {
@@ -241,97 +234,227 @@ const fetchLatestPayslip = async (emp) => {
     </div>
   );
 
-  const handleDownloadPDF = async () => {
+const handleDownloadPDF = async () => {
   const el = document.getElementById("print-section");
-
   if (!el) {
     console.error("print-section not found");
     return;
   }
 
-  // Make element visible and apply print-like styles for screen
-  el.style.display = "block";
-  el.style.position = "absolute";
-  el.style.top = "0";
-  el.style.left = "0";
-  el.style.width = "100%";
-  el.style.background = "white"; // same as print background
+  // --- SILENCE CONTAINER START ---
+  const silenceContainer = document.createElement("div");
+  silenceContainer.style.position = "fixed";
+  silenceContainer.style.top = "0";
+  silenceContainer.style.left = "0";
+  silenceContainer.style.width = "100vw";
+  silenceContainer.style.height = "0";
+  silenceContainer.style.overflow = "hidden";
+  silenceContainer.style.zIndex = "-9999";
+  document.body.appendChild(silenceContainer);
 
-  // Wait for styles to apply
+  const clone = el.cloneNode(true);
+  clone.style.display = "block";
+  clone.style.position = "relative";
+  clone.style.width = "100%";
+  clone.style.background = "white";
+  silenceContainer.appendChild(clone);
+
   await new Promise((resolve) => setTimeout(resolve, 200));
 
-  // Capture the element
-  const canvas = await html2canvas(el, {
+  const canvas = await html2canvas(clone, {
     scale: 2,
     useCORS: true,
     allowTaint: true,
+    windowWidth: 1200, 
+    windowHeight: clone.scrollHeight
   });
+
+  document.body.removeChild(silenceContainer);
+  // --- SILENCE CONTAINER END ---
 
   const imgData = canvas.toDataURL("image/png");
   const pdf = new jsPDF("p", "mm", "a4");
 
-// --- Centering Logic ---
   const pdfWidth = pdf.internal.pageSize.getWidth();
   const margin = 10; 
   const printableWidth = pdfWidth - (margin * 2);
   const pdfHeight = (canvas.height * printableWidth) / canvas.width;
-  const xOffset = (pdfWidth - printableWidth) / 2; // This ensures equal left/right space
+  const xOffset = (pdfWidth - printableWidth) / 2;
 
   pdf.addImage(imgData, "PNG", xOffset, margin, printableWidth, pdfHeight);
 
-  // --- Dynamic File Name ---
   const fileName = `${selectedEmployee.employeeID}-${selectedEmployee.firstName}_${selectedEmployee.lastName}.pdf`;
   pdf.save(fileName);
+};
 
-  // Restore original display
-  el.style.display = "";
+const handlePrintAllSeparateFiles = async () => {
+  const [tYear, tMonthNum] = selectedMonth.split("-");
+  const tMonthName = monthNames[Number(tMonthNum) - 1];
+
+  if (selectedEmployees.length === 0) {
+    toast.error("Please select at least one employee");
+    return;
+  }
+
+  const bulkToast = toast.loading(`Preparing files for ${selectedEmployees.length} employees...`);
+
+  for (let i = 0; i < selectedEmployees.length; i++) {
+    const empId = selectedEmployees[i];
+    const emp = employees.find((e) => e._id === empId);
+    if (!emp) continue;
+
+    // 1. Fetch data for this specific employee
+    const payslip = await fetchLatestPayslip(emp);
+    if (!payslip) continue;
+
+    // 2. Wait for React to render the data into the hidden div
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const el = document.getElementById("print-section");
+    if (!el) continue;
+
+    // 3. SILENCE CONTAINER (Prevents dancing and keeps layout perfect)
+    const silenceContainer = document.createElement("div");
+    silenceContainer.style.position = "fixed";
+    silenceContainer.style.top = "0";
+    silenceContainer.style.left = "0";
+    silenceContainer.style.width = "100vw";
+    silenceContainer.style.height = "0";
+    silenceContainer.style.overflow = "hidden";
+    silenceContainer.style.zIndex = "-9999";
+    document.body.appendChild(silenceContainer);
+
+    const clone = el.cloneNode(true);
+    clone.style.display = "block";
+    clone.style.position = "relative";
+    clone.style.width = "100%"; // This keeps your original layout
+    clone.style.background = "white";
+    silenceContainer.appendChild(clone);
+
+    // 4. Capture accurately
+    const canvas = await html2canvas(clone, { 
+      scale: 2, 
+      useCORS: true, 
+      allowTaint: true,
+      logging: false,
+      windowWidth: 1200, 
+      windowHeight: clone.scrollHeight
+    });
+
+    // Cleanup container immediately
+    document.body.removeChild(silenceContainer);
+
+    // 5. PDF Generation
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const margin = 10; 
+    const printableWidth = pdfWidth - (margin * 2);
+    const pdfHeight = (canvas.height * printableWidth) / canvas.width;
+    const xOffset = (pdfWidth - printableWidth) / 2;
+
+    pdf.addImage(imgData, "PNG", xOffset, margin, printableWidth, pdfHeight);
+
+    // 6. Save individual file
+    const fileName = `Payslip_${emp.employeeID || emp.firstName}_${tMonthName}_${tYear}.pdf`;
+    pdf.save(fileName);
+
+    // Small delay to prevent browser download blocking
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+  
+  toast.dismiss(bulkToast);
+  toast.success("All individual files downloaded successfully");
 };
   return (
     <>
-    <div className="flex min-h-screen flex-col md:flex-row">
-      <Sidebar />
-      <div className="flex-1 overflow-y-auto p-3">
-        <div className="bg-white shadow-md rounded-md p-3">
+<div className="flex min-h-screen flex-col md:flex-row">
+  <Sidebar />
 
-          {/* Header with Month Picker */}
-          <div className="bg-blue-50 border w-full border-blue-300 rounded-lg shadow-md p-2 mb-4 
-            flex flex-col md:flex-row items-center justify-between gap-2">
+  <div className="flex-1 overflow-y-auto p-3 md:p-3">
+    <div className="bg-white shadow-md rounded-md p-3 md:p-4">
 
-            <h2 className="text-xl font-bold text-blue-800 whitespace-nowrap">
-              Generate Pay Slip – Employee List
-            </h2>
+      {/* Header with Month Picker */}
+      <div className="
+        bg-blue-50 border w-full border-blue-300 rounded-lg shadow-md 
+        p-3 mb-4
+        flex flex-wrap items-center justify-between gap-3
+      ">
 
-            {/* Month-Year Calendar Picker */}
-            <div className="flex gap-2 items-center rounded">
-            <input
-                type="month"
-                className="border-1 border-gray-600 py-0 pl-2 rounded"
-                value={selectedMonth}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setSelectedMonth(value);
-                  localStorage.setItem("selectedMonth", value); // save month
-                  if (value) {
-                    const [year, month] = value.split("-");
-                    setSelectedYear(year);
-                    localStorage.setItem("selectedYear", year); // save year
-                  }
-                }}
-              />
-               <button
-              className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 flex items-center gap-1"
-              onClick={handlePrintAllOnePDF} 
-            >
-              <FaPrint /> Print All
-            </button>
-            </div>
-            <div className="ml-auto">
-              <BackButton />
-            </div>
+        {/* Title */}
+        <h2 className="text-lg sm:text-xl font-bold text-blue-800 whitespace-nowrap">
+          Generate Pay Slip – Employee List
+        </h2>
+
+        {/* Right Side Controls */}
+        <div className="
+          flex flex-wrap items-center gap-2 
+          w-full md:w-auto 
+          justify-start md:justify-end
+        ">
+
+          {/* Month Picker */}
+          <input
+            type="month"
+            className="
+              border border-gray-600 
+              py-1 px-2 rounded text-sm
+              w-full sm:w-auto
+            "
+            value={selectedMonth}
+            onChange={(e) => {
+              const value = e.target.value;
+              setSelectedMonth(value);
+              localStorage.setItem("selectedMonth", value);
+              if (value) {
+                const [year, month] = value.split("-");
+                setSelectedYear(year);
+                localStorage.setItem("selectedYear", year);
+              }
+            }}
+          />
+
+          {/* Print All */}
+          <button
+            className="
+              bg-blue-600 text-white 
+              px-3 py-1.5 rounded 
+              hover:bg-blue-700 
+              flex items-center justify-center gap-1
+              text-xs sm:text-sm
+              flex-1 sm:flex-none
+            "
+            onClick={handlePrintAllOnePDF}
+          >
+            <FaPrint /> Print All
+          </button>
+
+          {/* Print Separate */}
+          <button
+            className="
+              bg-purple-600 text-white 
+              px-3 py-1.5 rounded 
+              hover:bg-purple-700 
+              flex items-center justify-center gap-1
+              text-xs sm:text-sm
+              flex-1 sm:flex-none
+            "
+            onClick={handlePrintAllSeparateFiles}
+          >
+            <FaPrint /> Print Separate
+          </button>
+
+          {/* Back Button */}
+          <div className="flex-1 sm:flex-none flex justify-end">
+            <BackButton />
           </div>
 
-          {/* Employee Table */}
-          <table className="w-full table-auto border border-blue-500 text-sm">
+        </div>
+      </div>
+
+      <div className="overflow-x-auto w-full border rounded-md">
+        <table className="w-full min-w-[800px] table-auto text-sm">
             <thead className="bg-gray-200">
               <tr>
                 <th className="border border-blue-500 px-2 py-1">
@@ -433,13 +556,14 @@ const fetchLatestPayslip = async (emp) => {
 
         </div>
       </div>
+      </div>
     </div>
 
 {selectedEmployee && (
   <div
     id="print-section"
     className="hidden print:block border-2 border-black w-[210mm] max-w-full mx-auto py-4 px-12"
-    style={{ fontFamily: "sans-serif", fontSize: "14px" }}
+    style={{ fontFamily: "sans-serif", fontSize: "14px",minWidth: "210mm" }}
 >
   <div className="flex items-start justify-between px-4">
 

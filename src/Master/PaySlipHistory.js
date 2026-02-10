@@ -52,17 +52,20 @@ const PaySlipHistory = () => {
       <Sidebar />
       <div className="flex-1 overflow-y-auto p-3">
         <div className="bg-white shadow-lg rounded-md p-3">
-          <div className="bg-blue-50 border w-full border-blue-300 rounded-lg shadow-sm p-2 mb-4 
-            flex flex-col md:flex-row items-center justify-between gap-2">
-            <h2 className="text-xl font-bold text-blue-800 uppercase tracking-tight">
-              Pay Slip History (Batch Records)
-            </h2>
-            <div className="ml-auto">
-              <BackButton />
-            </div>
+            <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
+          {/* whitespace-nowrap ensures the text doesn't wrap and overlap */}
+          <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
+            Payslip History
+          </h2>
+          
+          <div className="flex shrink-0">
+            <BackButton />
           </div>
+        </div>
 
-          <table className="w-full table-auto border-collapse border border-blue-400 text-[10px]">
+        
+          <div className="overflow-x-auto w-full border rounded-md">
+            <table className="w-full min-w-[800px] table-auto text-xs">
             <thead className="bg-blue-800 text-white uppercase tracking-tighter">
               <tr>
                 <th className="border border-blue-500 p-1 w-8">SL</th>
@@ -139,6 +142,7 @@ const PaySlipHistory = () => {
           </table>
         </div>
       </div>
+    </div>
     </div>
   );
 };

@@ -49,23 +49,25 @@ const DepartmentList = () => {
     <div className="flex-1 overflow-y-auto">
     <div className="p-3 bg-white shadow-md rounded-md">
       {/* Header */}
-      <div className="bg-dorika-blueLight border border-green-300 rounded-lg shadow-md p-2 mb-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold text-dorika-blue">Department</h2>
-          <div className="flex gap-2">
-            <BackButton />
-            <button
-              onClick={() => navigate("/departmentMaster")}
-              className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
-            >
-               Add Department
-            </button>
-          </div>
-        </div>
-      </div>
+     <div className="flex justify-between items-center gap-2">
+    <h2 className="text-lg sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
+      Department
+    </h2>
+
+    <div className="flex gap-2">
+      <BackButton />
+
+    <button
+        onClick={() => navigate("/departmentMaster")}
+        className="bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 py-2 rounded font-semibold text-sm sm:text-base whitespace-nowrap"
+      >
+        Add Department
+      </button>
+    </div>
+  </div>
 
       {/* Table */}
-      <table className="w-full table-auto border border-dorika-blue">
+      <table className=" mt-2 w-full table-auto border border-dorika-blue">
         <thead className="bg-dorika-blue text-white text-sm">
           <tr>
             <th className="border border-dorika-blue px-2 py-1">
@@ -80,7 +82,7 @@ const DepartmentList = () => {
             <th className="border border-dorika-blue px-2 py-1">Action</th>
           </tr>
         </thead>
-        <tbody className="text-sm text-center">
+        <tbody className="text-xs sm:text-sm text-center">
           {departments.length > 0 ? (
             departments.map((dept) => (
               <tr
@@ -103,7 +105,7 @@ const DepartmentList = () => {
                       onClick={() =>
                         navigate("/departmentMaster", { state: { department: dept } })
                       }
-                      className="text-dorika-blue hover:text-dorika-green"
+                      className="text-dorika-blue hover:text-dorika-green p-2"
                       aria-label="Edit Department"
                     >
                       <FaEdit />

@@ -355,34 +355,41 @@ const exportExcel = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 p-6">
-        <div className="bg-white border-b-4 border-blue-600 p-4 mb-6 flex justify-between items-center shadow-sm">
-          <h2 className="text-2xl font-extrabold text-slate-800 uppercase italic">Payslip Batch Control</h2>
-          <BackButton />
-        </div>
+   <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+  <Sidebar />
+  <div className="flex-1 p-3 md:p-6">
+    {/* Header Section */}
+    <div className="bg-white border-b-4 border-blue-600 p-3 md:p-4 mb-4 md:mb-6 flex justify-between items-center shadow-sm">
+      <h2 className="text-lg md:text-2xl font-extrabold text-slate-800 uppercase italic">Payslip Batch Control</h2>
+      <BackButton />
+    </div>
 
-        <div className="bg-white p-4 rounded-xl shadow-md border mb-4 flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-[10px] font-bold text-slate-500 uppercase">Period</label>
-            <input type="month" className="w-full border-2 p-2 rounded-lg font-bold" value={selectedMonthYear} onChange={(e) => setSelectedMonthYear(e.target.value)} />
-          </div>
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-[10px] font-bold text-slate-500 uppercase">Filter Dept</label>
-            <select className="w-full border-2 p-2 rounded-lg font-bold" value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)}>
-              <option value="All">All Departments</option>
-              {departments.map(d => <option key={d._id} value={d.deptName}>{d.deptName}</option>)}
-            </select>
-          </div>
-          <button onClick={exportExcel} className="bg-green-600 text-white px-4 py-2.5 rounded-lg font-bold text-xs uppercase shadow-md active:scale-95">Export Excel</button>
-          
-          <div className="flex gap-2">
-            <button onClick={() => handleBulkSubmit("Draft")} disabled={masterLocked || isLocked || isProcessing || isGenerated} className="bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold text-xs uppercase disabled:bg-gray-300 shadow-md active:scale-95">Generate</button>
-            <button onClick={clearMonth} disabled={masterLocked || isLocked || !isGenerated} className="bg-orange-500 text-white px-4 py-2.5 rounded-lg font-bold text-xs uppercase disabled:bg-gray-300 shadow-md active:scale-95">Clear History</button>
-            <button onClick={() => handleBulkSubmit("Finalized")} disabled={masterLocked || isLocked || !isGenerated || isProcessing} className="bg-red-700 text-white px-4 py-2.5 rounded-lg font-bold text-xs uppercase disabled:bg-gray-300 shadow-md active:scale-95">Close Month</button>
-          </div>
-        </div>
+    {/* Filters and Buttons Row */}
+    <div className="bg-white p-2 md:p-4 rounded-xl shadow-md border mb-4 flex flex-row flex-wrap gap-2 items-end">
+      
+      {/* Period Field - side by side on mobile */}
+      <div className="flex-1 min-w-[120px] md:min-w-[200px]">
+        <label className="block text-[9px] md:text-[10px] font-bold text-slate-500 uppercase">Period</label>
+        <input type="month" className="w-full border-2 p-1.5 md:p-2 rounded-lg font-bold text-xs md:text-base" value={selectedMonthYear} onChange={(e) => setSelectedMonthYear(e.target.value)} />
+      </div>
+
+      {/* Filter Dept Field - side by side on mobile */}
+      <div className="flex-1 min-w-[120px] md:min-w-[200px]">
+        <label className="block text-[9px] md:text-[10px] font-bold text-slate-500 uppercase">Filter Dept</label>
+        <select className="w-full border-2 p-1.5 md:p-2 rounded-lg font-bold text-xs md:text-base" value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)}>
+          <option value="All">All Departments</option>
+          {departments.map(d => <option key={d._id} value={d.deptName}>{d.deptName}</option>)}
+        </select>
+      </div>
+
+      {/* Buttons Row - All 4 buttons in one line on mobile */}
+      <div className="flex flex-row gap-1 w-full lg:w-auto overflow-x-auto no-scrollbar">
+        <button onClick={exportExcel} className="flex-1 whitespace-nowrap bg-green-600 text-white px-2 md:px-4 py-2 rounded-lg font-bold text-[10px] md:text-xs uppercase shadow-md active:scale-95">Excel</button>
+        <button onClick={() => handleBulkSubmit("Draft")} disabled={masterLocked || isLocked || isProcessing || isGenerated} className="flex-1 whitespace-nowrap bg-blue-600 text-white px-2 md:px-4 py-2 rounded-lg font-bold text-[10px] md:text-xs uppercase disabled:bg-gray-300 shadow-md active:scale-95">Generate</button>
+        <button onClick={clearMonth} disabled={masterLocked || isLocked || !isGenerated} className="flex-1 whitespace-nowrap bg-orange-500 text-white px-2 md:px-4 py-2 rounded-lg font-bold text-[10px] md:text-xs uppercase disabled:bg-gray-300 shadow-md active:scale-95">Clear</button>
+        <button onClick={() => handleBulkSubmit("Finalized")} disabled={masterLocked || isLocked || !isGenerated || isProcessing} className="flex-1 whitespace-nowrap bg-red-700 text-white px-2 md:px-4 py-2 rounded-lg font-bold text-[10px] md:text-xs uppercase disabled:bg-gray-300 shadow-md active:scale-95">Close</button>
+      </div>
+    </div>
 
         <div className="bg-white rounded-xl shadow-2xl overflow-x-auto border border-slate-200">
           <table className="w-full border-collapse text-center">

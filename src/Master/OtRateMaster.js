@@ -176,18 +176,20 @@ const OTRateMaster = () => {
   ].map((val) => ({ value: val, label: val }));
 
   return (
-    <div className="min-h-screen bg-zinc-300 flex">
-      <Sidebar />
+    <div className="min-h-screen bg-zinc-300 flex flex-col md:flex-row">
+      <div className="md:w-64 w-full">
+        <Sidebar />
+      </div>
 
-      <div className="flex-1 p-3 overflow-y-auto">
+      <div className="flex-1 p-2 sm:p-3 overflow-y-auto">
         <div className="bg-white min-h-screen shadow-lg rounded-lg p-4 w-full">
-          <h2 className="text-2xl font-bold mb-4 text-center text-black">
+         <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 text-center">
             OT Rate Master
           </h2>
 
           <form
             onSubmit={handleSave}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           >
             <div>
               <label className="block text-sm">Rate Type</label>
@@ -297,8 +299,8 @@ const OTRateMaster = () => {
             </div>
           )}
 
-          <div className="flex justify-between mt-4">
-            <BackButton />
+         <div className="flex w-full justify-between items-center mt-4">
+           <div><BackButton/></div>
             <button
               type="button"
               onClick={handleSave}

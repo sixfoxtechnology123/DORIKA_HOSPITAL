@@ -85,23 +85,32 @@ const EmployeeList = () => {
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <Sidebar/>
-    <div className="flex-1 overflow-y-auto">
+     <div className="w-full md:w-64">
+      <Sidebar />
+    </div>
+    <div className="flex-1 overflow-y-auto p-2 sm:p-3 md:p-4">
     <div className="p-3 bg-white shadow-md rounded-md">
-      <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
-        <h2 className="text-xl font-bold text-dorika-blue">Employee List</h2>
-        <div className="flex gap-2">
-          <BackButton />
-          <button
-            onClick={() => navigate("/EmployeeMaster")}
-            className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
-          >
-            Add Employee
-          </button>
-        </div>
-      </div>
+    <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
 
-      <table className="w-full table-auto border border-dorika-blue">
+  {/* LEFT TEXT */}
+  <h2 className="text-sm sm:text-lg md:text-xl font-bold text-dorika-blue whitespace-nowrap">
+    Employee List
+  </h2>
+
+  {/* RIGHT BUTTONS */}
+  <div className="flex gap-2">
+    <BackButton />
+    <button
+      onClick={() => navigate("/EmployeeMaster")}
+      className="bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 py-1 rounded font-semibold whitespace-nowrap text-xs sm:text-sm"
+    >
+      Add Employee
+    </button>
+  </div>
+</div>
+
+      <div className="w-full overflow-x-auto">
+        <table className="min-w-[700px] w-full table-auto border border-dorika-blue">
         <thead className="bg-dorika-blue text-white text-sm">
           <tr>
             <th className="border border-dorika-blue px-2 py-1">Sl No</th>
@@ -118,7 +127,7 @@ const EmployeeList = () => {
             <th className="border border-dorika-blue px-2 py-1">Action</th>
           </tr>
         </thead>
-        <tbody className="text-sm text-center">
+        <tbody className="text-xs sm:text-sm text-center">
           {employees.length ? (
             employees.map((e,index) => (
               <tr key={e._id} className="hover:bg-dorika-blueLight transition">
@@ -143,7 +152,7 @@ const EmployeeList = () => {
                 <td className="border border-dorika-blue px-2 py-1">{e.contactNo}</td>
                 <td className="border border-dorika-blue px-2 py-1">{e.status}</td> */}
                 <td className="border border-dorika-blue px-2 py-1">
-                  <div className="flex justify-center gap-8">
+                  <div className="flex justify-center gap-4 sm:gap-8">
                    <button
                     onClick={() => navigate("/EmployeeMaster", { state: { employee: e, id: e._id } })}
                     className="text-dorika-blue hover:text-dorika-green
@@ -171,6 +180,7 @@ const EmployeeList = () => {
           )}
         </tbody>
       </table>
+    </div>
     </div>
     </div>
     </div>

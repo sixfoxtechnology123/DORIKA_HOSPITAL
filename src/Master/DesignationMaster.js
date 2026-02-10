@@ -132,13 +132,13 @@ const DesignationMaster = () => {
   const handleBack = () => navigate(-1);
 
   return (
-    <div className="min-h-screen bg-zinc-300 flex">
+    <div className="min-h-screen bg-zinc-300 flex flex-col md:flex-row">
       <Sidebar />
-      <div className="flex-1 p-3 overflow-y-auto flex items-center justify-center">
-       <div className="bg-white shadow-lg rounded-lg p-4 w-full max-w-lg">
-          <h2 className="text-xl font-bold mb-4">
-          {isEditMode ? 'Update Designation' : 'Designation Master'}
-        </h2>
+     <div className="flex-1 p-3 overflow-y-auto flex items-start md:items-center justify-center">
+       <div className="bg-white shadow-lg rounded-lg p-4 w-full max-w-md sm:max-w-lg">
+         <h2 className="text-lg sm:text-xl font-bold mb-4 whitespace-nowrap">
+        {isEditMode ? 'Update Designation' : 'Designation Master'}
+      </h2>
 
         <div className="mb-4">
           <label className="block text-black mb-1">Designation ID</label>
@@ -202,10 +202,8 @@ const DesignationMaster = () => {
           </select>
         </div>
 
-        <div className="flex justify-between">
-          <button onClick={handleBack}>
-            <BackButton />
-          </button>
+      <div className="flex w-full justify-between items-center">
+        <div><BackButton/></div>
           <button
             onClick={handleSaveOrUpdate}
             className={`px-4 py-1 rounded text-white ${

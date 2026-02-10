@@ -699,7 +699,7 @@ const handleSubmit = async (e) => {
 
 
   return (
-    <div className="min-h-screen bg-zinc-300 flex">
+    <div className="min-h-screen bg-zinc-300 flex flex-col md:flex-row">
         <Sidebar />
 
         <div className="flex-1 p-3 overflow-y-auto">
@@ -707,7 +707,7 @@ const handleSubmit = async (e) => {
           {/* ===================== STEP 1 ===================== */}
 
 
-         <div className="flex items-center font-semibold gap-2 border-b border-gray-300 mb-4 pb-2 flex-wrap">
+         <div className="flex items-center font-semibold gap-2 border-b border-gray-300 mb-4 pb-2 overflow-x-auto whitespace-nowrap scrollbar-hide px-1">
           {["Personal & Service details", "Education", "Nominees/Medical/Address", "Pay Details", "Pay Structure","Doccument"].map((s, i) => (
             <React.Fragment key={i}>
               <div
@@ -734,7 +734,7 @@ const handleSubmit = async (e) => {
                 Personal Details
               </h3>
 
-              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+             <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
                 <Select
                     label="Employment Status *"
                     value={employmentStatus}
@@ -959,19 +959,22 @@ const handleSubmit = async (e) => {
                     label: `${e.firstName} ${e.lastName} (${e.employeeID})`,
                   }))}
                 />
-                <div className="col-span-full flex justify-between mt-4">
+             <div className="col-span-full flex flex-row justify-between items-center gap-3 mt-6 border-t pt-4">
+                {/* Left Side */}
+                <div className="flex-shrink-0">
                   <BackButton />
-                  <button
-                    type="button"
-                     onClick={handleSaveAndNext} 
-                    className="flex items-center gap-1 px-3 py-1 rounded text-white bg-sky-600 hover:bg-sky-700"
-                  >
-                    <span>Save</span>
-                    <span>&</span>
-                    <span>Next</span>
-                    <span>→</span>
-                  </button>
                 </div>
+
+                {/* Right Side */}
+                <button
+                  type="button"
+                  onClick={handleSaveAndNext}
+                  className="flex items-center justify-center gap-1 px-4 py-2 rounded text-white bg-sky-600 hover:bg-sky-700 transition-colors shadow-sm active:scale-95"
+                >
+                  <span>Save & Next</span>
+                  <span className="text-lg">→</span>
+                </button>
+              </div>
               </form>
             </>
           )}
@@ -983,7 +986,8 @@ const handleSubmit = async (e) => {
                 Educational Details
               </h2>
 
-              <table className="w-full border border-gray-400 text-sm mb-4">
+              <div className="overflow-x-auto mb-4">
+              <table className="min-w-[900px] w-full border border-gray-400 text-xs sm:text-sm">
                 <thead className="bg-sky-100">
                   <tr>
                     <th className="border p-2">S.No.</th>
@@ -1106,7 +1110,8 @@ const handleSubmit = async (e) => {
                           className="w-full pl-2 pr-1 border border-gray-300 font-medium rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
                         />
                       </td>
-                      <td className="border p-2 flex text-center">
+                      <td className="border p-2">
+                       <div className="flex justify-center gap-1">
                         <button
                           type="button"
                           onClick={handleAddRow}
@@ -1123,32 +1128,36 @@ const handleSubmit = async (e) => {
                             -
                           </button>
                         )}
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+      <div className="col-span-full flex flex-row justify-between items-center mt-8 border-t pt-4">
 
-              <div className="col-span-full flex justify-between mt-4">
-                <button
-                  onClick={() => setStep(1)}
-                  className="bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-800"
-                >
-                  ← Back
-                </button>
-                <button
-                  type="button"
-                   onClick={handleSaveAndNext} 
+        <button
+          onClick={() => setStep(1)}
+          className="bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-800"
+        >
+          ← Back
+        </button>
 
-                  className="flex items-center gap-1 px-3 py-1 rounded text-white bg-sky-600 hover:bg-sky-700"
-                >
-                  <span>Save & Next</span>
-                  <span>→</span>
-                </button>
+        <button
+          type="button"
+          onClick={handleSaveAndNext}
+          className="flex items-center gap-1 px-3 py-1 rounded text-white bg-sky-600 hover:bg-sky-700"
+        >
+          <span>Save & Next</span>
+          <span>→</span>
+        </button>
+
+      </div>
               </div>
             </>
           )}
-          {/* ===================== STEP 3 ===================== */}
+
+       {/* ===================== STEP 3 ===================== */}
             {step === 3 && (
               <>
                 {/* <h2 className="text-2xl font-bold mb-4 text-center text-black">
@@ -1159,7 +1168,8 @@ const handleSubmit = async (e) => {
                 <h3 className="text-xl font-semibold text-sky-600 col-span-full">
                   Nominee Details
                 </h3>
-                <table className="w-full border border-gray-400 text-sm mb-4">
+                <div className="overflow-x-auto mb-4">
+                  <table className="min-w-[700px] w-full border border-gray-400 text-xs sm:text-sm">
                   <thead className="bg-sky-100">
                     <tr>
                       <th className="border p-2">S.No.</th>
@@ -1262,13 +1272,14 @@ const handleSubmit = async (e) => {
                     ))}
                   </tbody>
                 </table>
+                </div>
 
                 {/* ---------- MEDICAL DETAILS ---------- */}
                   <h3 className="text-xl font-semibold text-sky-600 col-span-full">
                     Medical Information
                   </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     {/* Blood Group */}
                     <div>
                       <label className="block text-sm mb-1">Blood Group</label>
@@ -1867,7 +1878,7 @@ const handleSubmit = async (e) => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
                 {/* Earnings Table */}
                 <div className="border rounded-lg overflow-hidden shadow-sm">
                   <div className="bg-sky-600 text-white p-2 font-bold text-center">EARNINGS</div>
@@ -1968,7 +1979,7 @@ const handleSubmit = async (e) => {
                   Hard Copy Documents Collected
                 </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm font-medium">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm font-medium">
                   {[
                     ["aadhaar", "Aadhaar"],
                     ["pan", "PAN"],

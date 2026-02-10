@@ -76,12 +76,17 @@ const updateLeaveStatus = async (id, status) => {
       <div className="flex-1 overflow-y-auto p-2 sm:p-3">
         <div className="bg-white shadow-md rounded-md p-2 sm:p-3">
           {/* Header */}
-           <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between sm:items-center">
-            <h2 className="text-base sm:text-xl font-bold text-dorika-blue text-center sm:text-left">Leave Approval Panel</h2>
-            <div className="flex gap-2">
-              <BackButton />
-            </div>
+
+           <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
+          {/* whitespace-nowrap ensures the text doesn't wrap and overlap */}
+          <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
+           Leave Approval Panel
+          </h2>
+          
+          <div className="flex shrink-0">
+            <BackButton />
           </div>
+        </div>
 
           {/* Table */}
           <div className="overflow-x-auto">

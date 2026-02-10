@@ -286,7 +286,8 @@ export default function AdminManagement() {
           {/* Users Table */}
           <div className="bg-white p-4 rounded-2xl shadow border border-blue-200">
             <h3 className="text-lg font-semibold text-dorika-blue mb-2">Existing Users</h3>
-            <table className="w-full table-auto border border-dorika-blue text-sm text-center">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[800px] table-auto border border-dorika-blue text-sm text-center">
               <thead className="bg-blue-100 text-dorika-blue">
                 <tr>
                   <th className="border border-dorika-blue px-2 py-1">User ID</th>
@@ -347,6 +348,7 @@ export default function AdminManagement() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

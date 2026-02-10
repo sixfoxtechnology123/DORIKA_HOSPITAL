@@ -36,9 +36,9 @@ const DesignationList = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    <div className="flex min-h-screen flex-col md:flex-row bg-gray-50">
       <Sidebar/>
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-x-hidden overflow-y-auto p-2 sm:p-3">
     <div className="p-3 bg-white shadow-md rounded-md">
       <div className="bg-dorika-blueLight border border-green-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
         <h2 className="text-xl font-bold text-dorika-blue">Designation</h2>
@@ -53,7 +53,8 @@ const DesignationList = () => {
         </div>
       </div>
 
-      <table className="w-full table-auto border border-dorika-blue">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[750px] table-auto border border-dorika-blue text-sm">
         <thead className="bg-dorika-blue text-white text-sm">
           <tr>
             <th className="border border-dorika-blue px-2 py-1">Designation ID</th>
@@ -64,7 +65,7 @@ const DesignationList = () => {
             <th className="border border-dorika-blue px-2 py-1">Action</th>
           </tr>
         </thead>
-        <tbody className="text-sm text-center">
+        <tbody className="text-xs sm:text-sm text-center">
           {designations.length > 0 ? (
             designations.map((d) => (
               <tr key={d._id} className="hover:bg-dorika-blueLight transition">
@@ -74,7 +75,7 @@ const DesignationList = () => {
                 <td className="border border-dorika-blue px-2 py-1">{d.grade}</td>
                 <td className="border border-dorika-blue px-2 py-1">{d.status}</td>
                 <td className="border border-dorika-blue px-2 py-1 ">
-                <div className='flex justify-center gap-8'>
+                <div className="flex justify-center gap-4 sm:gap-8">
                     <button
                     onClick={() =>
                       navigate('/designationMaster', { state: { designation: d } })
@@ -103,6 +104,7 @@ const DesignationList = () => {
         </tbody>
       </table>
     </div>
+</div>
 </div>
 </div>
   );

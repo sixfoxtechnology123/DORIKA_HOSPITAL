@@ -347,9 +347,9 @@ const handleSubmit = async () => {
               <input type="text" className={`${inputClass} bg-gray-100`} value={formData.employeeName || "Loading..."} readOnly />
             </div>
 
-          <div>
+          {/* <div>
             <label className="block text-xs sm:text-sm font-bold text-gray-700">Application Date</label>
-            {/* The real (hidden) picker that stores YYYY-MM-DD in state */}
+          
             <input 
               type="date" 
               id="appDatePicker"
@@ -364,7 +364,7 @@ const handleSubmit = async () => {
                 }));
               }}
             />
-            {/* The visible text box showing DD/MM/YYYY */}
+
             <input
               type="text"
               readOnly
@@ -372,9 +372,27 @@ const handleSubmit = async () => {
               value={formatDDMMYYYY(formData.applicationDate)} // Displays with slashes
               onClick={() => document.getElementById("appDatePicker").showPicker()}
             />
-            {/* <p className="text-[10px] sm:text-xs text-blue-600 font-bold mt-1">
-              Session: {getDynamicFY(formData.applicationDate).sessionName}
-            </p> */}
+          </div> */}
+
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-700">Application Date</label>
+            {/* The real (hidden) picker remains as is */}
+            <input 
+              type="date" 
+              id="appDatePicker"
+              className="hidden" 
+              value={formData.applicationDate} 
+              readOnly // Added readOnly here too for safety
+            />
+            {/* The visible text box: Click removed, disabled added */}
+            <input
+              type="text"
+              disabled // This prevents any interaction
+              className={`${inputClass} cursor-not-allowed bg-gray-100 opacity-80`} // Styles it as locked
+              value={formatDDMMYYYY(formData.applicationDate)} 
+              // REMOVED: onClick={() => document.getElementById("appDatePicker").showPicker()}
+            />
           </div>
             <div>
             <label className="block text-xs sm:text-sm font-bold text-gray-700">Leave Type</label>

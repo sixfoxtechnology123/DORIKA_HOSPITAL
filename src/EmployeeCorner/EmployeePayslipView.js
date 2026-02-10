@@ -101,18 +101,16 @@ const EmployeePayslipView = () => {
         <div className="flex-1 overflow-x-hidden p-3">
           <div className="bg-white shadow-md rounded-md p-3">
             {/* Header: Stack vertically on mobile, row on desktop */}
-            <div className="bg-blue-50 border border-gray-300 rounded-lg p-2 mb-4 flex flex-col sm:flex-row justify-between items-center gap-3">
-              <h2 className="text-lg font-bold text-blue-800">My Pay Slips</h2>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <input
-                  type="month"
-                  className="flex-1 border border-gray-300 py-1 px-2 rounded text-sm"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                />
-                <BackButton />
-              </div>
-            </div>
+           <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
+          {/* whitespace-nowrap ensures the text doesn't wrap and overlap */}
+          <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
+            Payslip
+          </h2>
+          
+          <div className="flex shrink-0">
+            <BackButton />
+          </div>
+        </div>
 
             {/* Table wrapper for horizontal scroll on small screens */}
             <div className="overflow-x-auto">
@@ -190,12 +188,12 @@ const EmployeePayslipView = () => {
                     <div className="col-span-1 border border-gray-300 rounded px-4 py-2 bg-green-50 text-left">
                       <p className="font-semibold text-xs md:text-sm">Total Payable: ₹{viewPayslip.netSalary}</p>
                       <div className="flex justify-between text-[10px] md:text-xs mt-1">
-                        <div className="flex-1">Work days: <span className="font-semibold">{viewPayslip.totalWorkingDays}</span></div>
-                        <div className="flex-1 text-right">Lop: <span className="font-semibold">{viewPayslip.lopDays || 0}</span></div>
+                        <div className="flex-1 text-xs">Work days: <span className="font-semibold">{viewPayslip.totalWorkingDays}</span></div>
+                        <div className="flex-1 text-xs text-right">Lop: <span className="font-semibold">{viewPayslip.lopDays || 0}</span></div>
                       </div>
                       <div className="flex justify-between text-[10px] md:text-xs mt-1">
-                        <span className="text-sm">Paid days: <b>{viewPayslip.totalPaidDays}</b></span>
-                        <span className="text-sm">Leaves: <b>{viewPayslip.leaves || 0}</b></span>
+                        <span className="text-xs">Paid days: <b>{viewPayslip.totalPaidDays}</b></span>
+                        <span className="text-xs">Leaves: <b>{viewPayslip.leaves || 0}</b></span>
                       </div>
                     </div>
                   </div>

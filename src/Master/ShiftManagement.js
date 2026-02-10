@@ -234,58 +234,90 @@ const handlePrint = () => {
       : filteredEmployees;
 
   const printWindow = window.open("", "", "width=1200,height=800");
+  
+  // Prepare the HTML content
   printWindow.document.write(`
     <html>
     <head>
-      <title>Shift Report</title>
+      <title>Shift Report - ${selectedMonth}</title>
       <style>
-        body { font-family: Arial; }
-        table { border-collapse: collapse; width: 100%; font-size: 10px; }
-        th, td { border: 1px solid #000; padding: 4px; text-align: center; }
-        th { background: #e6f0ff; }
-        @page { size: A4 landscape; margin: 10mm; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; }
+        h3 { text-align: center; color: #333; margin-bottom: 20px; }
+        table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+        th, td { 
+          border: 1px solid #ccc; 
+          padding: 4px 2px; 
+          text-align: center; 
+          font-size: 9px; 
+          word-wrap: break-word;
+        }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        .emp-info { text-align: left; padding-left: 5px; font-size: 10px; }
+        @page { size: A4 landscape; margin: 5mm; }
+        @media print {
+          button { display: none; }
+          body { margin: 0; }
+          table { width: 100%; }
+        }
       </style>
     </head>
     <body>
-    <h3>
-      Shift Report : ${
-        new Date(
-          selectedMonth.split("-")[0],
-          selectedMonth.split("-")[1] - 1
-        ).toLocaleString("en-US", { month: "short" })
-      } - ${selectedMonth.split("-")[0]}
-    </h3>
+      <h3>
+        Shift Report: ${
+          new Date(
+            selectedMonth.split("-")[0],
+            selectedMonth.split("-")[1] - 1
+          ).toLocaleString("en-US", { month: "long", year: "numeric" })
+        }
+      </h3>
 
       <table>
-        <tr>
-          <th>SL</th>
-          <th>Emp ID</th>
-          <th>Name</th>
-          <th>Designation</th>
-          ${daysInMonth.map(d => `<th>${d}</th>`).join("")}
-        </tr>
-        ${printData
-          .map((emp, i) => `
-            <tr>
-              <td>${i + 1}</td>
-              <td>${emp.employeeID}</td>
-              <td>${emp.firstName} ${emp.middleName} ${emp.lastName}</td>
-              <td>${emp.designationName}</td>
-              ${daysInMonth
-                .map(
-                  d =>
-                    `<td>${shifts?.[emp.employeeID]?.[d] || ""}</td>`
-                )
-                .join("")}
-            </tr>
-          `)
-          .join("")}
+        <thead>
+          <tr>
+            <th style="width: 30px;">SL</th>
+            <th style="width: 50px;">ID</th>
+            <th style="width: 120px;">Name</th>
+            <th style="width: 100px;">Designation</th>
+            ${daysInMonth.map(d => `<th style="width: 25px;">${d}</th>`).join("")}
+          </tr>
+        </thead>
+        <tbody>
+          ${printData
+            .map((emp, i) => {
+              // Get the shift data using employeeUserId (which matches your state)
+              const empShifts = shifts[emp.employeeUserId] || {};
+              
+              return `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td>${emp.employeeID}</td>
+                  <td class="emp-info">${emp.firstName} ${emp.lastName}</td>
+                  <td class="emp-info">${emp.designationName}</td>
+                  ${daysInMonth
+                    .map(d => {
+                      let displayVal = empShifts[d] || "";
+                      // If it's a Double Duty (DD:MN), show it clearly in the PDF
+                      if (displayVal.startsWith("DD:")) {
+                        displayVal = displayVal.replace("DD:", "");
+                      }
+                      return `<td>${displayVal}</td>`;
+                    })
+                    .join("")}
+                </tr>
+              `;
+            })
+            .join("")}
+        </tbody>
       </table>
     </body>
     </html>
   `);
+  
   printWindow.document.close();
-  printWindow.print();
+  // Small delay to ensure styles are loaded before print dialog opens
+  setTimeout(() => {
+    printWindow.print();
+  }, 500);
 };
 
 
@@ -308,7 +340,7 @@ const handlePrint = () => {
       </div>
 
      {/* ================= TOP SECTION ================= */}
-     <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-4 flex items-center justify-between border border-dorika-blue">
+     <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-4 flex flex-col lg:flex-row lg:items-center gap-4 justify-between border border-dorika-blue">
   <div className="flex items-center gap-6">
           <label className="font-semibold text-dorika-blue">Month:</label>
           <input
@@ -347,7 +379,7 @@ const handlePrint = () => {
 
     
       {/* ================= SHIFT TABLE ================= */}
-      <div className="overflow-x-auto bg-white rounded-lg shadow">
+     <div className="w-full overflow-x-auto bg-white rounded-lg shadow border border-dorika-blue">
         <table className="border-collapse border-dorika-blue w-full text-xs">
           <thead className="bg-dorika-blue text-white sticky top-0">
             <tr>
@@ -413,13 +445,13 @@ const handlePrint = () => {
                   <td
                     key={day}
                     // Added min-width and horizontal padding
-                    className={`border border-dorika-blue px-1 py-2 text-center min-w-[60px] ${getShiftColor(isDD ? "DD" : currentShift, index)}`}
+                    className={`border border-dorika-blue px-0.5 md:px-1 py-2 text-center min-w-[45px] md:min-w-[60px] ${getShiftColor(isDD ? "DD" : currentShift, index)}`}
                   >
                     <div className="flex flex-col items-center gap-1">
                     <select
                         value={isDD ? "DD" : currentShift}
                         onChange={(e) => handleShiftChange(emp, day, e.target.value)}
-                        className="bg-transparent border rounded px-1 py-0.5 text-xs font-semibold w-full cursor-pointer"
+                       className="bg-transparent border rounded px-0 md:px-1 py-0.5 text-[10px] md:text-xs font-semibold w-full cursor-pointer"
                       >
                         <option value="">-</option>
                         {shiftOptions.map((opt) => (
@@ -487,7 +519,7 @@ const handlePrint = () => {
             currentPage={currentPage}
             onPageChange={setCurrentPage}
             />
-            <div className="absolute right-3 bottom-3">
+          <div className="flex justify-end mt-3 md:absolute md:right-3 md:bottom-3">
               <button
                 onClick={handleSubmit}
                 className="bg-dorika-blue hover:bg-dorika-orange text-white px-4 py-1 rounded font-semibold"

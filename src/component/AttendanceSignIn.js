@@ -130,7 +130,7 @@ const AttendanceSignIn = () => {
       <div className="absolute inset-0 bg-black/60"></div>
 
       
-       <div className="relative z-10 w-full max-w-xs sm:max-w-sm bg-white rounded-lg shadow-xl overflow-hidden mx-auto lg:mx-0 lg:ml-auto lg:mr-[30%]">      
+       <div className="relative z-10 w-full max-w-xs sm:max-w-sm bg-white rounded-lg shadow-xl overflow-hidden mx-auto ">      
         <div className="bg-indigo-600 text-white px-3 sm:px-4 py-2 flex justify-between items-center">
           <span className="font-semibold">Attendance Sign In</span>
           <button onClick={() => navigate("/EmployeeAttendance")} className="text-xl font-bold">×</button>

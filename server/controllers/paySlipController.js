@@ -139,3 +139,34 @@ export const deletePaySlip = async (req, res) => {
     res.json({ success: true, message: "Deleted successfully" });
   } catch (err) { res.status(500).json({ error: "Failed to delete" }); }
 };
+
+// Add this to your payslip controller
+export const getPayslipsByEmployeeUserId = async (req, res) => {
+  try {
+    const { empUserId } = req.params;
+
+    // 1. Find all batches that contain this employee in the employeePayslips array
+    const batches = await PaySlip.find({
+      "employeePayslips.employeeUserId": empUserId,
+      "status": "Finalized" // Optional: only show finalized slips to employees
+    }).sort({ year: -1, month: -1 });
+
+    // 2. Extract only THIS employee's data from each batch
+    const employeeHistory = batches.map(batch => {
+      const specificSlip = batch.employeePayslips.find(
+        slip => slip.employeeUserId === empUserId
+      );
+
+      return {
+        ...specificSlip.toObject(),
+        month: batch.month, // Take month/year from the parent batch
+        year: batch.year,
+        batchId: batch._id
+      };
+    });
+
+    res.json({ success: true, data: employeeHistory });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};

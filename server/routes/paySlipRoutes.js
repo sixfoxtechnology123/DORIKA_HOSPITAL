@@ -6,6 +6,7 @@ const {
   getEmployeeById,
   checkBatchStatus,
   clearMonthData,
+  getPayslipsByEmployeeUserId
 } = require("../controllers/paySlipController");
 
 const router = express.Router();
@@ -25,4 +26,5 @@ router.delete("/:id", deletePaySlip);
 // Employee details
 router.get("/employee/:employeeId", getEmployeeById);
 
+router.get("/view-all/:empUserId", getPayslipsByEmployeeUserId);
 module.exports = router;

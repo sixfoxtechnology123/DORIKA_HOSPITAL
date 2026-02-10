@@ -45,23 +45,26 @@ const formatDateTime = (date) =>
     history.find((h) => h.role === role) || {};
 
   return (
-     <div className="flex min-h-screen flex-col md:flex-row">
+     <div className="flex min-h-screen flex-col md:flex-row bg-gray-50">
       <Sidebar />
-      <div className="flex-1 overflow-y-auto p-3">
-        <div className="bg-white shadow-md rounded-md p-3">
-         <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-dorika-blue">
-            Employee Status Reminder
-          </h2>
-          <div className="ml-auto">
-            <BackButton />
+      <div className="flex-1 overflow-y-auto p-2 sm:p-3 md:p-4 lg:p-6">
+        <div className="bg-white shadow-md rounded-md p-2 sm:p-3 md:p-4">
+    <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
+            {/* whitespace-nowrap ensures the text doesn't wrap and overlap */}
+            <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
+              Employee Leave history
+            </h2>
+            
+            <div className="flex shrink-0">
+              <BackButton />
+            </div>
           </div>
-        </div>
 
 
           {/* Table */}
-          <table className="w-full border border-dorika-blue text-sm border-collapse">
-            <thead className="bg-dorika-blue text-white text-xs">
+          <div className="w-full overflow-x-auto">
+            <table className="min-w-[900px] w-full border border-dorika-blue text-xs sm:text-sm border-collapse">
+            <thead className="bg-dorika-blue text-white text-[10px] sm:text-xs md:text-sm">
               <tr>
                 <th className="border px-2 py-1">Emp ID</th>
                 <th className="border px-2 py-1">Emp Name</th>
@@ -125,6 +128,7 @@ const formatDateTime = (date) =>
           </table>
 
         </div>
+      </div>
       </div>
     </div>
   );

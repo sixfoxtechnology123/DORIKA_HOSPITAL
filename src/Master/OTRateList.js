@@ -42,15 +42,12 @@ const OTRateList = () => {
       <Sidebar />
 
       <div className="flex-1 overflow-y-auto">
-        <div className="p-3 bg-white shadow-md rounded-md">
+        <div className="p-2 sm:p-3 bg-white shadow-md rounded-md">
           {/* HEADER */}
-          <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-dorika-blue">
-              OT Rate List
-            </h2>
-
-            <div className="flex gap-2">
-              <BackButton />
+            <div className="bg-dorika-blueLight border border-green-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
+        <h2 className="text-xl font-bold text-dorika-blue">Ot Master</h2>
+        <div className="flex gap-2">
+          <BackButton />
               <button
                 onClick={() => navigate("/otRateMaster")}
                 className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
@@ -61,7 +58,8 @@ const OTRateList = () => {
           </div>
 
           {/* TABLE */}
-          <table className="w-full table-auto border border-dorika-blue">
+          <div className="w-full overflow-x-auto">
+            <table className="min-w-[900px] w-full table-auto border border-dorika-blue">
             <thead className="bg-dorika-blue text-white text-sm">
               <tr>
                 <th className="border px-2 py-1">S.No</th>
@@ -136,6 +134,7 @@ const OTRateList = () => {
           </table>
         </div>
       </div>
+    </div>
     </div>
   );
 };

@@ -235,7 +235,9 @@ const EmployeeUserIdCreated = () => {
             <h3 className="text-lg font-semibold text-dorika-blue mb-2">
               Created Employee IDs
             </h3>
-            <table className="w-full table-auto border border-dorika-blue text-sm text-center">
+            {/* This div allows you to swipe left/right on your phone */}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[800px] table-auto border border-dorika-blue text-sm text-center">
               <thead className="bg-blue-100 text-dorika-blue">
                 <tr>
                   <th className="border border-dorika-blue px-2 py-1">Employee ID</th>
@@ -283,6 +285,7 @@ const EmployeeUserIdCreated = () => {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 };

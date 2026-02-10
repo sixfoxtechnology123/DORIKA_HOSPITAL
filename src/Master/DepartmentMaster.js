@@ -85,13 +85,15 @@ const DepartmentMaster = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-300 flex">
+    <div className="min-h-screen bg-zinc-300 flex flex-col md:flex-row">
       <Sidebar />
-      <div className="flex-1 p-3 overflow-y-auto flex items-center justify-center">
-       <div className="bg-white shadow-lg rounded-lg p-4 w-full max-w-lg">
-          <h2 className="text-xl font-bold mb-4">
+      <div className="flex-1 p-3 overflow-y-auto flex items-start md:items-center justify-center">
+       <div className="bg-white shadow-lg rounded-lg p-4 w-full max-w-md sm:max-w-lg">
+        <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg sm:text-xl font-bold whitespace-nowrap">
           {isEditMode ? 'Update Department' : 'Department'}
         </h2>
+      </div>
 
         <div className="mb-4">
           <label className="block text-black mb-1">Department Code</label>
@@ -116,8 +118,8 @@ const DepartmentMaster = () => {
           </select>
         </div>
 
-        <div className="flex justify-between">
-          <BackButton />
+        <div className="flex w-full justify-between items-center">
+         <div><BackButton/></div>
           <button
             onClick={handleSaveOrUpdate}
             className={`px-4 py-1 rounded text-white ${

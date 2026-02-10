@@ -114,17 +114,17 @@ const LeaveTypeMaster = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-300 flex">
+    <div className="min-h-screen bg-zinc-300 flex flex-col md:flex-row">
       <Sidebar />
 
-      <div className="flex-1 p-3 overflow-y-auto">
+      <div className="flex-1 p-2 sm:p-3 md:p-4 lg:p-6 overflow-y-auto">
         <div className="bg-white min-h-screen shadow-lg rounded-lg p-4 w-full">
           <h2 className="text-2xl font-bold mb-4 text-center text-black">
             {isEditMode ? "Update Leave Type" : "Leave Type"}
           </h2>
           <form
             onSubmit={handleSaveOrUpdate}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
           >
             <div>
               <label className="block text-sm">Leave Type ID</label>
@@ -218,8 +218,8 @@ const LeaveTypeMaster = () => {
               />
             </div>
 
-            <div className="col-span-1 md:col-span-2 lg:col-span-4 flex justify-between mt-2">
-              <BackButton type="button" />
+            <div className="col-span-full flex flex-row justify-between items-center mt-3 pt-3 border-t">
+              <div><BackButton/></div>
               <button
                 type="submit"
                 className={`px-4 py-1 rounded text-white ${
