@@ -88,7 +88,7 @@ const EmployeeList = () => {
      <div className="w-full md:w-64">
       <Sidebar />
     </div>
-    <div className="flex-1 overflow-y-auto p-2 sm:p-3 md:p-4">
+    <div className="flex-1 overflow-y-auto p-2 sm:p-3 md:p-2">
     <div className="p-3 bg-white shadow-md rounded-md">
     <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
 

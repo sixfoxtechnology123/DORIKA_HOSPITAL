@@ -49,7 +49,7 @@ const formatDateTime = (date) =>
       <Sidebar />
       <div className="flex-1 overflow-y-auto p-2 sm:p-3 md:p-4 lg:p-6">
         <div className="bg-white shadow-md rounded-md p-2 sm:p-3 md:p-4">
-    <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
+        <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
             {/* whitespace-nowrap ensures the text doesn't wrap and overlap */}
             <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
               Employee Leave history

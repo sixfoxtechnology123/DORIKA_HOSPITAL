@@ -57,7 +57,6 @@ const PaySlipHistory = () => {
           <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
             Payslip History
           </h2>
-          
           <div className="flex shrink-0">
             <BackButton />
           </div>
@@ -98,7 +97,7 @@ const PaySlipHistory = () => {
                         </div>
                       ))}
                     </td>
-                    
+                                       
                     <td className="border border-blue-300 p-1 text-left">
                       {slip.deductions?.map((d, i) => (
                         <div key={i} className="flex justify-between border-b border-red-100 last:border-0">

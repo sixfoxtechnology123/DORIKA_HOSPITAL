@@ -379,7 +379,7 @@ const handlePrint = () => {
 
     
       {/* ================= SHIFT TABLE ================= */}
-     <div className="w-full overflow-x-auto bg-white rounded-lg shadow border border-dorika-blue">
+     <div className="w-full overflow-x-auto bg-white rounded-lg shadow border">
         <table className="border-collapse border-dorika-blue w-full text-xs">
           <thead className="bg-dorika-blue text-white sticky top-0">
             <tr>

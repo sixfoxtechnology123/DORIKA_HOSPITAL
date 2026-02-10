@@ -359,10 +359,16 @@ const exportExcel = () => {
   <Sidebar />
   <div className="flex-1 p-3 md:p-6">
     {/* Header Section */}
-    <div className="bg-white border-b-4 border-blue-600 p-3 md:p-4 mb-4 md:mb-6 flex justify-between items-center shadow-sm">
-      <h2 className="text-lg md:text-2xl font-extrabold text-slate-800 uppercase italic">Payslip Batch Control</h2>
-      <BackButton />
-    </div>
+       <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
+          {/* whitespace-nowrap ensures the text doesn't wrap and overlap */}
+          <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
+          Payslip Control
+          </h2>
+          
+          <div className="flex shrink-0">
+            <BackButton />
+          </div>
+        </div>
 
     {/* Filters and Buttons Row */}
     <div className="bg-white p-2 md:p-4 rounded-xl shadow-md border mb-4 flex flex-row flex-wrap gap-2 items-end">
@@ -419,7 +425,7 @@ const exportExcel = () => {
               <tr key={emp.employeeID} className={`hover:bg-blue-50 border-b ${(isLocked || masterLocked) ? 'bg-gray-100' : ''}`}>
                 <td className="p-1 border">{idx + 1}</td>
                 <td className="p-1 border font-bold text-slate-600">{emp.employeeID}</td>
-                <td className="p-1 border text-left uppercase">{emp.firstName} {emp.lastName}</td>
+                <td className="p-1 border text-left uppercase text-gray-900 font-semibold">{emp.firstName} {emp.lastName} {emp.lastName}</td>
                 <td className="p-1 border bg-yellow-50/20 font-semibold">{emp.departmentName}</td>
                 
                 {/* Gross Salary */}
