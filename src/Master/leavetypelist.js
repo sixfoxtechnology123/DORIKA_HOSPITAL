@@ -41,19 +41,31 @@ const LeaveTypeList = () => {
       <Sidebar/>
     <div className="flex-1 overflow-y-auto">
     <div className="p-3 bg-white shadow-md rounded-md">
-      <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
-        <h2 className="text-xl font-bold text-dorika-blue">Leave Type</h2>
-        <div className="flex gap-2">
-          <BackButton />
+      <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+  
+        {/* Desktop and mobile: title left, back button right */}
+        <div className="flex justify-between items-center w-full">
+          <h2 className="text-xl font-bold text-dorika-blue">Leave Type</h2>
+          <div className="sm:hidden">
+            <BackButton />
+          </div>
+          <div className="hidden sm:flex gap-2">
+            <BackButton />
+          </div>
+        </div>
+
+        {/* Manage button always at bottom on mobile */}
+        <div className="mt-2 sm:mt-0">
           <button
             onClick={() => navigate("/leavetypeMaster")}
-            className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
+            className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold whitespace-nowrap w-full sm:w-auto"
           >
             Manage New Leave Type
           </button>
         </div>
       </div>
 
+<div className="overflow-x-auto">
       <table className="w-full table-auto border border-dorika-blue">
         <thead className="bg-dorika-blue text-white text-sm">
           <tr>
@@ -112,6 +124,8 @@ const LeaveTypeList = () => {
     </div>
     </div>
   </div>
+  </div>
+
   );
 };
 

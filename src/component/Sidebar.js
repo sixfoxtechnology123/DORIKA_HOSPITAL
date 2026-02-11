@@ -42,9 +42,9 @@ const Sidebar = () => {
       submenus: [
         { name: "Departments", path: "/DepartmentList" },
         { name: "Designations", path: "/DesignationList" },
-        {
-         name:"OT Rate", path:"/OTRateList"
-        },  
+        // {
+        //  name:"OT Rate", path:"/OTRateList"
+        // },  
         
         // { name: "Holidays", path: "/HolidayList" },
         //  { name: "Shifts Manage", path: "/ShiftList" },
@@ -65,7 +65,7 @@ const Sidebar = () => {
     {
           name: "Leave Management",
           icon: FaCalendarAlt,
-          permission:"",
+          permission:"Leave_Management_View",
           submenus: [
             //{ name: "Dashboard", path: "/LeaveDashboard" },
             { name: "Manage Leave Type", path: "/LeaveTypeList" },
@@ -77,7 +77,7 @@ const Sidebar = () => {
         {
           name:"Shift Management",
           icon:Clock,
-          permission:"",
+          permission:"Shift_Management_view",
           submenus:[
             {
               name:"Manage Shift Time", path:"/ShiftList"
@@ -92,6 +92,7 @@ const Sidebar = () => {
             name: "Attendance History",
             path: "/EmployeeAttendanceHistory",
             icon: ClipboardList,
+            permission:"Attendance_history_view",
           },
           //   {
           //   name: "Leave History",
@@ -102,7 +103,7 @@ const Sidebar = () => {
            {
       name:"Pay Slip",
       icon:BookA,
-      permission:"",
+      permission:"Pay_slip_view",
       submenus:[
         // { name: "Salary Fee Heads",path: "/SalarySlipHeadList"},
         { name: "Payslip Generate",path: "/GenerateAllEmployeePayslip"},
@@ -114,7 +115,7 @@ const Sidebar = () => {
     {
       name: "Admin Panel",
       icon: Users,
-      permission: "Admin_Management",
+      permission: "Admin_Management_view",
       submenus: [
         { name: "Admin Management", path: "/AdminManagement" },
         { name: "Employee Management", path: "/EmployeeUserIdCreated" },

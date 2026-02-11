@@ -184,7 +184,7 @@ const EmployeeAttendance = () => {
               disabled={loading || (hasIn && hasOut)}
               className={`${
                 hasIn ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700"
-              } text-white px-4 md:px-8 py-2 rounded-lg font-bold transition-all shadow-md disabled:bg-gray-400 whitespace-nowrap text-sm md:text-base w-full md:w-auto`}
+              } text-white px-4 md:px-8 py-1 rounded-lg font-bold transition-all shadow-md disabled:bg-gray-400 whitespace-nowrap text-sm md:text-base w-full md:w-auto`}
             >
               {loading 
                 ? "..." 

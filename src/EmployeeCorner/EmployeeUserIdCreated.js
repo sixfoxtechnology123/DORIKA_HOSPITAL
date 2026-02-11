@@ -71,8 +71,8 @@ const EmployeeUserIdCreated = () => {
 
   // Save or update Employee ID
   const saveEmployeeId = async () => {
-    // Included employeeUserId in validation
-    if (!formData.employeeId || !formData.name || !formData.email || !formData.password) {
+    // EMAIL REMOVED FROM VALIDATION BELOW
+    if (!formData.employeeId || !formData.name || !formData.password) {
       return toast.error("Please fill all fields");
     }
 
@@ -141,6 +141,13 @@ const EmployeeUserIdCreated = () => {
             Employee User ID Creation
           </h2>
 
+          {/* New Responsive Professional Message */}
+          <div className="bg-blue-50 border-l-4 border-dorika-blue p-3 mb-4 rounded shadow-sm">
+            <p className="text-sm font-semibold text-red-600 animate-pulse">
+              💡 Quick Action: Simply enter the Employee ID and press "Enter" to auto-fill details. You only need to provide the password.
+            </p>
+          </div>
+
           {/* Form */}
           <div className="bg-white p-4 rounded-2xl shadow mb-3 border border-blue-200">
             <h3 className="text-lg font-semibold text-dorika-blue mb-4">
@@ -148,11 +155,11 @@ const EmployeeUserIdCreated = () => {
             </h3>
 
             {/* Changed grid to 5 columns to accommodate the new field */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
              <div>
                 <label className="block text-sm font-medium text-dorika-blue">Employee ID</label>
                 <input
-                  placeholder="e.g. TP-00001"
+                  placeholder="e.g. TP00001"
                   value={formData.employeeId}
                   onChange={(e) => {
                     let value = e.target.value.toUpperCase();
@@ -164,7 +171,8 @@ const EmployeeUserIdCreated = () => {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleFetchEmployee(formData.employeeId);
                   }}
-                  className="border border-dorika-blue p-0 pl-2 rounded w-full uppercase font-semibold"
+                  /* Added pulse animation below */
+                  className="border-2 border-dorika-blue p-0 pl-2 rounded w-full uppercase font-semibold  focus:animate-none focus:border-dorika-orange outline-none"
                 />
               </div>
 
@@ -178,7 +186,7 @@ const EmployeeUserIdCreated = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-dorika-blue">Email</label>
+                <label className="block text-sm font-medium text-dorika-blue">Email </label>
                 <input
                   value={formData.email}
                   readOnly
@@ -220,7 +228,7 @@ const EmployeeUserIdCreated = () => {
 
             <button
               onClick={saveEmployeeId}
-              className={`mt-3 px-4 font-semibold py-1 rounded-lg ${
+              className={`mt-4 w-full md:w-auto px-6 font-semibold py-2 rounded-lg transition-colors ${
                 editingId
                   ? "bg-yellow-400 hover:bg-yellow-500 text-black"
                   : "bg-dorika-orange hover:bg-dorika-blue text-white"

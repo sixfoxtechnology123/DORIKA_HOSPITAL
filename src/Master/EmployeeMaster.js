@@ -774,21 +774,21 @@ const handleSubmit = async (e) => {
                   label="First Name *"
                   value={firstName}
                   onChange={(val) =>
-                    setFirstName(val.replace(/\s/g, "").toUpperCase())
+                    setFirstName(val.replace(/\s+/g, " ").trimStart().toUpperCase())
                   }
                 />
                 <Input
                   label="Middle Name"
                   value={middleName}
                   onChange={(val) =>
-                    setMiddleName(val.replace(/\s/g, "").toUpperCase())
+                    setMiddleName(val.replace(/\s+/g, " ").trimStart().toUpperCase())
                   }
                 />
                 <Input
                   label="Last Name"
                   value={lastName}
                   onChange={(val) =>
-                    setLastName(val.replace(/\s/g, "").toUpperCase())
+                    setLastName(val.replace(/\s+/g, " ").trimStart().toUpperCase())
                   }
                 />
                 <Input

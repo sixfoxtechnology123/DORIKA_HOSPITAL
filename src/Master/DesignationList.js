@@ -40,13 +40,13 @@ const DesignationList = () => {
       <Sidebar/>
     <div className="flex-1 overflow-x-hidden overflow-y-auto p-2 sm:p-3">
     <div className="p-3 bg-white shadow-md rounded-md">
-      <div className="bg-dorika-blueLight border border-green-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
-        <h2 className="text-xl font-bold text-dorika-blue">Designation</h2>
-        <div className="flex gap-2">
+      <div className="flex justify-between items-center gap-2">
+    <h2 className="text-lg sm:text-xl font-bold text-dorika-blue whitespace-nowrap">Designation</h2>
+       <div className="flex gap-2">
           <BackButton />
           <button
             onClick={() => navigate('/designationMaster')}
-            className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
+            className="bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 py-1 rounded font-semibold text-sm sm:text-base whitespace-nowrap"
           >
             Add Designation
           </button>
@@ -54,7 +54,7 @@ const DesignationList = () => {
       </div>
 
       <div className="overflow-x-auto">
-      <table className="w-full min-w-[750px] table-auto border border-dorika-blue text-sm">
+      <table className=" mt-2 w-full table-auto border border-dorika-blue">
         <thead className="bg-dorika-blue text-white text-sm">
           <tr>
             <th className="border border-dorika-blue px-2 py-1">Designation ID</th>

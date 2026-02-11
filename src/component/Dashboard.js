@@ -110,15 +110,15 @@ const Dashboard = () => {
   // ["Dashboard_View","Department_View","Designation_View","Leave_Manage","Holiday_Manage",
   //  "Shift_Manage","Policy_Manage","Location_Manage","Payroll_Manage","Employee_View","Admin_Management"]
   const cards = [
+    { title: "Master", value: counts.departments, path: "/DepartmentList", color: "bg-green-500 text-white", icon: Building2, permission: "Master_View" },
     { title: "Employees", value: counts.employees, path: "/EmployeeList", color: "bg-blue-500 text-white", icon: Users, permission: "Employee_View" },
-    { title: "Departments", value: counts.departments, path: "/DepartmentList", color: "bg-green-500 text-white", icon: Building2, permission: "Department_View" },
-    { title: "Designations", value: counts.designations, path: "/DesignationList", color: "bg-purple-500 text-white", icon: Briefcase, permission: "Designation_View" },
-    { title: "Leave Management", value: counts.leaveTypes, path: "/LeaveTypeList", color: "bg-pink-500 text-white", icon: Calendar, permission: "Leave_Manage" },
-    { title: "Shift Management", value: counts.shifts, path: "/ShiftManagement", color: "bg-yellow-500 text-gray-900", icon: Clock, permission: "Shift_Manage" },
-    { title: "Attendance System", value: counts.holidays, path: "/EmployeeAttendanceHistory", color: "bg-red-500 text-white", icon: CalendarDays, permission: "Attendance_Manage" },
-    { title: "Payslips", value: counts.policies, path: "/GenerateAllEmployeePayslip", color: "bg-indigo-500 text-white", icon: FileText, permission: "Policy_Manage" },
-    { title: "Reminder Section", value: counts.locations, path: "/ReminderPage", color: "bg-teal-500 text-white", icon: MapPin, permission: "Location_Manage" },
-    { title: "Controller", value: counts.payrollComponents, path: "/AdminManagement", color: "bg-orange-500 text-white", icon: Wallet, permission: "Payroll_Manage" },
+    // { title: "Designations", value: counts.designations, path: "/DesignationList", color: "bg-purple-500 text-white", icon: Briefcase, permission: "Designation_View" },
+    { title: "Leave Management", value: counts.leaveTypes, path: "/LeaveTypeList", color: "bg-pink-500 text-white", icon: Calendar, permission:  "Leave_Management_View", },
+    { title: "Shift Management", value: counts.shifts, path: "/ShiftManagement", color: "bg-yellow-500 text-gray-900", icon: Clock, permission: "Shift_Management_view" },
+    { title: "Attendance System", value: counts.holidays, path: "/EmployeeAttendanceHistory", color: "bg-red-500 text-white", icon: CalendarDays, permission:  "Attendance_history_view" },
+    { title: "Payslips", value: counts.policies, path: "/GenerateAllEmployeePayslip", color: "bg-indigo-500 text-white", icon: FileText, permission: "Pay_slip_view" },
+    { title: "Reminder Section", value: counts.locations, path: "/ReminderPage", color: "bg-teal-500 text-white", icon: MapPin, permission: "Reminder_View" },
+    { title: "Controller", value: counts.payrollComponents, path: "/AdminManagement", color: "bg-orange-500 text-white", icon: Wallet, permission: "Admin_Management_view", },
   ];
 
   // Admin (Admin/mainAdmin/superadmin/root) OR "all" permission -> show all cards
@@ -177,7 +177,7 @@ const Dashboard = () => {
                     <div className={`w-56  rounded-lg p-3 text-center shadow-md hover:shadow-xl transition cursor-pointer ${c.color}`}>
                       <div className="flex justify-center mb-3"><Icon size={32} /></div>
                       <h2 className="text-lg font-medium">{c.title}</h2>
-                      <p className="text-3xl font-bold mt-2">{c.value ?? 0}</p>
+                      {/* <p className="text-3xl font-bold mt-2">{c.value ?? 0}</p> */}
                     </div>
                   </Link>
                 );

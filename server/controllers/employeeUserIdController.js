@@ -10,6 +10,7 @@ exports.getAllLeaveTypes = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 // Get all EmployeeUserIds
 exports.getAllEmployeeUserIds = async (req, res) => {
   try {
@@ -23,18 +24,17 @@ exports.getAllEmployeeUserIds = async (req, res) => {
 // Create new EmployeeUserId
 exports.createEmployeeUserId = async (req, res) => {
   try {
-    // 1. ADD 'employeeUserId' HERE in the destructuring
+    // FIXED: Added 'email' to the list below so it is defined
     const { employeeId, name, email, employeeUserId, password } = req.body; 
     
     const existing = await EmployeeUserId.findOne({ employeeId });
     if (existing) return res.status(400).json({ message: "Employee ID already exists" });
 
-    // 2. PASS IT into the new model instance
     const newUser = new EmployeeUserId({ 
       employeeId, 
       name, 
-      email, 
-      employeeUserId, // Now the variable exists!
+      email, // Now this works because it's defined above!
+      employeeUserId, 
       password 
     });
 
@@ -69,6 +69,7 @@ exports.deleteEmployeeUserId = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 // Employee login
 exports.employeeLogin = async (req, res) => {
   try {
@@ -91,7 +92,6 @@ exports.employeeLogin = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 exports.getEmployeeDetails = async (req, res) => {
   try {

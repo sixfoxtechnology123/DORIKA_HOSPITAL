@@ -5,7 +5,7 @@ const Designation = require("../models/Designation");
 const EmployeeUserId = require("../models/EmployeeUserId");
 const LeaveApplication = require("../models/LeaveApplication");
 const OtRate = require("../models/OtRate");
-
+const AdminManagement = require("../models/adminManagementModel"); 
 const generateEmployeeUserId = async () => {
   try {
     const prefix = "DH";
@@ -225,7 +225,10 @@ exports.updateEmployee = async (req, res) => {
         { employeeId: oldEmployeeID }, 
         { employeeId: updated.employeeID }
       );
-
+      await AdminManagement.updateMany(
+        { employeeID: oldEmployeeID }, 
+        { employeeID: updated.employeeID }
+      );
       // Update Reporting Manager ID for all subordinates
       await Employee.updateMany(
         { reportingManagerEmpID: oldEmployeeID },

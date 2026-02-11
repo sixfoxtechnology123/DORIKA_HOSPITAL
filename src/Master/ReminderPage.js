@@ -177,29 +177,30 @@ const displayedHistory = historyFilter
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       <Sidebar />
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-x-hidden overflow-y-auto p-2 sm:p-4">
         <div className="bg-white shadow-md rounded-md p-3">
-         <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-dorika-blue">
+         <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-3 mb-4
+flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+          <h2 className="text-lg sm:text-xl font-bold text-dorika-blue">
             Employee Status Reminder
           </h2>
-          <div className="ml-auto">
+          <div className="w-full md:w-auto flex justify-end">
             <BackButton />
           </div>
         </div>
 
 
-          <div className="flex gap-4 mb-3">
-            <button onClick={() => setActiveTab("reminder")} className={`px-4 py-1 rounded font-semibold ${activeTab === "reminder" ? "bg-dorika-blue text-white" : "bg-gray-200 text-gray-700"}`}>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-3">
+            <button onClick={() => setActiveTab("reminder")} className={`px-4 py-1 rounded font-semibold w-full sm:w-auto ${activeTab === "reminder" ? "bg-dorika-blue text-white" : "bg-gray-200 text-gray-700"}`}>
               Reminder
             </button>
-            <button onClick={() => setActiveTab("history")} className={`px-4 py-1 rounded font-semibold ${activeTab === "history" ? "bg-dorika-blue text-white" : "bg-gray-200 text-gray-700"}`}>
+            <button onClick={() => setActiveTab("history")} className={`px-4 py-1 rounded font-semibold w-full sm:w-auto ${activeTab === "history" ? "bg-dorika-blue text-white" : "bg-gray-200 text-gray-700"}`}>
               History
             </button>
           </div>
-
+          <div className="overflow-x-auto">
           {activeTab === "reminder" && (
-            <table className="w-full table-auto border border-dorika-blue text-sm">
+            <table className="w-full min-w-[1000px] border border-dorika-blue text-xs sm:text-sm">
               <thead className="bg-dorika-blue text-white">
                 <tr>
                   <th className="border px-2 py-1">S.No</th>
@@ -257,7 +258,7 @@ const displayedHistory = historyFilter
 
           
             
-            <table className="w-full table-auto border border-dorika-blue text-sm">
+            <table className="w-full min-w-[900px] border border-dorika-blue text-xs sm:text-sm">
               <thead className="bg-dorika-blue text-white">
                 <tr>
                   <th className="border px-2 py-1">S.No</th>
@@ -312,10 +313,8 @@ const displayedHistory = historyFilter
                 onPageChange={(page) => setCurrentPageHistory(page)}
               />
             )}
-
-
-
-
+            
+        </div>
         </div>
       </div>
     </div>

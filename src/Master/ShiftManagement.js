@@ -339,43 +339,52 @@ const handlePrint = () => {
         </div>
       </div>
 
-     {/* ================= TOP SECTION ================= */}
-     <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-4 flex flex-col lg:flex-row lg:items-center gap-4 justify-between border border-dorika-blue">
-  <div className="flex items-center gap-6">
-          <label className="font-semibold text-dorika-blue">Month:</label>
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="border border-dorika-blue rounded px-3 py-1 text-dorika-blue focus:outline-none focus:ring-1 focus:ring-dorika-orange"
-          />
-        </div>
+   {/* ================= TOP SECTION ================= */}
+<div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-4 
+flex flex-col lg:flex-row lg:items-center gap-4 justify-between 
+border border-dorika-blue">
 
-        <div className="flex items-center gap-2">
-          <label className="font-semibold text-dorika-blue">Designation:</label>
-          <select
-            value={selectedDesignation}
-            onChange={(e) => setSelectedDesignation(e.target.value)}
-            className="border border-dorika-blue rounded px-3 py-1 text-dorika-blue focus:outline-none focus:ring-1 focus:ring-dorika-green"
-          >
-            {designations.map((des) => (
-              <option key={des} value={des}>
-                {des}
-              </option>
-            ))}
-          </select>
-        </div>
-          <div>
+  {/* Month */}
+  <div className="flex flex-col lg:flex-row lg:items-center gap-2 w-full lg:w-auto">
+    <label className="font-semibold text-dorika-blue">Month:</label>
+    <input
+      type="month"
+      value={selectedMonth}
+      onChange={(e) => setSelectedMonth(e.target.value)}
+      className="w-full lg:w-auto border border-dorika-blue rounded px-3 py-1 
+      text-dorika-blue focus:outline-none focus:ring-1 focus:ring-dorika-orange"
+    />
+  </div>
 
-          <button
-            onClick={handlePrint}
-            className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold"
-          >
-            Print Report
-          </button>
-        </div>
+  {/* Designation */}
+  <div className="flex flex-col lg:flex-row lg:items-center gap-2 w-full lg:w-auto">
+    <label className="font-semibold text-dorika-blue">Designation:</label>
+    <select
+      value={selectedDesignation}
+      onChange={(e) => setSelectedDesignation(e.target.value)}
+      className="w-full lg:w-auto border border-dorika-blue rounded px-3 py-1 
+      text-dorika-blue focus:outline-none focus:ring-1 focus:ring-dorika-green"
+    >
+      {designations.map((des) => (
+        <option key={des} value={des}>
+          {des}
+        </option>
+      ))}
+    </select>
+  </div>
 
-        </div>
+  {/* Print Button */}
+  <div className="w-full lg:w-auto">
+    <button
+      onClick={handlePrint}
+      className="w-full lg:w-auto bg-dorika-orange hover:bg-dorika-blue 
+      text-white px-4 py-1 rounded font-semibold"
+    >
+      Print Report
+    </button>
+  </div>
+
+</div>
 
     
       {/* ================= SHIFT TABLE ================= */}
