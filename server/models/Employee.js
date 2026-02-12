@@ -61,7 +61,7 @@ const PayDetailsSchema = new mongoose.Schema({
   // basicPay: { type: Number, default: 0 },
   // pfType: { type: String, default: "" },
   passportNo: { type: String, default: "" },
-  //pfNo: { type: String, default: "" },
+  pfNo: { type: String, default: "" },
   uanNo: { type: String, default: "" },
   panNo: { type: String, default: "" },
   bankName: { type: String, default: "" },
