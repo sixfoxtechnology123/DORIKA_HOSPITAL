@@ -1,299 +1,248 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Sidebar from "../component/Sidebar";
-import { Eye, EyeOff } from "lucide-react";
-import { FaTrash, FaEdit } from "react-icons/fa";
+import { Key, RefreshCw, Save, Edit3, XCircle, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 
 const EmployeeUserIdCreated = () => {
-  const [employees, setEmployees] = useState([]);
-  const [employeeIds, setEmployeeIds] = useState([]);
-  const [editingId, setEditingId] = useState(null);
-  const [showPassword, setShowPassword] = useState(false);
-
-  const [formData, setFormData] = useState({
-    employeeId: "",
-    name: "",
-    email: "",
-    employeeUserId: "", // New field added to state
-    password: "",
-  });
+  const [dataList, setDataList] = useState([]);
+  const [bulkPassword, setBulkPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [editingRow, setEditingRow] = useState(null);
+  const [tempPassword, setTempPassword] = useState("");
+  const [visiblePasswords, setVisiblePasswords] = useState({});
 
   const token = localStorage.getItem("token");
-
-  // Fetch all employees for search
-  useEffect(() => {
-    axios
-      .get("http://localhost:5002/api/employees", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => setEmployees(res.data))
-      .catch((err) => console.error(err));
-  }, [token]);
-
-  // Fetch all created Employee IDs
-  const fetchEmployeeIds = () => {
-    axios
-      .get("http://localhost:5002/api/employee-ids", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => setEmployeeIds(res.data))
-      .catch((err) => console.error(err));
-  };
+  const API_URL = "http://localhost:5002/api/employee-ids";
 
   useEffect(() => {
-    fetchEmployeeIds();
-  }, [token]);
+    fetchData();
+  }, []);
 
-// Auto fill name, email, and User ID from Employee Master on Enter
-  const handleFetchEmployee = (id) => {
-    if (!id) return;
-
-    // 1. Find the employee in the master list
-    const emp = employees.find((e) => e.employeeID?.toUpperCase() === id.toUpperCase());
-
-    if (emp) {
-      const fullName = [emp.firstName, emp.middleName, emp.lastName].filter(Boolean).join(" ");
-      const email = emp.permanentAddress?.email || "";
-      
-      setFormData((prev) => ({
-        ...prev,
-        name: fullName,
-        email: email,
-        // 2. Fetch the existing employeeUserId from the master record
-        employeeUserId: emp.employeeUserId || "", 
-      }));
-    } else {
-      toast.error("Employee ID not found!");
-      setFormData((prev) => ({ ...prev, name: "", email: "", employeeUserId: "" }));
-    }
-  };
-
-  // Save or update Employee ID
-  const saveEmployeeId = async () => {
-    // EMAIL REMOVED FROM VALIDATION BELOW
-    if (!formData.employeeId || !formData.name || !formData.password) {
-      return toast.error("Please fill all fields");
-    }
-
-    const payload = { ...formData };
-
+  const fetchData = async () => {
     try {
-      if (editingId) {
-        await axios.put(
-          `http://localhost:5002/api/employee-ids/${editingId}`,
-          payload,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        toast.success("Employee ID updated successfully!");
-      } else {
-        await axios.post("http://localhost:5002/api/employee-ids", payload, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        toast.success("Employee ID created successfully!");
-      }
-      fetchEmployeeIds();
-      setEditingId(null);
-      setFormData({ employeeId: "", name: "", email: "", employeeUserId: "", password: "" });
+      const res = await axios.get(API_URL, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setDataList(res.data);
     } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || "Error saving Employee ID");
+      toast.error("Error loading employees");
     }
   };
 
-  // Edit Employee ID
-  const editEmployeeId = (id) => {
-    const emp = employeeIds.find((e) => e._id === id);
-    setEditingId(id);
-    setFormData({
-      employeeId: emp.employeeId,
-      name: emp.name,
-      email: emp.email,
-      employeeUserId: emp.employeeUserId || "", // Populate from record
-      password: emp.password,
-    });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  const togglePasswordVisibility = (id) => {
+    setVisiblePasswords((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
   };
 
-  // Delete Employee ID
-  const deleteEmployeeId = (id) => {
-    if (!window.confirm("Are you sure you want to delete?")) return;
-    axios
-      .delete(`http://localhost:5002/api/employee-ids/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then(() => {
-        toast.success("Employee ID deleted successfully!");
-        fetchEmployeeIds();
-      })
-      .catch((err) => {
-        console.error(err);
-        toast.error(err.response?.data?.message || "Error deleting Employee ID");
-      });
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIds(dataList.map((emp) => emp.employeeId));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkGenerate = async () => {
+    if (!bulkPassword) return toast.error("Please enter a password first!");
+    const message = selectedIds.length > 0 
+      ? `Update password for ${selectedIds.length} selected employees?`
+      : "Update password for ALL employees?";
+
+    if (!window.confirm(message)) return;
+
+    setLoading(true);
+    try {
+      await axios.post(`${API_URL}/generate-all-passwords`, 
+        { 
+          customPassword: bulkPassword,
+          targetEmployeeIds: selectedIds.length > 0 ? selectedIds : null 
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Passwords generated successfully!");
+      setBulkPassword("");
+      setSelectedIds([]);
+      fetchData();
+    } catch (err) {
+      toast.error("Update failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startEdit = (emp) => {
+    setEditingRow(emp.employeeId);
+    setTempPassword(""); 
+  };
+
+  const saveIndividualPassword = async (emp) => {
+    if (!tempPassword) return toast.error("Password cannot be empty");
+    try {
+      await axios.post(`${API_URL}/generate-all-passwords`, 
+        { 
+          customPassword: tempPassword,
+          targetEmployeeIds: [emp.employeeId] 
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(`Password updated for ${emp.name}`);
+      setEditingRow(null);
+      fetchData();
+    } catch (err) {
+      toast.error("Failed to update individual password");
+    }
   };
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    <div className="flex flex-col md:flex-row min-h-screen bg-dorika-blueLight">
       <Sidebar />
-      <div className="flex-1 overflow-y-auto">
-        <div className="min-h-screen bg-dorika-blueLight p-4">
-          <h2 className="text-2xl font-bold text-dorika-blue mb-4">
-            Employee User ID Creation
-          </h2>
+      <div className="flex-1 p-3 md:p-6 overflow-y-auto">
+        <h2 className="text-xl md:text-2xl font-bold text-dorika-blue mb-4">
+          Employee Password Management
+        </h2>
 
-          {/* New Responsive Professional Message */}
-          <div className="bg-blue-50 border-l-4 border-dorika-blue p-3 mb-4 rounded shadow-sm">
-            <p className="text-sm font-semibold text-red-600 animate-pulse">
-              💡 Quick Action: Simply enter the Employee ID and press "Enter" to auto-fill details. You only need to provide the password.
-            </p>
-          </div>
-
-          {/* Form */}
-          <div className="bg-white p-4 rounded-2xl shadow mb-3 border border-blue-200">
-            <h3 className="text-lg font-semibold text-dorika-blue mb-4">
-              {editingId ? "Update Employee ID" : "Create Employee ID"}
-            </h3>
-
-            {/* Changed grid to 5 columns to accommodate the new field */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
-             <div>
-                <label className="block text-sm font-medium text-dorika-blue">Employee ID</label>
-                <input
-                  placeholder="e.g. TP00001"
-                  value={formData.employeeId}
-                  onChange={(e) => {
-                    let value = e.target.value.toUpperCase();
-                    let cleanValue = value.replace(/-/g, "");
-                    let formattedValue = cleanValue.replace(/^([A-Z]+)(\d+)/, "$1-$2");
-                    
-                    setFormData({ ...formData, employeeId: formattedValue });
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleFetchEmployee(formData.employeeId);
-                  }}
-                  /* Added pulse animation below */
-                  className="border-2 border-dorika-blue p-0 pl-2 rounded w-full uppercase font-semibold  focus:animate-none focus:border-dorika-orange outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-dorika-blue">Name</label>
-                <input
-                  value={formData.name}
-                  readOnly
-                  className="border border-dorika-blue p-0 pl-2 rounded w-full bg-gray-100"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-dorika-blue">Email </label>
-                <input
-                  value={formData.email}
-                  readOnly
-                  className="border border-dorika-blue p-0 pl-2 rounded w-full bg-gray-100"
-                />
-              </div>
-
-              {/* Added Employee User ID Field (Disabled/ReadOnly) */}
-              <div>
-                <label className="block text-sm font-medium text-dorika-blue">Employee User ID</label>
-                <input
-                  value={formData.employeeUserId}
-                  readOnly
-                  placeholder="Auto-generated"
-                  className="border border-dorika-blue p-0 pl-2 rounded w-full bg-gray-100"
-                />
-              </div>
-
-              <div className="relative">
-                <label className="block text-sm font-medium text-dorika-blue">Password</label>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  placeholder="Enter Password"
-                  className="border border-dorika-blue p-0 pl-2 rounded w-full pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-6 text-dorika-blue"
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
+        {/* TOP SECTION */}
+        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border-t-4 border-dorika-orange mb-6">
+          <div className="flex flex-col md:flex-row items-stretch md:items-end gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-bold text-gray-700 mb-2 font-mono uppercase">
+                {selectedIds.length > 0 
+                  ? `Target: (${selectedIds.length}) Selected` 
+                  : "Target: All Employees"}
+              </label>
+              <input
+                type="text"
+                placeholder="Enter password to generate..."
+                value={bulkPassword}
+                onChange={(e) => setBulkPassword(e.target.value)}
+                className="w-full border-2 border-gray-200 p-2 md:p-3 rounded-xl focus:border-dorika-blue outline-none transition-all"
+              />
             </div>
-
             <button
-              onClick={saveEmployeeId}
-              className={`mt-4 w-full md:w-auto px-6 font-semibold py-2 rounded-lg transition-colors ${
-                editingId
-                  ? "bg-yellow-400 hover:bg-yellow-500 text-black"
-                  : "bg-dorika-orange hover:bg-dorika-blue text-white"
-              }`}
+              onClick={handleBulkGenerate}
+              disabled={loading}
+              className="bg-dorika-blue hover:bg-black text-white px-6 md:px-8 py-3 md:py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50"
             >
-              {editingId ? "Update Employee ID" : "Save Employee ID"}
+              {loading ? <RefreshCw className="animate-spin" /> : <Key size={20} />}
+              <span className="whitespace-nowrap">
+                {selectedIds.length > 0 ? "Generate Selected" : "Generate All"}
+              </span>
             </button>
           </div>
+        </div>
 
-          {/* Table */}
-          <div className="bg-white p-4 rounded-2xl shadow border border-blue-200">
-            <h3 className="text-lg font-semibold text-dorika-blue mb-2">
-              Created Employee IDs
-            </h3>
-            {/* This div allows you to swipe left/right on your phone */}
+        {/* TABLE SECTION */}
+        <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px] table-auto border border-dorika-blue text-sm text-center">
-              <thead className="bg-blue-100 text-dorika-blue">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead className="bg-blue-50 text-dorika-blue text-[10px] md:text-xs uppercase font-bold">
                 <tr>
-                  <th className="border border-dorika-blue px-2 py-1">Employee ID</th>
-                  <th className="border border-dorika-blue px-2 py-1">User ID</th>
-                  <th className="border border-dorika-blue px-2 py-1">Name</th>
-                  <th className="border border-dorika-blue px-2 py-1">Email</th>
-                  <th className="border border-dorika-blue px-2 py-1">Action</th>
+                  <th className="p-3 md:p-4 border-b w-10">
+                    <input 
+                      type="checkbox" 
+                      onChange={handleSelectAll}
+                      checked={selectedIds.length === dataList.length && dataList.length > 0}
+                      className="w-4 h-4 accent-dorika-orange cursor-pointer"
+                    />
+                  </th>
+                  <th className="p-3 md:p-4 border-b">Sl No</th>
+                  <th className="p-3 md:p-4 border-b">Employee ID</th>
+                  <th className="p-3 md:p-4 border-b">User ID</th>
+                  <th className="p-3 md:p-4 border-b">Name</th>
+                  <th className="p-3 md:p-4 border-b">Designation</th>
+                  <th className="p-3 md:p-4 border-b">Password Status</th>
+                  <th className="p-3 md:p-4 border-b text-center">Action</th>
                 </tr>
               </thead>
-              <tbody>
-                {employeeIds.length > 0 ? (
-                  employeeIds.map((emp) => (
-                    <tr key={emp._id} className="hover:bg-dorika-blueLight">
-                      <td className="border border-dorika-blue px-2 py-1">{emp.employeeId}</td>
-                      <td className="border border-dorika-blue px-2 py-1 font-semibold">{emp.employeeUserId}</td>
-                      <td className="border border-dorika-blue px-2 py-1">{emp.name}</td>
-                      <td className="border border-dorika-blue px-2 py-1">{emp.email}</td>
-                      <td className="border border-dorika-blue px-2 py-1">
-                        <div className="flex justify-center items-center gap-4">
-                          <button
-                            onClick={() => editEmployeeId(emp._id)}
-                            className="text-dorika-blue hover:text-dorika-green"
-                          >
-                            <FaEdit />
+              <tbody className="text-xs md:text-sm">
+                {dataList.map((emp, index) => (
+                  <tr 
+                    key={index} 
+                    className={`${selectedIds.includes(emp.employeeId) ? 'bg-orange-50' : 'hover:bg-gray-50'} border-b last:border-0 transition-colors`}
+                  >
+                    <td className="p-3 md:p-4">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedIds.includes(emp.employeeId)}
+                        onChange={() => handleSelectOne(emp.employeeId)}
+                        className="w-4 h-4 accent-dorika-orange cursor-pointer"
+                      />
+                    </td>
+                    <td className="p-3 md:p-4 text-gray-500">{index + 1}</td>
+                    <td className="p-3 md:p-4 font-semibold text-gray-800">{emp.employeeId}</td>
+                    <td className="p-3 md:p-4 font-bold text-dorika-blue">{emp.employeeUserId}</td>
+                    <td className="p-3 md:p-4 font-medium uppercase">{emp.name}</td>
+                    <td className="p-3 md:p-4 text-[10px] md:text-xs text-gray-600 truncate max-w-[150px]" title={emp.designation}>
+                      {emp.designation}
+                    </td>
+                    <td className="p-3 md:p-4">
+                      {editingRow === emp.employeeId ? (
+                        <input 
+                          type="text"
+                          placeholder="Set Password"
+                          value={tempPassword}
+                          onChange={(e) => setTempPassword(e.target.value)}
+                          className="border border-dorika-blue rounded px-2 py-1 w-full max-w-[120px] text-xs outline-none shadow-inner"
+                          autoFocus
+                        />
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {/* STATUS BADGE LOGIC */}
+                          <span className={`px-2 md:px-3 py-1 rounded-lg font-bold text-[10px] md:text-xs ${
+                            emp.password === "NOT GENERATED" || !emp.password
+                            ? "bg-red-50 text-red-500" 
+                            : "bg-green-50 text-green-600"
+                          }`}>
+                            {emp.password === "NOT GENERATED" || !emp.password
+                              ? "NONE" 
+                              : (visiblePasswords[emp.employeeId] ? emp.plainPassword : "GENERATED")}
+                          </span>
+                          
+                          {/* EYE ICON (Only if password exists) */}
+                          {(emp.password && emp.password !== "NOT GENERATED") && (
+                            <button 
+                              onClick={() => togglePasswordVisibility(emp.employeeId)}
+                              className="text-gray-400 hover:text-dorika-blue transition-colors"
+                            >
+                              {/* {visiblePasswords[emp.employeeId] ? <EyeOff size={14} /> : <Eye size={14} />} */}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-3 md:p-4 text-center">
+                      {editingRow === emp.employeeId ? (
+                        <div className="flex justify-center gap-2">
+                          <button onClick={() => saveIndividualPassword(emp)} className="text-green-600 hover:text-green-800">
+                            <Save size={18} />
                           </button>
-                          <button
-                            onClick={() => deleteEmployeeId(emp._id)}
-                            className="text-dorika-orange hover:text-red-700"
-                          >
-                            <FaTrash />
+                          <button onClick={() => setEditingRow(null)} className="text-red-500 hover:text-red-700">
+                            <XCircle size={18} />
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5" className="py-4 text-gray-500 font-medium">
-                      No Employee IDs created yet.
+                      ) : (
+                        <button onClick={() => startEdit(emp)} className="text-dorika-blue hover:text-dorika-orange transition-colors">
+                          <Edit3 size={18} />
+                        </button>
+                      )}
                     </td>
                   </tr>
-                )}
+                ))}
               </tbody>
             </table>
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 };
