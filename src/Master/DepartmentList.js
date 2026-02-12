@@ -16,7 +16,12 @@ const DepartmentList = () => {
   // Fetch all departments
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get("http://localhost:5002/api/departments");
+      const token = localStorage.getItem("token");
+
+      // 2. Add headers to the GET request
+      const res = await axios.get("http://localhost:5002/api/departments", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const formatted = res.data.map((d) => ({
         _id: d._id,
         deptCode: d.deptCode || d.dept_code || d.code || "",
@@ -42,10 +47,16 @@ const DepartmentList = () => {
     if (!window.confirm("Are you sure you want to delete this department?"))
       return;
     try {
-      await axios.delete(`http://localhost:5002/api/departments/${id}`);
+      const token = localStorage.getItem("token");
+
+      // 2. Add headers to the DELETE request
+      await axios.delete(`http://localhost:5002/api/departments/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setDepartments(departments.filter((d) => d._id !== id));
     } catch (err) {
       console.error("Failed to delete department:", err);
+      toast.error("Unauthorized: Only admins can delete.");
     }
   };
 

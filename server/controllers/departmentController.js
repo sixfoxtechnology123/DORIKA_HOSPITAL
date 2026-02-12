@@ -30,15 +30,26 @@ exports.createDepartment = async (req, res) => {
   try {
     const { deptCode, deptName, description, status } = req.body;
     const department = new Department({ deptCode, deptName, description, status });
-    await department.save();
+    const savedDept = await department.save();
 
-    // Log activity
-    await Activity.create({ text: `Department Added: ${deptName} (${deptCode})` });
+    // 💡 SAFETY LOG: Even if this fails, the response still sends "success"
+    try {
+      await Activity.create({
+        employeeUserId: req.user?.employeeUserId || req.user?.userId || "SYSTEM",
+        name: req.user?.name || "Admin",
+        action: "ADD",
+        module: "Department Management",
+        details: `Created new department: ${deptName} (${deptCode})`,
+        ipAddress: req.ip
+      });
+    } catch (logErr) {
+      console.error("Activity log failed:", logErr.message);
+    }
 
-    res.status(201).json(department);
+    res.status(201).json(savedDept);
   } catch (err) {
     console.error("Error creating department:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Failed to save department" });
   }
 };
 
@@ -65,13 +76,24 @@ exports.updateDepartment = async (req, res) => {
 
     if (!updated) return res.status(404).json({ message: "Department not found" });
 
-    // Log activity
-    await Activity.create({ text: `Department Updated: ${updated.deptName} (${deptCode})` });
+    // 💡 SAFETY LOG
+    try {
+      await Activity.create({
+        employeeUserId: req.user?.employeeUserId || req.user?.userId || "SYSTEM",
+        name: req.user?.name || "Admin",
+        action: "UPDATE",
+        module: "Department Management",
+        details: `Updated Department: ${updated.deptName} (${deptCode})`,
+        ipAddress: req.ip
+      });
+    } catch (logErr) {
+      console.error("Activity log failed:", logErr.message);
+    }
 
     res.json(updated);
   } catch (err) {
     console.error("Error updating department:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Failed to update department" });
   }
 };
 
@@ -82,12 +104,23 @@ exports.deleteDepartment = async (req, res) => {
 
     if (!department) return res.status(404).json({ message: "Department not found" });
 
-    // Log activity
-    await Activity.create({ text: `Department Deleted: ${department.deptName} (${department.deptCode})` });
+    // 💡 SAFETY LOG
+    try {
+      await Activity.create({
+        employeeUserId: req.user?.employeeUserId || req.user?.userId || "SYSTEM",
+        name: req.user?.name || "Admin",
+        action: "DELETE",
+        module: "Department Management",
+        details: `Deleted department: ${department.deptName} (${department.deptCode})`,
+        ipAddress: req.ip
+      });
+    } catch (logErr) {
+      console.error("Activity log failed:", logErr.message);
+    }
 
     res.json({ message: "Deleted successfully" });
   } catch (err) {
     console.error("Error deleting department:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Failed to delete department" });
   }
 };

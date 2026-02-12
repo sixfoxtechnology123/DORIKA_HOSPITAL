@@ -12,7 +12,7 @@ const generateEmployeeUserId = async () => {
     // Find the last employee created to get the highest serial
     const lastEmp = await Employee.findOne().sort({ createdAt: -1 }).lean();
     
-    let next = 1;
+    let next = 101;
 
     // Check if the last employee has a userId and extract the number
     if (lastEmp?.employeeUserId) {
@@ -23,12 +23,12 @@ const generateEmployeeUserId = async () => {
       }
     } 
 
-    // Pad the number to 5 digits (e.g., 00001)
+    // Pad the number to 5 digits (e.g., 00101)
     const nextSerial = String(next).padStart(5, "0");
     return `${prefix}-${nextSerial}`;
   } catch (err) {
     console.error("Error generating serial number:", err);
-    return "DH-00001"; // Fallback
+    return "DH-00101"; // Fallback
   }
 };
 
@@ -41,7 +41,7 @@ const generateEmployeeID = async (employmentStatus) => {
     // Get last employee by createdAt (global last, ignore prefix)
     const lastEmp = await Employee.findOne().sort({ createdAt: -1 }).lean();
 
-    let next = 1;
+    let next = 101;
 
     if (lastEmp?.employeeID) {
       const match = lastEmp.employeeID.match(/-(\d+)$/);
@@ -51,7 +51,7 @@ const generateEmployeeID = async (employmentStatus) => {
     const nextID = String(next).padStart(5, "0"); // 5 digits
     return `${prefix}-${nextID}`;
   } catch (err) {
-    return `${employmentStatus}-00001`;
+    return `${employmentStatus}-00101`;
   }
 };
 
@@ -118,8 +118,14 @@ exports.createEmployee = async (req, res) => {
 
     const saved = await emp.save();
 
+    // Replace the old Activity.create block with this:
     await Activity.create({
-      text: `Employee Added: ${saved.firstName} ${saved.lastName} (${saved.employeeID})`,
+      name: `${saved.firstName} ${saved.lastName}`,
+      employeeUserId: saved.employeeUserId,
+      module: "Employee Management",
+      action: "Create",
+      details: `Created new employee record for ${saved.firstName} ${saved.lastName} (${saved.employeeID})`,
+      text: `Employee Added: ${saved.firstName} ${saved.lastName} (${saved.employeeID})`, // Keep if still in schema
     });
 
     res.status(201).json(saved);
@@ -243,9 +249,15 @@ exports.updateEmployee = async (req, res) => {
     }
 
     try {
-      await Activity.create({
-        text: `Employee Updated: ${updated.firstName} ${updated.lastName} (${updated.employeeID})`,
-      });
+    
+    await Activity.create({
+      name: `${updated.firstName} ${updated.lastName}`,
+      employeeUserId: updated.employeeUserId,
+      module: "Employee Management",
+      action: "Update",
+      details: `Updated profile information for ${updated.firstName} ${updated.lastName}`,
+      text: `Employee Updated: ${updated.firstName} ${updated.lastName} (${updated.employeeID})`,
+    });
     } catch (logErr) {
       console.error("Activity log error (updateEmployee):", logErr);
     }
@@ -284,9 +296,15 @@ exports.deleteEmployee = async (req, res) => {
 
     // 4. Log the deletion activity
     try {
-      await Activity.create({
-        text: `Permanent Deletion: ${employee.firstName} ${employee.lastName} (${employee.employeeID}) and all associated records (Leaves, UserID).`,
-      });
+ // Replace the old Activity.create block with this:
+    await Activity.create({
+      name: `${employee.firstName} ${employee.lastName}`,
+      employeeUserId: employee.employeeUserId,
+      module: "Employee Management",
+      action: "Delete",
+      details: `Permanently deleted employee and associated records (Leaves, OT Rates, Login).`,
+      text: `Permanent Deletion: ${employee.firstName} ${employee.lastName} (${employee.employeeID})`,
+    });
     } catch (logErr) {
       console.error("Activity log error (deleteEmployee):", logErr);
     }

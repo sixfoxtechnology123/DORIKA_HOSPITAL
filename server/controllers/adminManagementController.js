@@ -23,16 +23,44 @@ const createDefaultAdmin = async () => {
 };
 createDefaultAdmin();
 
+// backend/controllers/adminManagementController.js
+
 exports.login = async (req, res) => {
   try {
     let { userId, password } = req.body;
     const user = await AdminManagement.findOne({ userId: userId?.trim() });
+    
     if (!user || !(await bcrypt.compare(password?.trim(), user.password))) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1d" });
-    res.json({ token, user: { _id: user._id, userId: user.userId, name: user.name, role: user.role, permissions: user.permissions, isDefault: user.isDefault } });
-  } catch (err) { res.status(500).json({ message: "Login failed", error: err.message }); }
+
+    // ✅ CHANGE THIS SECTION: Add name and employeeUserId to the payload
+    const token = jwt.sign(
+      { 
+        id: user._id, 
+        role: user.role,
+        name: user.name,               // Add this line
+        employeeUserId: user.userId    // Add this line
+      }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: "1d" }
+    );
+    // -------------------------------------------------------------
+
+    res.json({ 
+      token, 
+      user: { 
+        _id: user._id, 
+        userId: user.userId, 
+        name: user.name, 
+        role: user.role, 
+        permissions: user.permissions, 
+        isDefault: user.isDefault 
+      } 
+    });
+  } catch (err) { 
+    res.status(500).json({ message: "Login failed", error: err.message }); 
+  }
 };
 
 exports.getUsers = async (req, res) => {

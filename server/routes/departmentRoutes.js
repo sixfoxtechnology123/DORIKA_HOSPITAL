@@ -1,4 +1,5 @@
 const express = require('express');
+const { authMiddleware } = require('../middleware/authMiddleware');
 const router = express.Router();
 const {
   createDepartment,
@@ -9,9 +10,9 @@ const {
 } = require('../controllers/departmentController');
 
 router.get('/next-code', getNextDeptCode);
-router.post('/', createDepartment);
 router.get('/', getAllDepartments);
-router.put('/:id', updateDepartment);
-router.delete('/:id', deleteDepartment);
+router.post('/', authMiddleware, createDepartment);
+router.put('/:id', authMiddleware, updateDepartment);
+router.delete('/:id', authMiddleware, deleteDepartment);
 
 module.exports = router;

@@ -44,7 +44,11 @@ const DepartmentMaster = () => {
   };
 
   const fetchDepartments = async () => {
-    const res = await axios.get('http://localhost:5002/api/departments');
+    const token = localStorage.getItem("token");
+    const res = await axios.get('http://localhost:5002/api/departments',
+    {
+      headers: { Authorization: `Bearer ${token}` } // Add this
+    });
     setDepartments(res.data);
   };
 
@@ -57,30 +61,45 @@ const DepartmentMaster = () => {
     fetchDeptCode();
   };
 
-  const handleSaveOrUpdate = async () => {
+const handleSaveOrUpdate = async () => {
     if (!deptName.trim()) return alert('Department name is required');
+
+    // 1. ADD THIS LINE: Get the token
+    const token = localStorage.getItem("token");
+
+    // 2. ADD THIS BLOCK: Create the configuration
+    const config = {
+      headers: { Authorization: `Bearer ${token}` }
+    };
 
     try {
       if (isEditMode) {
+        // 3. UPDATE THIS LINE: Add 'config' as the 3rd argument
         await axios.put(`http://localhost:5002/api/departments/${editId}`, {
           deptCode,
           deptName,
           description,
           status,
-        });
+        }, config); // <--- Add 'config' here
         toast.success('Updated successfully');
       } else {
+        // 4. UPDATE THIS LINE: Add 'config' as the 3rd argument
         await axios.post('http://localhost:5002/api/departments', {
           deptCode,
           deptName,
           description,
           status,
-        });
+        }, config); // <--- Add 'config' here
         toast.success('Saved successfully');
       }
       navigate('/departmentList', { replace: true });
-    } catch {
-      toast.error('Failed to save/update department');
+    } catch (error) {
+      // 5. UPDATE: Check for 401 specifically
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please login again.');
+      } else {
+        toast.error('Failed to save/update department');
+      }
     }
   };
 

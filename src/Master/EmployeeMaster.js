@@ -6,7 +6,10 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useLocation } from "react-router-dom";
 
-
+const formatDateForInput = (dateString) => {
+  if (!dateString) return "";
+  return new Date(dateString).toISOString().split("T")[0];
+};
 const EmployeeMaster = () => {
   const location = useLocation();
   const { employee, id } = location.state || {};
@@ -194,27 +197,31 @@ const navigate = useNavigate();
   const deductionHeads = Array.isArray(allHeads) ? allHeads.filter(h => h.headId.startsWith("DEDUCT")) : [];
 
 useEffect(() => {
-  if (!employmentStatus) return;
 
-  // NEW employee → generate full new ID
-  if (!isEditMode) {
+  if (!employmentStatus) return;
+  if (!isEditMode && !employeeID) {
     axios
       .get("http://localhost:5002/api/employees/next-id", {
         params: { employmentStatus },
       })
-      .then(res => {
+      .then((res) => {
+        // Only set if the user hasn't started typing while the request was loading
         setEmployeeID(res.data.employeeID || "");
         setEmployeeUserId(res.data.employeeUserId || "");
+      })
+      .catch((err) => {
+        console.error("Error fetching next ID:", err);
       });
     return;
   }
 
-  // EDIT employee → change PREFIX ONLY
   if (employmentStatus !== initialEmploymentStatus && employeeID) {
-    const numberPart = employeeID.split("-")[1] || employeeID.slice(2);
+   
+    const parts = employeeID.split("-");
+    const numberPart = parts.length > 1 ? parts[1] : employeeID.slice(2);
     setEmployeeID(`${employmentStatus}-${numberPart}`);
   }
-}, [employmentStatus]);
+}, [employmentStatus, isEditMode, initialEmploymentStatus]); 
 
 
 
@@ -305,21 +312,24 @@ useEffect(() => {
     setDepartmentHeadEmpID(employee.departmentHeadEmpID || "");
     setReportingManagerEmployeeUserId(employee.reportingManagerEmployeeUserId || "");
     setDepartmentHeadEmployeeUserId(employee.departmentHeadEmployeeUserId || "");
-// 4. Dates & Employment
-    setDob(employee.dob || "");
-    setDor(employee.dor || "");
-    setDoj(employee.doj || "");
-    
-    // ALWAYS show current date, even when editing
-    setStatusChangeDate(new Date().toISOString().split("T")[0]);
+    setDob(formatDateForInput(employee.dob));
+    setDor(formatDateForInput(employee.dor));
+    setDoj(formatDateForInput(employee.doj));
+    setStatusChangeDate(formatDateForInput(employee.statusChangeDate));
+    setConfirmationDate(
+      employee.confirmationDate
+        ? new Date(employee.confirmationDate).toISOString().split("T")[0]
+        : ""
+    );
 
-    setConfirmationDate(employee.confirmationDate || "");
-    setNextIncrementDate(employee.nextIncrementDate || "");
+    setNextIncrementDate(
+      employee.nextIncrementDate
+        ? new Date(employee.nextIncrementDate).toISOString().split("T")[0]
+        : ""
+    );
     setEligiblePromotion(employee.eligiblePromotion || "");
     setEmploymentType(employee.employmentType || "");
     setProfileImage(employee.profileImage || null);
-    setConfirmationDate(employee.confirmationDate || "");
-    setNextIncrementDate(employee.nextIncrementDate || "");
     setEligiblePromotion(employee.eligiblePromotion || "");
     setEmploymentType(employee.employmentType || "");
     setProfileImage(employee.profileImage || null);
@@ -490,6 +500,17 @@ setDesignations(
   fetchEmployees();
 }, []);
 
+
+useEffect(() => {
+  if (employeeID) {
+    const match = employeeID.match(/\d+$/); 
+    
+    if (match) {
+      const numericPart = match[0];
+      setEmployeeUserId(`DH-${numericPart}`);
+    }
+  }
+}, [employeeID]);
 const calculatePayStructure = (grossInput) => {
   const S = Math.round(parseFloat(grossInput) || 0);
  setGrossSalary(S);
@@ -751,12 +772,19 @@ const handleSubmit = async (e) => {
                     ]}
                   />
 
-                 <Input label="Employee ID" value={employeeID} readOnly />
+                 {/* <Input label="Employee ID" value={employeeID} readOnly /> */}
+                
+             
                 <Input 
-                    label="Employee UserID" 
-                    value={employeeUserId} 
-                    readOnly={true} 
-                  />
+                  label="Employee ID" 
+                  value={employeeID} 
+                  onChange={(val) => setEmployeeID(val)} // Change 'e' to 'val' and remove '.target.value'
+                />
+             <Input 
+                label="Employee UserID" 
+                value={employeeUserId} 
+                readOnly={true} // Set to true so users don't break the link manually
+              />
 
                 <Input
                   label="Government Registration Number"
@@ -2057,10 +2085,11 @@ const Input = ({ label, value, onChange, type = "text", readOnly = false }) => (
       type={type}
       value={value}
       readOnly={readOnly}
-      onChange={(e) =>
-        onChange &&
-        onChange(type === "text" ? e.target.value.toUpperCase() : e.target.value)
-      }
+     // Your Input component handles the event internally here:
+        onChange={(e) =>
+          onChange &&
+          onChange(type === "text" ? e.target.value.toUpperCase() : e.target.value)
+        }
       className={`w-full pl-2 pr-1 border border-gray-300 font-medium rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all duration-150 ${
         readOnly ? "bg-gray-100 cursor-not-allowed" : ""
       }`}
