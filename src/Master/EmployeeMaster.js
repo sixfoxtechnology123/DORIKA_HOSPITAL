@@ -8,7 +8,24 @@ import { useLocation } from "react-router-dom";
 
 const formatDateForInput = (dateString) => {
   if (!dateString) return "";
-  return new Date(dateString).toISOString().split("T")[0];
+  if (typeof dateString === "string" && dateString.includes("-")) {
+    const parts = dateString.split("-");
+    if (parts[0].length === 2 && parts[2].length === 4) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`; // Flips to YYYY-MM-DD
+    }
+  }
+  return dateString;
+};
+
+const formatDateForStorage = (dateString) => {
+  if (!dateString) return "";
+  if (typeof dateString === "string" && dateString.includes("-")) {
+    const parts = dateString.split("-");
+    if (parts[0].length === 4) {
+      return `${parts[2]}-${parts[1]}-${parts[0]}`; // Flips to DD-MM-YYYY
+    }
+  }
+  return dateString;
 };
 const EmployeeMaster = () => {
   const location = useLocation();
@@ -312,21 +329,14 @@ useEffect(() => {
     setDepartmentHeadEmpID(employee.departmentHeadEmpID || "");
     setReportingManagerEmployeeUserId(employee.reportingManagerEmployeeUserId || "");
     setDepartmentHeadEmployeeUserId(employee.departmentHeadEmployeeUserId || "");
+
     setDob(formatDateForInput(employee.dob));
     setDor(formatDateForInput(employee.dor));
     setDoj(formatDateForInput(employee.doj));
     setStatusChangeDate(formatDateForInput(employee.statusChangeDate));
-    setConfirmationDate(
-      employee.confirmationDate
-        ? new Date(employee.confirmationDate).toISOString().split("T")[0]
-        : ""
-    );
 
-    setNextIncrementDate(
-      employee.nextIncrementDate
-        ? new Date(employee.nextIncrementDate).toISOString().split("T")[0]
-        : ""
-    );
+    setConfirmationDate(formatDateForInput(employee.confirmationDate));
+    setNextIncrementDate(formatDateForInput(employee.nextIncrementDate));
     setEligiblePromotion(employee.eligiblePromotion || "");
     setEmploymentType(employee.employmentType || "");
     setProfileImage(employee.profileImage || null);
@@ -599,12 +609,12 @@ const payload = {
   maritalStatus,
   departmentID: departmentID,
   designationID: designationID,
-  dob,
-  dor,
-  doj,
-  statusChangeDate: statusChangeDate,
-  confirmationDate,
-  nextIncrementDate,
+  dob: formatDateForStorage(dob),
+  dor: formatDateForStorage(dor),
+  doj: formatDateForStorage(doj),
+  statusChangeDate: formatDateForStorage(statusChangeDate),
+  confirmationDate: formatDateForStorage(confirmationDate),
+  nextIncrementDate: formatDateForStorage(nextIncrementDate),
   eligiblePromotion,
   employmentType,
   profileImage,
@@ -618,7 +628,7 @@ const payload = {
   nominees: nomineeDetails.map(n => ({
   name: n.name,
   relationship: n.relation, // map frontend 'relation' to backend 'relationship'
-  dob: n.dob,
+  dob: formatDateForStorage(n.dob),
   share: n.share,
   address: n.address
 })),
@@ -628,7 +638,7 @@ const payload = {
     eyeSightLeft,
     eyeSightRight,
     familyPlanStatus,
-    familyPlanDate,
+    familyPlanDate: formatDateForStorage(familyPlanDate),
     height,
     weight,
     identification1: identificationMark1,

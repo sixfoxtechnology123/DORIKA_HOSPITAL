@@ -161,3 +161,27 @@ exports.updateEmployeeUserId = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.changeEmployeePassword = async (req, res) => {
+  try {
+    const { employeeID, currentPassword, newPassword } = req.body;
+
+    const user = await EmployeeUserId.findOne({ employeeId: employeeID });
+    if (!user) {
+      return res.status(404).json({ message: "User credentials not found." });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Incorrect current password." });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.status(200).json({ message: "Password updated successfully!" });
+  } catch (err) {
+    res.status(500).json({ message: "Server Error: " + err.message });
+  }
+};

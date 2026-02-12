@@ -2,11 +2,44 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import EmployeeCornerSidebar from "./EmployeeCornerSidebar";
-import { AiOutlinePhone, AiOutlineMail } from "react-icons/ai";
+import { AiOutlinePhone, AiOutlineMail,AiOutlineLock } from "react-icons/ai";
 
 const UserProfile = () => {
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  // 2. Function to handle the API call
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    
+    if (formData.newPassword !== formData.confirmPassword) {
+      return toast.error("New passwords do not match!");
+    }
+
+    try {
+      const user = JSON.parse(localStorage.getItem("employeeUser"));
+      // This hits your employeeuseridcreated model logic
+      const response = await axios.put(`http://localhost:5002/api/employee-ids/change-password`, {
+        employeeID: user.employeeID,
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
+      });
+
+      if (response.status === 200) {
+        toast.success("Password updated successfully!");
+        setIsModalOpen(false);
+        setFormData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update password");
+    }
+  };
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("employeeUser")); // stored during login
@@ -73,6 +106,7 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
 };
 
   return (
+    
     <div className="flex min-h-screen bg-gray-100 flex-col md:flex-row">
       {/* Sidebar */}
       <EmployeeCornerSidebar />
@@ -81,12 +115,20 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
       <div className="flex-1 p-2 sm:p-3 w-full">
         <div className="w-full mx-auto bg-white shadow-xl rounded-2xl overflow-hidden">
        {/* Header Section */}
-      <div className="bg-slate-800 text-white px-4 md:px-8 py-6 flex flex-col md:flex-row gap-4 justify-between items-center">
-        <div className="w-full">
-          {/* Name: Centered on mobile, left-aligned on desktop */}
-          <h2 className="text-xl md:text-3xl font-bold text-center md:text-left mb-2">
-            {employee?.firstName} {employee?.middleName} {employee?.lastName}
-          </h2>
+     <div className="bg-slate-800 text-white px-4 md:px-8 py-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl md:text-3xl font-bold">
+          {employee?.firstName} {employee?.middleName} {employee?.lastName}
+        </h2>
+        
+        {/* Modern Change Password Button */}
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-full text-sm font-medium transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
+        >
+          <AiOutlineLock /> Change Password
+        </button>
+      </div>
 
           {/* Info Grid: 1 column on mobile, 2 on tablet, 4 on desktop for maximum "desktop style" alignment */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm md:text-base border-t border-slate-600 pt-3">
@@ -273,9 +315,78 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
 
 
         </div>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/50">
+            <div className="bg-white w-full max-w-md shadow-xl border border-gray-200">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 className="text-gray-800 font-semibold text-lg">Account Security</h3>
+                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+              </div>
+
+              {/* Modal Body */}
+              <form onSubmit={handlePasswordChange} className="p-6">
+                <p className="text-xs text-gray-800 mb-6 uppercase tracking-wider font-semibold">Update User Password</p>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-900 mb-1">Current Password</label>
+                    <input
+                      type="password"
+                      required
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                      value={formData.currentPassword}
+                      onChange={(e) => setFormData({...formData, currentPassword: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-900 mb-1">New Password</label>
+                    <input
+                      type="password"
+                      required
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                      value={formData.newPassword}
+                      onChange={(e) => setFormData({...formData, newPassword: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-900 mb-1">Confirm Password</label>
+                    <input
+                      type="password"
+                      required
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="mt-8 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 border border-gray-300 rounded"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-900 rounded shadow-sm"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+
   );
+  
 };
 
 export default UserProfile;

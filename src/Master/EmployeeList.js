@@ -116,9 +116,9 @@ const handleSearchChange = (e) => {
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-     <div className="w-full md:w-64">
+    
       <Sidebar />
-    </div>
+   
     <div className="flex-1 overflow-y-auto p-2 sm:p-3 md:p-2">
     <div className="p-3 bg-white shadow-md rounded-md">
     <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-3 mb-4">
