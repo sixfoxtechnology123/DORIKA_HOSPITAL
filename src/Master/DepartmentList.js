@@ -10,7 +10,7 @@ import Pagination from "../Master/Pagination";
 const DepartmentList = () => {
   const [departments, setDepartments] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const perPage = 10;
+  const perPage = 20;
   const navigate = useNavigate();
 
   // Fetch all departments
@@ -76,7 +76,7 @@ const DepartmentList = () => {
 
     <button
         onClick={() => navigate("/departmentMaster")}
-        className="bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 py-1 rounded font-semibold text-sm sm:text-base whitespace-nowrap"
+        className="bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 rounded font-semibold text-sm sm:text-base whitespace-nowrap"
       >
         Add Department
       </button>
@@ -87,16 +87,16 @@ const DepartmentList = () => {
       <table className=" mt-2 w-full table-auto border border-dorika-blue">
         <thead className="bg-dorika-blue text-white text-sm">
           <tr>
-            <th className="border border-dorika-blue px-2 ">
+            <th className="border border-dorika-blue px-2">
               Department Code
             </th>
-            <th className="border border-dorika-blue px-2 ">
+            <th className="border border-dorika-blue px-2">
               Department Name
             </th>
-            {/* <th className="border border-dorika-blue px-2 ">
+            {/* <th className="border border-dorika-blue px-2">
               Description
             </th> */}
-            <th className="border border-dorika-blue px-2 ">Action</th>
+            <th className="border border-dorika-blue px-2">Action</th>
           </tr>
         </thead>
         <tbody className="text-xs sm:text-sm text-center">
@@ -106,16 +106,16 @@ const DepartmentList = () => {
                 key={dept._id}
                 className="hover:bg-dorika-blueLight transition text-center"
               >
-                <td className="border border-dorika-blue px-2 ">
+                <td className="border border-dorika-blue px-2">
                   {dept.deptCode}
                 </td>
-                <td className="border border-dorika-blue px-2 ">
+                <td className="border border-dorika-blue px-2">
                   {dept.deptName}
                 </td>
-                {/* <td className="border border-dorika-blue px-2 ">
+                {/* <td className="border border-dorika-blue px-2">
                   {dept.description}
                 </td> */}
-                <td className="border border-dorika-blue px-2 ">
+                <td className="border border-dorika-blue px-2">
                   <div className="flex justify-center items-center gap-4">
                     {/* Edit Button */}
                     <button

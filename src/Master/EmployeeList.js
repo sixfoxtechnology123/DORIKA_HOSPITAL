@@ -14,7 +14,7 @@ const EmployeeList = () => {
   const [designations, setDesignations] = useState([]);
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const perPage = 10;
+  const perPage = 20;
   const [searchTerm, setSearchTerm] = useState("");
 
 

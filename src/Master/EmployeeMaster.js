@@ -1796,7 +1796,7 @@ const handleSubmit = async (e) => {
                 /> */}
 
                 <Input label="Passport No." value={passportNo} onChange={setPassportNo} />
-                {/* <Input label="PF No." value={pfNo} onChange={setPfNo} /> */}
+                <Input label="PF No." value={pfNo} onChange={setPfNo} />
                 <Input label="UAN No." value={uanNo} onChange={setUanNo} />
                 <Input label="Pan No." value={panNo} onChange={setPanNo} />
 

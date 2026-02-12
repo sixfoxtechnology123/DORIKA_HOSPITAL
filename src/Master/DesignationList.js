@@ -10,7 +10,7 @@ import Pagination from "../Master/Pagination";
 const DesignationList = () => {
   const [designations, setDesignations] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const perPage = 10;
+  const perPage = 20;
   const navigate = useNavigate();
 
   const fetchDesignations = async () => {
@@ -52,7 +52,7 @@ const DesignationList = () => {
           <BackButton />
           <button
             onClick={() => navigate('/designationMaster')}
-            className="bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 py-1 rounded font-semibold text-sm sm:text-base whitespace-nowrap"
+            className="bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 rounded font-semibold text-sm sm:text-base whitespace-nowrap"
           >
             Add Designation
           </button>
@@ -63,24 +63,24 @@ const DesignationList = () => {
       <table className=" mt-2 w-full table-auto border border-dorika-blue">
         <thead className="bg-dorika-blue text-white text-sm">
           <tr>
-            <th className="border border-dorika-blue px-2 py-1">Designation ID</th>
-            <th className="border border-dorika-blue px-2 py-1">Designation Name</th>
-            <th className="border border-dorika-blue px-2 py-1">Department</th>
-            <th className="border border-dorika-blue px-2 py-1">Grade</th>
-            <th className="border border-dorika-blue px-2 py-1">Status</th>
-            <th className="border border-dorika-blue px-2 py-1">Action</th>
+            <th className="border border-dorika-blue px-2">Designation ID</th>
+            <th className="border border-dorika-blue px-2">Designation Name</th>
+            <th className="border border-dorika-blue px-2">Department</th>
+            <th className="border border-dorika-blue px-2">Grade</th>
+            <th className="border border-dorika-blue px-2">Status</th>
+            <th className="border border-dorika-blue px-2">Action</th>
           </tr>
         </thead>
         <tbody className="text-xs sm:text-sm text-center">
           {designations.length > 0 ? (
             currentDesignation.map((d) => (
               <tr key={d._id} className="hover:bg-dorika-blueLight transition">
-                <td className="border border-dorika-blue px-2 py-1">{d.designationID}</td>
-                <td className="border border-dorika-blue px-2 py-1">{d.designationName}</td>
-                <td className="border border-dorika-blue px-2 py-1">{d.departmentName}</td>
-                <td className="border border-dorika-blue px-2 py-1">{d.grade}</td>
-                <td className="border border-dorika-blue px-2 py-1">{d.status}</td>
-                <td className="border border-dorika-blue px-2 py-1 ">
+                <td className="border border-dorika-blue px-2">{d.designationID}</td>
+                <td className="border border-dorika-blue px-2">{d.designationName}</td>
+                <td className="border border-dorika-blue px-2">{d.departmentName}</td>
+                <td className="border border-dorika-blue px-2">{d.grade}</td>
+                <td className="border border-dorika-blue px-2">{d.status}</td>
+                <td className="border border-dorika-blue px-2 ">
                 <div className="flex justify-center gap-4 sm:gap-8">
                     <button
                     onClick={() =>
