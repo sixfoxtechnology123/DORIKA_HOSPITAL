@@ -15,6 +15,7 @@ const EmployeeList = () => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = 10;
+  const [searchTerm, setSearchTerm] = useState("");
 
 
   const fetchAll = async () => {
@@ -55,6 +56,23 @@ const EmployeeList = () => {
     fetchAll();
   }, []);
 
+const handleSearchChange = (e) => {
+  let value = e.target.value.toUpperCase();
+
+  // If user types only number → add P- before it (no zero padding)
+  if (/^\d+$/.test(value)) {
+    value = `P-${value}`;
+  }
+
+  // If user types P followed by number (no dash) → add dash only
+  if (/^P\d/.test(value)) {
+    value = value.replace(/^P/, "P-");
+  }
+
+  setSearchTerm(value);
+  setCurrentPage(1);
+};
+
   const deptMap = useMemo(() => {
     const m = {};
     departments.forEach((d) => (m[d.id] = d.name)); // code -> name
@@ -78,10 +96,23 @@ const EmployeeList = () => {
     }
   };
 
-  const paginatedEmployees = useMemo(() => {
-  const start = (currentPage - 1) * perPage;
-  return employees.slice(start, start + perPage);
-}, [employees, currentPage]);
+  const filteredEmployees = useMemo(() => {
+  if (!searchTerm) return employees;
+
+  return employees.filter((e) => {
+    const fullName = `${e.firstName || ""} ${e.middleName || ""} ${e.lastName || ""}`.toUpperCase();
+    const empId = (e.employeeID || "").toUpperCase();
+
+    return (
+      fullName.startsWith(searchTerm) ||
+      empId.startsWith(searchTerm)
+    );
+  });
+}, [employees, searchTerm]);
+
+  const indexOfLast = currentPage * perPage;
+  const indexOfFirst = indexOfLast - perPage;
+  const paginatedEmployees = filteredEmployees.slice(indexOfFirst, indexOfLast);
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -90,25 +121,43 @@ const EmployeeList = () => {
     </div>
     <div className="flex-1 overflow-y-auto p-2 sm:p-3 md:p-2">
     <div className="p-3 bg-white shadow-md rounded-md">
-    <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
+    <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-3 mb-4">
 
-  {/* LEFT TEXT */}
-  <h2 className="text-sm sm:text-lg md:text-xl font-bold text-dorika-blue whitespace-nowrap">
-    Employee List
-  </h2>
+    <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
+          {/* whitespace-nowrap ensures the text doesn't wrap and overlap */}
+          <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
+            Leave Applications
+          </h2>
+          <div className="flex shrink-0">
+            <BackButton />
+          </div>
+    </div>
 
-  {/* RIGHT BUTTONS */}
-  <div className="flex gap-2">
-    <BackButton />
-    <button
-      onClick={() => navigate("/EmployeeMaster")}
-      className="bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 py-1 rounded font-semibold whitespace-nowrap text-xs sm:text-sm"
-    >
-      Add Employee
-    </button>
+    {/* BOTTOM ROW */}
+    <div className="flex justify-between items-center gap-2 mt-3">
+
+      {/* Search Bar */}
+      <input
+        type="text"
+        placeholder="Search Name or Emp ID"
+        value={searchTerm}
+        onChange={handleSearchChange}
+        className="border border-dorika-blue rounded 
+                  px-3 py-2 text-sm uppercase
+                  w-full focus:outline-none"
+      />
+
+      {/* Add Button */}
+      <button
+        onClick={() => navigate("/EmployeeMaster")}
+        className="bg-dorika-orange hover:bg-dorika-blue text-white 
+                  px-4 py-2 rounded font-semibold 
+                  text-sm whitespace-nowrap"
+      >
+        Add Employee
+      </button>
+    </div>
   </div>
-</div>
-
       <div className="w-full overflow-x-auto">
         <table className="min-w-[700px] w-full table-auto border border-dorika-blue">
         <thead className="bg-dorika-blue text-white text-sm">
@@ -129,9 +178,9 @@ const EmployeeList = () => {
         </thead>
         <tbody className="text-xs sm:text-sm text-center">
           {employees.length ? (
-            employees.map((e,index) => (
+           paginatedEmployees.map((e,index) => (
               <tr key={e._id} className="hover:bg-dorika-blueLight transition">
-                <td className="border border-dorika-blue px-2 py-1">{index+1}</td>
+                <td className="border border-dorika-blue px-2 py-1">{(currentPage - 1) * perPage + index + 1}</td>
                 <td className="border border-dorika-blue px-2 py-1">{e.employeeID}</td>
                 <td className="border border-dorika-blue px-2 py-1">
                   {e.firstName} {e.middleName} {e.lastName}
@@ -180,6 +229,12 @@ const EmployeeList = () => {
           )}
         </tbody>
       </table>
+      <Pagination
+        total={filteredEmployees.length}
+        perPage={perPage}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+      />
     </div>
     </div>
     </div>
