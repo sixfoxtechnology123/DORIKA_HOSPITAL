@@ -4,10 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { FaTrash, FaEdit } from 'react-icons/fa';
 import BackButton from '../component/BackButton';
 import Sidebar from '../component/Sidebar';
+import Pagination from "../Master/Pagination";
 
 
 const DesignationList = () => {
   const [designations, setDesignations] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const perPage = 10;
   const navigate = useNavigate();
 
   const fetchDesignations = async () => {
@@ -24,6 +27,9 @@ const DesignationList = () => {
     fetchDesignations();
   }, []);
 
+  const indexOfLast = currentPage * perPage;
+  const indexOfFirst = indexOfLast - perPage;
+  const currentDesignation = designations.slice(indexOfFirst, indexOfLast);
   const deleteDesignation = async (id) => {
     if (!window.confirm('Are you sure you want to delete this designation?'))
       return;
@@ -67,7 +73,7 @@ const DesignationList = () => {
         </thead>
         <tbody className="text-xs sm:text-sm text-center">
           {designations.length > 0 ? (
-            designations.map((d) => (
+            currentDesignation.map((d) => (
               <tr key={d._id} className="hover:bg-dorika-blueLight transition">
                 <td className="border border-dorika-blue px-2 py-1">{d.designationID}</td>
                 <td className="border border-dorika-blue px-2 py-1">{d.designationName}</td>
@@ -103,6 +109,12 @@ const DesignationList = () => {
           )}
         </tbody>
       </table>
+      <Pagination
+      total={designations.length}
+      perPage={perPage}
+      currentPage={currentPage}
+      onPageChange={setCurrentPage}
+    />
     </div>
 </div>
 </div>

@@ -5,9 +5,12 @@ import { FaTrash, FaEdit } from "react-icons/fa";
 import BackButton from "../component/BackButton";
 import Sidebar from '../component/Sidebar';
 import toast from "react-hot-toast";
+import Pagination from "../Master/Pagination";
 
 const DepartmentList = () => {
   const [departments, setDepartments] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const perPage = 10;
   const navigate = useNavigate();
 
   // Fetch all departments
@@ -30,6 +33,9 @@ const DepartmentList = () => {
   useEffect(() => {
     fetchDepartments();
   }, []);
+  const indexOfLast = currentPage * perPage;
+  const indexOfFirst = indexOfLast - perPage;
+  const currentDepartments = departments.slice(indexOfFirst, indexOfLast);
 
   // Delete department
   const deleteDepartment = async (id) => {
@@ -84,7 +90,7 @@ const DepartmentList = () => {
         </thead>
         <tbody className="text-xs sm:text-sm text-center">
           {departments.length > 0 ? (
-            departments.map((dept) => (
+            currentDepartments.map((dept) => (
               <tr
                 key={dept._id}
                 className="hover:bg-dorika-blueLight transition text-center"
@@ -134,6 +140,12 @@ const DepartmentList = () => {
           )}
         </tbody>
       </table>
+      <Pagination
+        total={departments.length}
+        perPage={perPage}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+      />
     </div>
     </div>
     </div>
