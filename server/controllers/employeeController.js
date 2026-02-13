@@ -9,8 +9,7 @@ const AdminManagement = require("../models/adminManagementModel");
 const generateEmployeeUserId = async () => {
   try {
     const prefix = "DH";
-    // Find the last employee created to get the highest serial
-    const lastEmp = await Employee.findOne().sort({ createdAt: -1 }).lean();
+    const lastEmp = await Employee.findOne().sort({ employeeUserId: -1 }).lean();
     
     let next = 101;
 
@@ -38,8 +37,7 @@ const generateEmployeeID = async (employmentStatus) => {
   try {
     const prefix = employmentStatus;
 
-    // Get last employee by createdAt (global last, ignore prefix)
-    const lastEmp = await Employee.findOne().sort({ createdAt: -1 }).lean();
+   const lastEmp = await Employee.findOne().sort({ employeeID: -1 }).lean();
 
     let next = 101;
 
@@ -138,7 +136,8 @@ exports.createEmployee = async (req, res) => {
 // GET /api/employees
 exports.getAllEmployees = async (req, res) => {
   try {
-    const rows = await Employee.find().sort({ createdAt: 1 });
+    // This will now sort: 101, 102, 103, 104...
+    const rows = await Employee.find().sort({ employeeID: 1 }); 
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch employees" });

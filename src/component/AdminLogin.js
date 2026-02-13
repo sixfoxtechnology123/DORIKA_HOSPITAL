@@ -64,10 +64,11 @@ const AdminLogin = () => {
       } else {
         setError("Invalid credentials");
       }
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Login failed. Please try again.");
     }
+      catch (err) {
+        console.error(err);
+        setError(err.response?.data?.message || "Login failed. Please try again.");
+      }
   };
 
   return (
@@ -148,7 +149,12 @@ const AdminLogin = () => {
             }
             setUserId(value);
           }}
-             className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-white/20 text-white text-sm sm:text-base placeholder-gray-300 outline-none focus:ring-2 focus:ring-purple-500"
+          style={{ 
+            WebkitBoxShadow: "0 0 0px 1000px rgba(0,0,0,0) inset", 
+            transition: "background-color 5000s ease-in-out 0s",
+            WebkitTextFillColor: "white" 
+          }}
+             className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-gray-600 text-white text-sm sm:text-base placeholder-gray-300 outline-none focus:ring-2 focus:ring-purple-500"
               required
             />
           </div>
@@ -160,7 +166,12 @@ const AdminLogin = () => {
               placeholder="Enter password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg bg-white/20 text-white placeholder-gray-200 outline-none focus:ring-2 focus:ring-purple-500"
+              style={{ 
+                WebkitBoxShadow: "0 0 0px 1000px rgba(0,0,0,0) inset", 
+                transition: "background-color 5000s ease-in-out 0s",
+                WebkitTextFillColor: "white" 
+              }}
+              className="w-full px-4 py-2 rounded-lg bg-gray-600 text-white placeholder-gray-200 outline-none focus:ring-2 focus:ring-purple-500"
               required
             />
             <button

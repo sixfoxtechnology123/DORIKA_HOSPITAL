@@ -2,12 +2,16 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import EmployeeCornerSidebar from "./EmployeeCornerSidebar";
-import { AiOutlinePhone, AiOutlineMail,AiOutlineLock } from "react-icons/ai";
+import {AiOutlineLock } from "react-icons/ai";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const UserProfile = () => {
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [formData, setFormData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -325,61 +329,91 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
               </div>
 
               {/* Modal Body */}
-              <form onSubmit={handlePasswordChange} className="p-6">
-                <p className="text-xs text-gray-800 mb-6 uppercase tracking-wider font-semibold">Update User Password</p>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-900 mb-1">Current Password</label>
+            <form onSubmit={handlePasswordChange} className="p-6">
+              <p className="text-xs text-gray-800 mb-6 uppercase tracking-wider font-semibold">Update User Password</p>
+              
+              <div className="space-y-4">
+                {/* Current Password */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-900 mb-1">Current Password</label>
+                  <div className="relative">
                     <input
-                      type="password"
+                      type={showCurrent ? "text" : "password"}
                       required
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-base focus:border-indigo-500 focus:outline-none pr-10"
                       value={formData.currentPassword}
                       onChange={(e) => setFormData({...formData, currentPassword: e.target.value})}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrent(!showCurrent)}
+                      className="absolute right-3 top-2 text-gray-500 hover:text-indigo-600 focus:outline-none"
+                    >
+                      {showCurrent ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                    </button>
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-gray-900 mb-1">New Password</label>
+                {/* New Password */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-900 mb-1">New Password</label>
+                  <div className="relative">
                     <input
-                      type="password"
+                      type={showNew ? "text" : "password"}
                       required
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-base focus:border-indigo-500 focus:outline-none pr-10"
                       value={formData.newPassword}
                       onChange={(e) => setFormData({...formData, newPassword: e.target.value})}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowNew(!showNew)}
+                      className="absolute right-3 top-2 text-gray-500 hover:text-indigo-600 focus:outline-none"
+                    >
+                      {showNew ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                    </button>
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-gray-900 mb-1">Confirm Password</label>
+                {/* Confirm Password */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-900 mb-1">Confirm Password</label>
+                  <div className="relative">
                     <input
-                      type="password"
+                      type={showConfirm ? "text" : "password"}
                       required
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-base focus:border-indigo-500 focus:outline-none pr-10"
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm(!showConfirm)}
+                      className="absolute right-3 top-2 text-gray-500 hover:text-indigo-600 focus:outline-none"
+                    >
+                      {showConfirm ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                    </button>
                   </div>
                 </div>
+              </div>
 
-                {/* Modal Footer */}
-                <div className="mt-8 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 border border-gray-300 rounded"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-900 rounded shadow-sm"
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              </form>
+              {/* Modal Footer */}
+              <div className="mt-8 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 border border-gray-300 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-900 rounded shadow-sm"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
             </div>
           </div>
         )}

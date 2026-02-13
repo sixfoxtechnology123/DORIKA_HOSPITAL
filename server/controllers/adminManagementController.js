@@ -28,13 +28,17 @@ createDefaultAdmin();
 exports.login = async (req, res) => {
   try {
     let { userId, password } = req.body;
-    const user = await AdminManagement.findOne({ userId: userId?.trim() });
-    
-    if (!user || !(await bcrypt.compare(password?.trim(), user.password))) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
 
-    // ✅ CHANGE THIS SECTION: Add name and employeeUserId to the payload
+  const user = await AdminManagement.findOne({ userId: userId?.trim() });
+ 
+  if (!user) {
+    return res.status(401).json({ message: "Wrong User ID" });
+  }
+
+  const isMatch = await bcrypt.compare(password?.trim(), user.password);
+  if (!isMatch) {
+    return res.status(401).json({ message: "Wrong password" });
+  }
     const token = jwt.sign(
       { 
         id: user._id, 

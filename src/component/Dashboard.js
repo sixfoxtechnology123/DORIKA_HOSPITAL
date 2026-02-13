@@ -3,6 +3,8 @@ import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
+import ChangePassword from "./ChangePassword"; 
+import { X } from "lucide-react";
 
 // Icons
 import {
@@ -26,6 +28,7 @@ const Dashboard = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [admin, setAdmin] = useState(JSON.parse(localStorage.getItem("adminData")) || {});
   const [activities, setActivities] = useState([]);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const dropdownRef = useRef();
   const navigate = useNavigate();
 
@@ -152,12 +155,18 @@ const Dashboard = () => {
             {dropdownOpen && (
               <div className="absolute right-0 mt-12 w-48 bg-white border rounded shadow-lg z-50">
                 <ul className="flex flex-col">
-                  <li>
+                  {/* <li>
                     <Link to="/EditProfile" className="block px-4 py-2 hover:bg-gray-100" onClick={() => setDropdownOpen(false)}>Edit Profile</Link>
-                  </li>
-                  <li>
-                    <Link to="/ChangePassword" className="block px-4 py-2 hover:bg-gray-100" onClick={() => setDropdownOpen(false)}>Change Password</Link>
-                  </li>
+                  </li> */}
+                <button 
+                  className="w-full text-left block px-4 py-2 hover:bg-gray-100" 
+                  onClick={() => { 
+                    setIsChangePasswordOpen(true); 
+                    setDropdownOpen(false); 
+                  }}
+                >
+                  Change Password
+                </button>
                   <li>
                     <button className="w-full text-left px-4 py-2 hover:bg-gray-100" onClick={handleLogout}>Logout</button>
                   </li>
@@ -167,14 +176,14 @@ const Dashboard = () => {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6"> */}
+          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {visibleCards.length > 0 ? (
               visibleCards.map((c, i) => {
                 const Icon = c.icon;
                 return (
                   <Link key={i} to={c.path} className="flex justify-center">
-                    <div className={`w-56  rounded-lg p-3 text-center shadow-md hover:shadow-xl transition cursor-pointer ${c.color}`}>
+                   <div className={`w-full max-w-sm rounded-lg p-6 text-center shadow-md hover:shadow-xl transition cursor-pointer ${c.color}`}>
                       <div className="flex justify-center mb-3"><Icon size={32} /></div>
                       <h2 className="text-lg font-medium">{c.title}</h2>
                       {/* <p className="text-3xl font-bold mt-2">{c.value ?? 0}</p> */}
@@ -188,7 +197,7 @@ const Dashboard = () => {
           </div>
 
           {/* Recent Activities */}
-          <div className="bg-white p-2 rounded-lg shadow w-full text-sm">
+          {/* <div className="bg-white p-2 rounded-lg shadow w-full text-sm">
             <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm">
               <Activity size={20} /> Recent Activities
             </h3>
@@ -204,8 +213,21 @@ const Dashboard = () => {
                 <p className="text-gray-500">No recent activities</p>
               )}
             </ul>
+          </div> */}
+        {/* </div> */}
+        {isChangePasswordOpen && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <button 
+              onClick={() => setIsChangePasswordOpen(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-red-500 z-10"
+            >
+              <X size={24} />
+            </button>
+            <ChangePassword onClose={() => setIsChangePasswordOpen(false)} />
           </div>
         </div>
+      )}
       </main>
     </div>
   );
