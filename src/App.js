@@ -55,6 +55,8 @@ import AttendanceSignIn from "./component/AttendanceSignIn";
 import OtRateMaster from "./Master/OtRateMaster";
 import OTRateList from "./Master/OTRateList";
 import GenerateAllEmployeePayslip from "./Master/GenerateAllEmployeePayslip";
+import QualificationMaster from "./Master/QualificationMaster";
+import QualificationList from "./Master/QualificationList";
 
 export default function App(){
   return (
@@ -114,6 +116,8 @@ export default function App(){
       <Route path="/OtRateMaster" element={<OtRateMaster/>} />
       <Route path="/OTRateList" element={<OTRateList/>} />
       <Route path="/GenerateAllEmployeePayslip" element={<GenerateAllEmployeePayslip/>} />
+      <Route path="/QualificationMaster" element={<QualificationMaster/>} />
+      <Route path="/QualificationList" element={<QualificationList/>} />
 
      </Routes>
         <Toaster

@@ -57,8 +57,8 @@ const EmployeeAttendanceHistory = () => {
   const [designations, setDesignations] = useState([]);
   const [selectedDesignation, setSelectedDesignation] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
-
-  const perPage = 8;
+ const [perPage, setPerPage] = useState(20);
+ const tableContainerRef = React.useRef(null);
 
   /* ================= DAYS IN MONTH ================= */
   const daysInMonth = useMemo(() => {
@@ -135,17 +135,26 @@ const EmployeeAttendanceHistory = () => {
       ? employees
       : employees.filter((e) => e.designationName === selectedDesignation);
 
-  const startIndex = (currentPage - 1) * perPage;
-  const paginatedEmployees = filteredEmployees.slice(
-    startIndex,
-    startIndex + perPage
-  );
+    const startIndex = perPage === "all" ? 0 : (currentPage - 1) * perPage;
 
+    const paginatedEmployees = perPage === "all" 
+      ? filteredEmployees 
+      : filteredEmployees.slice(startIndex, startIndex + perPage);
+
+
+  const scrollTable = (direction) => {
+  if (tableContainerRef.current) {
+    const scrollAmount = 400; // Move 400 pixels per click
+    tableContainerRef.current.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth'
+    });
+  }
+};
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      <Sidebar />
-
-      <div className="flex-1 overflow-y-auto">
+   <div className="flex h-screen flex-col md:flex-row">
+      <Sidebar/>
+    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
         <div className="p-3 bg-white shadow-md rounded-md">
           {/* ================= HEADER ================= */}
           <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
@@ -155,18 +164,26 @@ const EmployeeAttendanceHistory = () => {
             </div>
           </div>
 
-          {/* ================= TOP CONTROLS ================= */}
-          <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 flex flex-col md:flex-row md:justify-between md:items-start gap-3 border border-dorika-blue">
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-center mr-5">
-              <label className="font-semibold text-dorika-blue">Month:</label>
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="border border-dorika-blue rounded px-3 py-1"
-              />
+    {/* ================= TOP CONTROLS ================= */}
+    <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 flex flex-col gap-4 border border-dorika-blue">
+      
+      {/* TOP ROW: Month, Designation and Show Dropdown */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+        
+        {/* Month & Designation Group */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+          <div className="flex items-center gap-2">
+            <label className="font-semibold text-dorika-blue text-sm uppercase">Month:</label>
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="border border-dorika-blue rounded px-3 py-1 bg-white text-sm focus:outline-none"
+            />
+          </div>
 
-              <label className="font-semibold text-dorika-blue">Designation:</label>
+          
+            <label className="font-semibold text-dorika-blue">Designation:</label>
               <select
                 value={selectedDesignation}
                 onChange={(e) => setSelectedDesignation(e.target.value)}
@@ -176,48 +193,79 @@ const EmployeeAttendanceHistory = () => {
                   <option key={d}>{d}</option>
                 ))}
               </select>
-            </div>
+         
+        </div>
 
-            <div className="flex flex-col gap-1 text-xs font-bold mb-2">
-              <div className="flex flex-wrap gap-3 text-xs font-bold justify-start">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 bg-green-600 rounded-sm"></span>
-                  <span>Present (P)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 bg-orange-500 rounded-sm"></span>
-                  <span>Late Present (P(L))</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 bg-red-600 rounded-sm"></span>
-                  <span>Absent (A)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 bg-purple-600 rounded-sm"></span>
-                  <span>Sick Leave (SL)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 bg-blue-600 rounded-sm"></span>
-                  <span>Casual Leave (CL)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 bg-black rounded-sm"></span>
-                  <span>OFF</span>
-                </div>
-              </div>
+        {/* SHOW DROPDOWN - Full width on Mobile (w-full), Auto on Desktop (md:w-auto) */}
+        <div className="flex items-center gap-2 w-full md:w-auto border-t md:border-t-0 pt-2 md:pt-0">
+          <label className="text-[10px] sm:text-xs font-bold text-dorika-blue uppercase whitespace-nowrap">Show:</label>
+          <select
+            value={perPage}
+            onChange={(e) => {
+              const val = e.target.value;
+              setPerPage(val === "all" ? "all" : parseInt(val));
+              setCurrentPage(1);
+            }}
+            className="flex-1 md:flex-none border border-dorika-blue rounded px-2 py-1 text-sm font-semibold bg-white text-dorika-blue outline-none"
+          >
+            <option value={8}>8</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+            <option value="all">ALL</option>
+          </select>
+        </div>
+      </div>
 
-              <div className="flex flex-wrap gap-2 bg-gray-300 p-1 rounded-md mt-2 text-[10px] sm:text-xs">
-                <span className="text-green-700">TP - Total Present</span>
-                <span className="text-red-600">TA - Total Absent</span>
-                <span className="text-gray-600">TO - Total OFF</span>
-                <span className="text-orange-600">TL - Total Leave (SL+CL)</span>
-                <span className="text-orange-600">TOT - Total Over Time</span>
-              </div>
-            </div>
-          </div>
+      {/* BOTTOM ROW: Color Codes (Legend) */}
+      <div className="flex flex-col gap-2 border-t border-dorika-blue/20 pt-3">
+        <div className="flex flex-wrap gap-x-4 gap-y-2 text-[10px] sm:text-xs font-bold justify-start">
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-green-600 rounded-sm"></span><span>Present (P)</span></div>
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-orange-500 rounded-sm"></span><span>Late (P(L))</span></div>
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-red-600 rounded-sm"></span><span>Absent (A)</span></div>
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-purple-600 rounded-sm"></span><span>Sick (SL)</span></div>
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-blue-600 rounded-sm"></span><span>Casual (CL)</span></div>
+          <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-black rounded-sm"></span><span>OFF</span></div>
+        </div>
 
-          {/* ================= TABLE ================= */}
-          <div className="overflow-x-auto bg-white rounded-lg shadow">
+        {/* Summary Text Bar */}
+        <div className="flex flex-wrap gap-x-3 gap-y-1 bg-gray-300/60 p-1.5 rounded-md text-[10px] sm:text-xs font-bold">
+          <span className="text-green-700">TP - Total Present</span>
+          <span className="text-red-600">TA - Total Absent</span>
+          <span className="text-gray-600">TO - Total OFF</span>
+          <span className="text-orange-600">TL - Total Leave (SL+CL)</span>
+          <span className="text-orange-600">TOT - Total Over Time</span>
+        </div>
+      </div>
+    </div>
+
+        <div className="relative group flex-1 flex flex-col min-h-0"> 
+          
+        {/* Left Fixed Gray Arrow */}
+        <button 
+          type="button"
+          onClick={() => scrollTable('left')}
+          className="fixed left-[280px] top-1/2 -translate-y-1/2 z-50 bg-gray-800/40 hover:bg-gray-800/70 text-white p-4 rounded-full shadow-2xl backdrop-blur-md transition-all active:scale-90 hidden md:block"
+          style={{ marginLeft: '10px' }} // Ensures it doesn't touch the sidebar
+        >
+          <span className="text-3xl font-bold">❮</span>
+        </button>
+
+        {/* Right Fixed Gray Arrow */}
+        <button 
+          type="button"
+          onClick={() => scrollTable('right')}
+          className="fixed right-6 top-1/2 -translate-y-1/2 z-50 bg-gray-800/40 hover:bg-gray-800/70 text-white p-4 rounded-full shadow-2xl backdrop-blur-md transition-all active:scale-90 hidden md:block"
+        >
+          <span className="text-3xl font-bold">❯</span>
+        </button>
+
+          {/* The Scrollable Box - NOW WRAPS THE TABLE CORRECTLY */}
+          <div 
+            ref={tableContainerRef} 
+            className="w-full overflow-x-auto bg-white rounded-lg shadow border scroll-smooth"
+          >
+      
             <table className="w-full border-collapse border-dorika-blue text-[10px] sm:text-xs">
               <thead className="bg-dorika-blue text-white sticky top-0">
                 <tr>
@@ -242,10 +290,11 @@ const EmployeeAttendanceHistory = () => {
                 </tr>
               </thead>
 
+
               <tbody>
                 {paginatedEmployees.map((emp, i) => (
                   <tr key={emp.employeeUserId} className={`${getRowColor(startIndex + i)}`}>
-                    <td className="border px-2 border-dorika-blue">{startIndex + i + 1}</td>
+                    <td className="border px-2 border-dorika-blue">{perPage === "all" ? i + 1 : startIndex + i + 1}</td>
                     <td className="border px-2 border-dorika-blue">{emp.employeeID}</td>
                     <td className="border px-2 border-dorika-blue font-medium">
                       {emp.firstName} {emp.lastName}
@@ -386,14 +435,18 @@ const EmployeeAttendanceHistory = () => {
                 ))}
               </tbody>
             </table>
+             
+        </div>
 
-            <Pagination
-              total={filteredEmployees.length}
-              perPage={perPage}
-              currentPage={currentPage}
-              onPageChange={setCurrentPage}
-            />
-          </div>
+          {perPage !== "all" && (
+          <Pagination
+            total={filteredEmployees.length}
+            perPage={perPage}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+          />
+        )}  
+        </div>
         </div>
       </div>
     </div>

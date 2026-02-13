@@ -44,6 +44,7 @@ const shiftManagementRoutes = require("./routes/shiftManagementRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
 const leaveRoutes = require("./routes/leaveRoutes");
 const otRateRoutes = require("./routes/otRateRoutes");
+const qualificationRoutes = require("./routes/qualificationRoutes");
 
 
 app.use("/api/master", masterRoutes);
@@ -70,6 +71,7 @@ app.use("/api/shift-management", shiftManagementRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api", leaveRoutes);
 app.use("/api/ot", otRateRoutes);
+app.use("/api/master/qualifications", qualificationRoutes);
 
 // ----------------- Create Default Admin -----------------
 const createDefaultAdmin = async () => {

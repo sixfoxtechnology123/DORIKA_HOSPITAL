@@ -355,9 +355,9 @@ const exportExcel = () => {
   };
 
   return (
-   <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
-  <Sidebar />
-  <div className="flex-1 p-3 md:p-6">
+   <div className="flex h-screen flex-col md:flex-row">
+      <Sidebar/>
+    <div className="flex-1 pl-3 flex flex-col min-h-0 overflow-y-auto">
     {/* Header Section */}
        <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
           {/* whitespace-nowrap ensures the text doesn't wrap and overlap */}
@@ -420,7 +420,7 @@ const exportExcel = () => {
             </thead>
           <tbody className="text-[11px]">
             {loading ? (
-              <tr><td colSpan={20} className="p-10 font-bold italic text-blue-600 animate-pulse">Smart Syncing Database...</td></tr>
+              <tr><td colSpan={20} className="p-10 font-bold italic text-blue-600 animate-pulse">Loading the Employee List . Please Wait ...</td></tr>
             ) : filteredEmployees.map((emp, idx) => (
               <tr key={emp.employeeID} className={`hover:bg-blue-50 border-b ${(isLocked || masterLocked) ? 'bg-gray-100' : ''}`}>
                 <td className="p-1 border">{idx + 1}</td>

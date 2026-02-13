@@ -12,6 +12,7 @@ const ShiftManagement = () => {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
     const navigate = useNavigate();
+    const tableContainerRef = React.useRef(null); 
   const [shiftOptions, setShiftOptions] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [designations, setDesignations] = useState([]);
@@ -19,7 +20,7 @@ const ShiftManagement = () => {
   const [shifts, setShifts] = useState({});
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const perPage = 8; // employees per page
+  const [perPage, setPerPage] = useState(20);
 
 useEffect(() => {
   const fetchShiftOptions = async () => {
@@ -160,11 +161,11 @@ useEffect(() => {
           return { ...prev, [emp.employeeUserId]: empShifts };
         });
       };
-        const startIndex = (currentPage - 1) * perPage;
-        const paginatedEmployees = filteredEmployees.slice(
-        startIndex,
-        startIndex + perPage
-        );
+       // Find and update these lines
+      const startIndex = perPage === "all" ? 0 : (currentPage - 1) * perPage;
+      const paginatedEmployees = perPage === "all" 
+        ? filteredEmployees 
+        : filteredEmployees.slice(startIndex, startIndex + perPage);
 
 const handleSubmit = async () => {
   try {
@@ -320,16 +321,26 @@ const handlePrint = () => {
   }, 500);
 };
 
+const scrollTable = (direction) => {
+  if (tableContainerRef.current) {
+    const scrollAmount = 400; // Move 400 pixels per click
+    tableContainerRef.current.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth'
+    });
+  }
+};
 
   return (
-  <div className="flex min-h-screen flex-col md:flex-row">
+  <div className="flex h-screen flex-col md:flex-row">
       <Sidebar/>
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
     <div className="p-3 bg-white shadow-md rounded-md">
       <div className="bg-dorika-blueLight borderborder-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
         <h2 className="text-xl font-bold text-dorika-blue">Shift Management</h2>
         <div className="flex gap-2">
           <BackButton />
+          
           {/* <button
             onClick={() => navigate("/EmployeeMaster")}
             className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
@@ -372,23 +383,68 @@ border border-dorika-blue">
       ))}
     </select>
   </div>
+{/* Wrapper: Stacks on mobile (col), Side-by-side on desktop (row) */}
+<div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
 
-  {/* Print Button */}
-  <div className="w-full lg:w-auto">
-    <button
-      onClick={handlePrint}
-      className="w-full lg:w-auto bg-dorika-orange hover:bg-dorika-blue 
-      text-white px-4 py-1 rounded font-semibold"
+  {/* Entries per page dropdown - Full width on mobile */}
+  <div className="flex items-center gap-2 w-full md:w-auto">
+    <label className="text-xs font-bold text-dorika-blue uppercase whitespace-nowrap">Show:</label>
+    <select
+      value={perPage}
+      onChange={(e) => {
+        const val = e.target.value;
+        setPerPage(val === "all" ? "all" : parseInt(val));
+        setCurrentPage(1);
+      }}
+      className="flex-1 md:flex-none border border-dorika-blue rounded px-3 py-1 text-sm outline-none bg-white font-semibold text-dorika-blue"
     >
-      Print Report
-    </button>
+      <option value={8}>8</option>
+      <option value={20}>20</option>
+      <option value={50}>50</option>
+      <option value={100}>100</option>
+      <option value="all">ALL</option>
+    </select>
   </div>
+
+  {/* Print Button - Full width on mobile */}
+  <button
+    onClick={handlePrint}
+    className="w-full md:w-auto bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1.5 rounded font-semibold whitespace-nowrap text-sm"
+  >
+    Print Report
+  </button>
+  
+</div>
 
 </div>
 
-    
-      {/* ================= SHIFT TABLE ================= */}
-     <div className="w-full overflow-x-auto bg-white rounded-lg shadow border">
+<div className="relative group flex-1 flex flex-col min-h-0"> 
+  
+{/* Left Fixed Gray Arrow */}
+<button 
+  type="button"
+  onClick={() => scrollTable('left')}
+  className="fixed left-[280px] top-1/2 -translate-y-1/2 z-50 bg-gray-800/40 hover:bg-gray-800/70 text-white p-4 rounded-full shadow-2xl backdrop-blur-md transition-all active:scale-90 hidden md:block"
+  style={{ marginLeft: '10px' }} // Ensures it doesn't touch the sidebar
+>
+  <span className="text-3xl font-bold">❮</span>
+</button>
+
+{/* Right Fixed Gray Arrow */}
+<button 
+  type="button"
+  onClick={() => scrollTable('right')}
+  className="fixed right-6 top-1/2 -translate-y-1/2 z-50 bg-gray-800/40 hover:bg-gray-800/70 text-white p-4 rounded-full shadow-2xl backdrop-blur-md transition-all active:scale-90 hidden md:block"
+>
+  <span className="text-3xl font-bold">❯</span>
+</button>
+
+  {/* The Scrollable Box - NOW WRAPS THE TABLE CORRECTLY */}
+  <div 
+    ref={tableContainerRef} 
+    className="w-full overflow-x-auto bg-white rounded-lg shadow border scroll-smooth"
+  >
+      
         <table className="border-collapse border-dorika-blue w-full text-xs">
           <thead className="bg-dorika-blue text-white sticky top-0">
             <tr>
@@ -441,7 +497,7 @@ border border-dorika-blue">
                       }}
                     />
                   </td>
-                <td className="border px-2 py-1 border-dorika-blue"> {startIndex + index + 1}</td>
+                <td className="border px-2 py-1 border-dorika-blue"> {perPage === "all" ? index + 1 : startIndex + index + 1}</td>
                 <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.employeeID}</td>
                 <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.firstName} {emp.middleName} {emp.lastName}</td>
                 <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.designationName}</td>
@@ -522,12 +578,16 @@ border border-dorika-blue">
             ))}
           </tbody>
         </table>
-       <Pagination
-            total={filteredEmployees.length}
-            perPage={perPage}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            />
+        </div>
+      {/* Wrap your Pagination tag like this: */}
+      {perPage !== "all" && (
+        <Pagination
+          total={filteredEmployees.length}
+          perPage={perPage}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+        />
+      )}
           <div className="flex justify-end mt-3 md:absolute md:right-3 md:bottom-3">
               <button
                 onClick={handleSubmit}

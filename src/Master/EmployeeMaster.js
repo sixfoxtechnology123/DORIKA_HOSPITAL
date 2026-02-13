@@ -101,7 +101,7 @@ const [designationID, setDesignationID] = useState("");
   const [departments, setDepartments] = useState([]);
   const [designations, setDesignations] = useState([]);
   const [employees, setEmployees] = useState([]);
-
+  const [qualificationsMaster, setQualificationsMaster] = useState([]);
   const [educationDetails, setEducationDetails] = useState([
     {
       qualification: "",
@@ -459,9 +459,10 @@ const fetchNextEmployeeID = async () => {
 
 const loadMasters = async () => {
   try {
-    const [deptRes, desigRes] = await Promise.all([
+    const [deptRes, desigRes,qualRes] = await Promise.all([
       axios.get("http://localhost:5002/api/departments"),
       axios.get("http://localhost:5002/api/designations"),
+      axios.get("http://localhost:5002/api/master/qualifications"),
     ]);
 
    setDepartments(
@@ -479,10 +480,10 @@ setDesignations(
     label: d.designationName,
     _id: d._id,
     designationName: d.designationName,
-    departmentName: d.departmentName // ✅ Important for filtering
+    departmentName: d.departmentName 
   }))
 );
-
+setQualificationsMaster(qualRes.data || []);
 
   } catch (err) {
     console.error("Error fetching master data:", err);
@@ -676,6 +677,12 @@ const payload = {
 
 const handleSaveAndNext = async () => {
   try {
+
+    const cleanedEdu = educationDetails.map(edu => ({
+      ...edu,
+      qualification: edu.qualification === "OTHER_SELECTED" ? "" : edu.qualification
+    }));
+    const finalData = { ...payload, educationDetails: cleanedEdu };
     if (employeeData._id) {
       // update existing employee
       await axios.put(
@@ -703,6 +710,12 @@ const handleSubmit = async (e) => {
   e.preventDefault();
 
   try {
+    
+    const cleanedEduSubmit = educationDetails.map(edu => ({
+      ...edu,
+      qualification: edu.qualification === "OTHER_SELECTED" ? "" : edu.qualification
+    }));
+    const finalDataSubmit = { ...payload, educationDetails: cleanedEduSubmit };
     if (employeeData._id) {
       await axios.put(
         `http://localhost:5002/api/employees/${employeeData._id}`,
@@ -1043,27 +1056,41 @@ const handleSubmit = async (e) => {
                   {educationDetails.map((row, index) => (
                     <tr key={index}>
                       <td className="border p-2 text-center">{index + 1}</td>
-                      <td className="border p-2">
-                        <select
-                          value={row.qualification}
-                          onChange={(e) =>
-                            handleEduChange(
-                              index,
-                              "qualification",
-                              e.target.value.toUpperCase()
-                            )
-                          }
-                          className="w-full pl-2 pr-1 border border-gray-300 font-medium rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
-                        >
-                          <option value="">SELECT</option>
-                          <option value="10TH">10TH</option>
-                          <option value="12TH">12TH</option>
-                          <option value="GRADUATION">GRADUATION</option>
-                          <option value="POST GRADUATION">
-                            POST GRADUATION
+                  <td className="border p-2">
+                    <select
+                      value={qualificationsMaster.some(q => q.qualName === row.qualification) ? row.qualification : (row.qualification === "" ? "" : "OTHER")}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "OTHER") {
+                          handleEduChange(index, "qualification", "OTHER_SELECTED"); 
+                        } else {
+                          handleEduChange(index, "qualification", val);
+                        }
+                      }}
+                      className="w-full pl-2 pr-1 border border-gray-300 font-medium rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    >
+                      <option value="">SELECT</option>
+                      {qualificationsMaster
+                        .filter(q => q.status === "Active")
+                        .map((q) => (
+                          <option key={q._id} value={q.qualName}>
+                            {q.qualName}
                           </option>
-                        </select>
-                      </td>
+                      ))}
+                      <option value="OTHER">OTHER</option>
+                    </select>
+
+                    {/* NEW FIELD: Appears if 'OTHER' is selected or if existing data doesn't match master */}
+                    {(row.qualification === "OTHER_SELECTED" || (!qualificationsMaster.some(q => q.qualName === row.qualification) && row.qualification !== "")) && (
+                      <input
+                        type="text"
+                        placeholder="Specify Qualification"
+                        value={row.qualification === "OTHER_SELECTED" ? "" : row.qualification}
+                        onChange={(e) => handleEduChange(index, "qualification", e.target.value.toUpperCase())}
+                        className="w-full mt-2 pl-2 pr-1 border border-blue-400 font-bold rounded text-sm focus:ring-2 focus:ring-blue-500 bg-yellow-50"
+                      />
+                    )}
+                  </td>
                       <td className="border p-2">
                         <input
                           type="text"

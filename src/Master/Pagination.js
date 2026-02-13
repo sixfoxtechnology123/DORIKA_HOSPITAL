@@ -3,48 +3,38 @@ import React from "react";
 const Pagination = ({ total, perPage, currentPage, onPageChange }) => {
   const totalPages = Math.ceil(total / perPage);
 
-  if (totalPages <= 1) return null;
+  // If perPage is 'all', totalPages will be NaN or 1, so hide component
+  if (totalPages <= 1 || isNaN(totalPages)) return null;
 
   const handleClick = (page) => {
     if (page < 1 || page > totalPages) return;
     onPageChange(page);
   };
 
-  const getPageNumbers = () => {
-    const pages = [];
-    for (let i = 1; i <= totalPages; i++) pages.push(i);
-    return pages;
-  };
-
   return (
-    <div className="flex justify-end gap-1 mt-2">
-      <button
-        onClick={() => handleClick(currentPage - 1)}
-        disabled={currentPage === 1}
-        className="px-2 py-0 border rounded disabled:opacity-50"
-      >
-        Prev
-      </button>
+    <div className="flex justify-end items-center gap-4 mt-2">
+      {/* Current Page Info */}
+      <span className="text-xs font-semibold text-gray-600">
+        Page {currentPage} of {totalPages}
+      </span>
 
-      {getPageNumbers().map((page) => (
+      <div className="flex gap-1">
         <button
-          key={page}
-          onClick={() => handleClick(page)}
-          className={`px-2 py-0 border rounded ${
-            page === currentPage ? "bg-blue-500 text-white" : ""
-          }`}
+          onClick={() => handleClick(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-3 py-1 border rounded bg-white text-dorika-blue disabled:opacity-50 font-bold hover:bg-gray-100"
         >
-          {page}
+          Prev
         </button>
-      ))}
 
-      <button
-        onClick={() => handleClick(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        className="px-2 py-0 border rounded disabled:opacity-50"
-      >
-        Next
-      </button>
+        <button
+          onClick={() => handleClick(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="px-3 py-1 border rounded bg-white text-dorika-blue disabled:opacity-50 font-bold hover:bg-gray-100"
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 };

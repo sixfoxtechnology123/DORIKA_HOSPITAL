@@ -100,9 +100,9 @@ export default function AdminManagement() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      <Sidebar />
-      <div className="flex-1 overflow-y-auto bg-dorika-blueLight">
+   <div className="flex h-screen flex-col md:flex-row">
+      <Sidebar/>
+    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
         <div className="p-4">
           <div className="bg-white border-l-8 border-dorika-blue p-3 mb-4 rounded-xl shadow-lg text-xs md:text-sm">
             <p className="font-bold text-dorika-blue mb-1">💡 Admin Tip: Assign specific module permissions carefully.</p>

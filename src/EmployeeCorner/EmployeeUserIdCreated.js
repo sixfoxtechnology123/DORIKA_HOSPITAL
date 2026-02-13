@@ -104,9 +104,9 @@ const EmployeeUserIdCreated = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-dorika-blueLight">
-      <Sidebar />
-      <div className="flex-1 p-3 md:p-6 overflow-y-auto">
+    <div className="flex h-screen flex-col md:flex-row">
+      <Sidebar/>
+    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
         <h2 className="text-xl md:text-2xl font-bold text-dorika-blue mb-4">
           Employee Password Management
         </h2>
@@ -142,7 +142,7 @@ const EmployeeUserIdCreated = () => {
         </div>
 
         {/* TABLE SECTION */}
-        <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+        {/* <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden"> */}
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead className="bg-blue-50 text-dorika-blue text-[10px] md:text-xs uppercase font-bold">
@@ -243,7 +243,7 @@ const EmployeeUserIdCreated = () => {
           </div>
         </div>
       </div>
-    </div>
+    // </div>
   );
 };
 

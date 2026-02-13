@@ -42,6 +42,11 @@ const Sidebar = () => {
       submenus: [
         { name: "Departments", path: "/DepartmentList" },
         { name: "Designations", path: "/DesignationList" },
+        {
+              name:"Manage Shift Time", path:"/ShiftList"
+        },
+        { name: "Manage Leave Type", path: "/LeaveTypeList" },
+        { name: "Qualification", path: "/QualificationList" },
         // {
         //  name:"OT Rate", path:"/OTRateList"
         // },  
@@ -68,7 +73,7 @@ const Sidebar = () => {
           permission:"Leave_Management_View",
           submenus: [
             //{ name: "Dashboard", path: "/LeaveDashboard" },
-            { name: "Manage Leave Type", path: "/LeaveTypeList" },
+          
             { name: "Leave History", path: "/LeaveHistory" },
             // { name: "Leave Rule", path: "/LeaveRuleList" },
             // { name: "Leave Allocation", path: "/LeaveAllocationList" },
@@ -79,9 +84,7 @@ const Sidebar = () => {
           icon:Clock,
           permission:"Shift_Management_view",
           submenus:[
-            {
-              name:"Manage Shift Time", path:"/ShiftList"
-            },
+          
             {
               name:"Duty Roaster", path:"/ShiftManagement"
             },
