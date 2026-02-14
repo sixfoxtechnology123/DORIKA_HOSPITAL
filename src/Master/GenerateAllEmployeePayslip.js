@@ -89,86 +89,93 @@ const GenerateAllEmployeePayslip = () => {
     } catch (err) { return null; }
   };
 
-  useEffect(() => {
-      const fetchAndCalculate = async () => {
-        if (!selectedMonthYear) return;
-        localStorage.setItem("payslip_date", selectedMonthYear);
-        localStorage.setItem("payslip_dept", selectedDept);
+useEffect(() => {
+  const fetchAndCalculate = async () => {
+    if (!selectedMonthYear) return;
+    localStorage.setItem("payslip_date", selectedMonthYear);
+    localStorage.setItem("payslip_dept", selectedDept);
 
-        try {
-          setLoading(true);
-          const existingData = await checkStatus(month, year, selectedDept);
-          const [empRes, attRes] = await Promise.all([
-            axios.get("http://localhost:5002/api/employees"),
-            axios.get(`http://localhost:5002/api/attendance/history?month=${monthNum}&year=${year}`)
-          ]);
+    try {
+      setLoading(true);
 
-          const mDays = new Date(year, monthNum, 0).getDate();
+      // 1. Fetch all data at once (Added OT rates here to fix speed)
+      const [existingData, empRes, attRes, otRatesRes] = await Promise.all([
+        checkStatus(month, year, selectedDept),
+        axios.get("http://localhost:5002/api/employees"),
+        axios.get(`http://localhost:5002/api/attendance/history?month=${monthNum}&year=${year}`),
+        axios.get("http://localhost:5002/api/ot/ot-rate/rule") // Fetch all rules at once
+      ]);
 
-          const listWithMath = await Promise.all(empRes.data.map(async (emp) => {
-            const att = attRes.data.find(a => a.employeeUserId === emp.employeeUserId) || {};
-            const saved = existingData?.find(s => s.employeeId === emp.employeeID);
-            
-            let otRate = 0;
-            try {
-              const otRes = await axios.get(`http://localhost:5002/api/ot/ot-rate/rule?employeeUserId=${emp.employeeUserId}`);
-              otRate = otRes.data?.data?.otRatePerHour || otRes.data?.otRatePerHour || 0;
-            } catch (e) { otRate = 0; }
+      const mDays = new Date(year, monthNum, 0).getDate();
+      const allOtRules = otRatesRes.data?.data || otRatesRes.data || [];
 
-            // 1. Determine Source
-            const currentGross = saved ? saved.grossSalary : (emp.grossSalary || "");
-            const rawEarnings = saved ? saved.earnings : (emp.earnings || []);
-            const rawDeductions = saved ? saved.deductions : (emp.deductions || []);
+      // 2. Process everything locally (Synchronous - very fast)
+      const listWithMath = empRes.data.map((emp) => {
+        const att = attRes.data.find(a => a.employeeUserId === emp.employeeUserId) || {};
+        const saved = existingData?.find(s => s.employeeId === emp.employeeID);
+        
+        // Find OT rate from the list we just fetched instead of calling API again
+        const otRule = allOtRules.find(r => r.employeeUserId === emp.employeeUserId);
+        const otRate = otRule?.otRatePerHour || 0;
 
-            // 2. TRANSLATION: Ensure UI always sees 'value' whether it comes from 'amount' (PaySlip) or 'value' (Master)
-            const normalizedEarnings = rawEarnings.map(e => ({
-              ...e,
-              value: e.amount !== undefined ? e.amount : (e.value !== undefined ? e.value : "")
-            }));
+        // --- Keep your existing logic exactly as it was ---
+        const currentGross = saved ? saved.grossSalary : (emp.grossSalary || "");
+        const rawEarnings = saved ? saved.earnings : (emp.earnings || []);
+        const rawDeductions = saved ? saved.deductions : (emp.deductions || []);
 
-            const normalizedDeductions = rawDeductions.map(d => ({
-              ...d,
-              value: d.amount !== undefined ? d.amount : (d.value !== undefined ? d.value : "")
-            }));
-            
-            const workingDays = Number(att.totalPresent || 0); // Maps to totalWorkingDays
-            const offDays = Number(att.totalOff || 0);
-            const leaveDays = Number(att.totalLeave || 0);
-            const absentDays = Number(att.totalAbsent || 0); // Maps to lopDays
-            const totalPaidDays = Number(att.totalPaidDays || 0);
-            const otHours = saved ? saved.otHours : (att.totalOTHours > 0 ? att.totalOTHours : "");
-            const otAmount = saved ? saved.otAmount : (otHours !== "" ? Math.round(otHours * otRate) : "");
-            
-            const totalDedSum = normalizedDeductions.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
-            const paidDaysSalary = mDays > 0 ? Math.round(((Number(currentGross || 0) - totalDedSum) / mDays) * totalPaidDays) : 0;
+        const normalizedEarnings = rawEarnings.map(e => ({
+          ...e,
+          value: e.amount !== undefined ? e.amount : (e.value !== undefined ? e.value : "")
+        }));
 
-            return {
-              ...emp,
-              otRate,
-              earnings: normalizedEarnings,
-              deductions: normalizedDeductions,
-              calc: {
-                monthDays: mDays,
-                grossSalary: currentGross,
-                totalDeductionHeads: totalDedSum,
-                paidDaysSalary,
-                otHours, 
-                otAmount, 
-                netSalary: Math.round(paidDaysSalary + Number(otAmount || 0)),
-               totalWorkingDays: workingDays, 
-                totalOff: offDays,
-                leaves: leaveDays,
-                absentDays: absentDays, // This is your totalAbsent
-                totalPaidDays: totalPaidDays
-              }
-            };
-          }));
-          setEmployeesData(listWithMath);
-          setLoading(false);
-        } catch (err) { setLoading(false); }
-      };
-      fetchAndCalculate();
-    }, [selectedMonthYear, selectedDept]);
+        const normalizedDeductions = rawDeductions.map(d => ({
+          ...d,
+          value: d.amount !== undefined ? d.amount : (d.value !== undefined ? d.value : "")
+        }));
+        
+        const workingDays = Number(att.totalPresent || 0);
+        const offDays = Number(att.totalOff || 0);
+        const leaveDays = Number(att.totalLeave || 0);
+        const absentDays = Number(att.totalAbsent || 0);
+        const totalPaidDays = Number(att.totalPaidDays || 0);
+        const otHours = saved ? saved.otHours : (att.totalOTHours > 0 ? att.totalOTHours : "");
+        const otAmount = saved ? saved.otAmount : (otHours !== "" ? Math.round(otHours * otRate) : "");
+        
+        const totalDedSum = normalizedDeductions.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+        const paidDaysSalary = mDays > 0 ? Math.round(((Number(currentGross || 0) - totalDedSum) / mDays) * totalPaidDays) : 0;
+
+        return {
+          ...emp,
+          otRate,
+          earnings: normalizedEarnings,
+          deductions: normalizedDeductions,
+          calc: {
+            monthDays: mDays,
+            grossSalary: currentGross,
+            totalDeductionHeads: totalDedSum,
+            paidDaysSalary,
+            otHours, 
+            otAmount, 
+            netSalary: Math.round(paidDaysSalary + Number(otAmount || 0)),
+            totalWorkingDays: workingDays, 
+            totalOff: offDays,
+            leaves: leaveDays,
+            absentDays: absentDays,
+            totalPaidDays: totalPaidDays
+          }
+        };
+      });
+
+      setEmployeesData(listWithMath);
+      setLoading(false);
+    } catch (err) { 
+      console.error("Fetch Error:", err);
+      setLoading(false); 
+    }
+  };
+
+  fetchAndCalculate();
+}, [selectedMonthYear, selectedDept]);
 
 const handleUniversalEdit = (employeeID, field, value, headName = null) => {
     if (isLocked || masterLocked) return;

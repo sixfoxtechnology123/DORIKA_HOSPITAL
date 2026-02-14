@@ -3,26 +3,24 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import Sidebar from "../component/Sidebar";
 import BackButton from "../component/BackButton";
-import { FaTrash, FaEdit } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { FaSearch } from "react-icons/fa";
 
 const PaySlipHistory = () => {
   const [paySlips, setPaySlips] = useState([]);
-  const navigate = useNavigate();
+  const [searchID, setSearchID] = useState("");
+  const [filterMonthYear, setFilterMonthYear] = useState("");
 
   useEffect(() => {
     const fetchPaySlips = async () => {
       try {
         const res = await axios.get("http://localhost:5002/api/payslips");
         if (res.data.success) {
-          // MODIFIED LOGIC: Pull month and year from the Batch (parent) 
-          // and spread them into each individual employee (child)
           const allEmployees = res.data.data.flatMap(batch => 
             batch.employeePayslips.map(slip => ({
               ...slip,
-              month: batch.month, // Borrow from Parent
-              year: batch.year,   // Borrow from Parent
-              batchId: batch._id  // Reference for deletion
+              month: batch.month, 
+              year: batch.year,   
+              batchId: batch._id  
             }))
           );
           setPaySlips(allEmployees);
@@ -31,28 +29,49 @@ const PaySlipHistory = () => {
         console.error("Fetch Error:", err);
       }
     };
-
     fetchPaySlips();
   }, []);
 
-  const deletePaySlip = async (batchId) => {
-    if (!window.confirm("Warning: This will delete the entire monthly batch. Continue?")) return;
-    try {
-      await axios.delete(`http://localhost:5002/api/payslips/${batchId}`);
-      // Remove all employees belonging to this batch from the UI
-      setPaySlips(prev => prev.filter((slip) => slip.batchId !== batchId));
-      toast.success("Monthly batch deleted successfully");
-    } catch (err) {
-      toast.error("Failed to delete batch");
+// Filter Logic Fixed
+  const filteredSlips = paySlips.filter((slip) => {
+    // 1. Employee UserID search: match with or without hyphens
+    const targetID = (slip.employeeUserId || "").toLowerCase();
+    const searchTerm = searchID.toLowerCase();
+    
+    // This checks for a direct match OR a match where hyphens are ignored
+    const matchesID = targetID.includes(searchTerm) || 
+                     targetID.replace(/-/g, "").includes(searchTerm.replace(/-/g, ""));
+    
+    // 2. Month/Year filter logic
+    let matchesMonthYear = true;
+    if (filterMonthYear) {
+      const [y, m] = filterMonthYear.split("-");
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const selectedMonthName = monthNames[parseInt(m) - 1];
+      
+      matchesMonthYear = slip.month === selectedMonthName && slip.year.toString() === y;
     }
+
+    return matchesID && matchesMonthYear;
+  });
+
+  // Automatic Hyphen Logic for UserID (DH-001)
+  const handleSearchChange = (val) => {
+    let formatted = val.toUpperCase();
+    // If user types 'DH' and then a number, auto-add the hyphen
+    if (formatted.startsWith("DH") && formatted.length > 2 && formatted[2] !== "-") {
+      formatted = "DH-" + formatted.substring(2);
+    }
+    setSearchID(formatted);
   };
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row bg-gray-50">
+ <div className="flex h-screen flex-col md:flex-row">
       <Sidebar />
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
         <div className="bg-white shadow-lg rounded-md p-3">
-            <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
+          
+        <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
           {/* whitespace-nowrap ensures the text doesn't wrap and overlap */}
           <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
             Payslip History
@@ -60,7 +79,34 @@ const PaySlipHistory = () => {
           <div className="flex shrink-0">
             <BackButton />
           </div>
-        </div>
+          </div>
+
+          {/* MOBILE OPTIMIZED FILTERS: Full width stack on mobile, side-by-side on desktop */}
+          <div className="flex flex-col md:flex-row gap-3 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <div className="w-full md:flex-1 relative">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Search UserID</label>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-slate-400"><FaSearch /></span>
+                <input 
+                  type="text" 
+                  placeholder="e.g. DH-00101" 
+                  className="w-full pl-9 p-2 border-2 rounded-md text-sm focus:border-blue-500 outline-none"
+                  value={searchID}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="w-full md:w-48">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Filter Month</label>
+              <input 
+                type="month" 
+                className="w-full p-2 border-2 rounded-md text-sm focus:border-blue-500 outline-none"
+                value={filterMonthYear}
+                onChange={(e) => setFilterMonthYear(e.target.value)}
+              />
+            </div>
+          </div>
 
         
           <div className="overflow-x-auto w-full border rounded-md">
@@ -68,7 +114,7 @@ const PaySlipHistory = () => {
             <thead className="bg-blue-800 text-white uppercase tracking-tighter">
               <tr>
                 <th className="border border-blue-500 p-1 w-8">SL</th>
-                <th className="border border-blue-500 p-1">Emp ID</th>
+                <th className="border border-blue-500 p-1">User ID</th>
                 <th className="border border-blue-500 p-1 min-w-[120px]">Name</th>
                 <th className="border border-blue-500 p-1 bg-blue-900">Month</th>
                 <th className="border border-blue-500 p-1 bg-blue-900">Year</th>
@@ -81,8 +127,8 @@ const PaySlipHistory = () => {
               </tr>
             </thead>
             <tbody className="text-center font-semibold text-gray-700">
-              {paySlips.length > 0 ? (
-                paySlips.map((slip, index) => (
+              {filteredSlips.length > 0 ? (
+                 filteredSlips.map((slip, index) => (
                   <tr key={`${slip.batchId}-${index}`} className="even:bg-blue-50/30 hover:bg-yellow-50 transition">
                     <td className="border border-blue-300 p-1">{index + 1}</td>
                     <td className="border border-blue-300 p-1 text-blue-900">{slip.employeeUserId || slip.employeeId}</td>

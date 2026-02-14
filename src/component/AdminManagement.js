@@ -23,7 +23,7 @@ export default function AdminManagement() {
     permissions: [],
   });
 
-  const permissionsList = ["Dashboard_View", "Master_View", "Reminder_View", "Employee_View", "Leave_Management_View", "Shift_Management_view", "Attendance_history_view", "Pay_slip_view", "Admin_Management_view"];
+  const permissionsList = ["Dashboard_View", "Master_View", "Reminder_View", "Employee_View", "Leave_Management_View", "Shift_Management_view", "Attendance_history_view", "Pay_slip_view"];
   const token = localStorage.getItem("token");
 
   const isMainAdmin = (u) => {
