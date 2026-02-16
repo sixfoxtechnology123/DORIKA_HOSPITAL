@@ -522,14 +522,19 @@ useEffect(() => {
     }
   }
 }, [employeeID]);
+
 const calculatePayStructure = (grossInput) => {
   const S = Math.round(parseFloat(grossInput) || 0);
- setGrossSalary(S);
+  setGrossSalary(S);
+
   const basic = Math.round(S * 0.50);
   const hra = Math.round(basic * 0.40);
-  const mobile = 500;
+  
+  // Logic change: Only set 500 if S is greater than 0, otherwise 0
+  const mobile = S > 0 ? 500 : 0; 
+  
   const bonus = Math.round(basic / 6);
-  const managementAllowance = Math.round(S - (basic + hra + mobile + bonus));
+  const managementAllowance = S > 0 ? Math.round(S - (basic + hra + mobile + bonus)) : 0;
 
   // Deductions
   const pf = Math.round(basic * 0.12);
@@ -537,18 +542,18 @@ const calculatePayStructure = (grossInput) => {
   const esi = Math.round(S * 0.0075);
 
   setEarningDetails([
-    { headName: "Basic", headType: "EARNING", value: basic},
-    { headName: "HRA", headType: "EARNING", value: hra},
-    { headName: "Mobile Allowance", headType: "EARNING", value: mobile},
-    { headName: "Bonus", headType: "EARNING", value: bonus},
-    { headName: "Management Allowance", headType: "EARNING", value: managementAllowance},
+    { headName: "Basic", headType: "EARNING", value: basic },
+    { headName: "HRA", headType: "EARNING", value: hra },
+    { headName: "Mobile Allowance", headType: "EARNING", value: mobile },
+    { headName: "Bonus", headType: "EARNING", value: bonus },
+    { headName: "Management Allowance", headType: "EARNING", value: managementAllowance },
     // { headName: "OT", headType: "EARNING", value: "0" }
   ]);
 
   setDeductionDetails([
-    { headName: "PF", headType: "DEDUCTION", value: pf},
-    { headName: "PT", headType: "DEDUCTION", value: pt},
-    { headName: "ESI", headType: "DEDUCTION", value: esi}
+    { headName: "PF", headType: "DEDUCTION", value: pf },
+    { headName: "PT", headType: "DEDUCTION", value: pt },
+    { headName: "ESI", headType: "DEDUCTION", value: esi }
   ]);
 };
 

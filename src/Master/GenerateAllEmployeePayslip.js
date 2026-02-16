@@ -41,13 +41,20 @@ const GenerateAllEmployeePayslip = () => {
       .catch(() => console.error("Dept load failed"));
   }, []);
 
-  const runPayFormula = (grossInput) => {
+const runPayFormula = (grossInput) => {
     const S = Math.round(parseFloat(grossInput) || 0);
+    
     const basic = Math.round(S * 0.50);
     const hra = Math.round(basic * 0.40);
-    const mobile = 500;
+    
+    // Logic change: Only 500 if S > 0, otherwise 0
+    const mobile = S > 0 ? 500 : 0; 
+    
     const bonus = Math.round(basic / 6);
-    const managementAllowance = Math.round(S - (basic + hra + mobile + bonus));
+    
+    // Logic change: Management allowance should be 0 if Gross is 0
+    const managementAllowance = S > 0 ? Math.round(S - (basic + hra + mobile + bonus)) : 0;
+
     const pf = Math.round(basic * 0.12);
     const pt = Math.round(S > 25000 ? 208 : (S >= 15000 ? 180 : 0));
     const esi = Math.round(S * 0.0075);
