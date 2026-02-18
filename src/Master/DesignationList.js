@@ -9,6 +9,7 @@ import Pagination from "../Master/Pagination";
 
 const DesignationList = () => {
   const [designations, setDesignations] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
   const navigate = useNavigate();
@@ -27,13 +28,29 @@ const DesignationList = () => {
     fetchDesignations();
   }, []);
 
-  const indexOfLast = perPage === "all" ? designations.length : currentPage * perPage;
-  const indexOfFirst = perPage === "all" ? 0 : indexOfLast - perPage;
+  const departments = ["ALL", ...new Set(designations.map(d => d.departmentName))];
+//  Filter by Department
+const filteredDesignations =
+  selectedDepartment === "ALL"
+    ? designations
+    : designations.filter(d => d.departmentName === selectedDepartment);
 
-  const currentdesignations =
-    perPage === "all"
-      ? designations
-      : designations.slice(indexOfFirst, indexOfLast);
+// Pagination on filtered data
+const indexOfLast =
+  perPage === "all"
+    ? filteredDesignations.length
+    : currentPage * perPage;
+
+const indexOfFirst =
+  perPage === "all"
+    ? 0
+    : indexOfLast - perPage;
+
+const currentdesignations =
+  perPage === "all"
+    ? filteredDesignations
+    : filteredDesignations.slice(indexOfFirst, indexOfLast);
+
   const deleteDesignation = async (id) => {
     if (!window.confirm('Are you sure you want to delete this designation?'))
       return;
@@ -63,43 +80,69 @@ const DesignationList = () => {
     </div>
   </div>
 
-  {/* BOTTOM ROW (Mobile) / SAME ROW (Desktop): Show Dropdown (Left) and Add Button (Right) */}
-  <div className="flex justify-between sm:justify-end items-center gap-2 w-full sm:w-auto">
+{/* BOTTOM ROW (Mobile) / SAME ROW (Desktop) */}
+<div className="flex flex-col sm:flex-row sm:justify-end sm:items-center gap-3 w-full sm:w-auto">
+
+  {/* Department Filter */}
+  <div className="flex flex-col sm:flex-row sm:items-center gap-1 w-full sm:w-auto">
+    <label className="text-[10px] sm:text-xs font-bold text-dorika-blue uppercase">
+      Department
+    </label>
+    <select
+      value={selectedDepartment}
+      onChange={(e) => {
+        setSelectedDepartment(e.target.value);
+        setCurrentPage(1);
+      }}
+      className="w-full sm:w-auto border border-dorika-blue rounded px-2 py-1 text-sm bg-white font-semibold text-dorika-blue"
+    >
+      {departments.map((dep, index) => (
+        <option key={index} value={dep}>
+          {dep}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  {/* Show Dropdown */}
+  <div className="flex flex-col sm:flex-row sm:items-center gap-1 w-full sm:w-auto">
+    <label className="text-[10px] sm:text-xs font-bold text-dorika-blue uppercase">
+      Show
+    </label>
+    <select
+      value={perPage}
+      onChange={(e) => {
+        const val = e.target.value;
+        setPerPage(val === "all" ? "all" : parseInt(val));
+        setCurrentPage(1);
+      }}
+      className="w-full sm:w-auto border border-dorika-blue rounded px-2 py-1 text-sm bg-white font-semibold text-dorika-blue"
+    >
+      <option value={20}>20</option>
+      <option value={30}>30</option>
+      <option value={50}>50</option>
+      <option value={100}>100</option>
+      <option value="all">ALL</option>
+    </select>
+  </div>
+
+  {/* Add Button + Desktop Back */}
+  <div className="flex gap-2 items-center w-full sm:w-auto justify-between sm:justify-end">
     
-    {/* Show Dropdown */}
-    <div className="flex items-center gap-1">
-      <label className="text-[10px] sm:text-xs font-bold text-dorika-blue uppercase">Show</label>
-      <select
-        value={perPage}
-        onChange={(e) => {
-          const val = e.target.value;
-          setPerPage(val === "all" ? "all" : parseInt(val));
-          setCurrentPage(1);
-        }}
-        className="border border-dorika-blue rounded px-1 py-1 sm:py-1 text-sm outline-none bg-white font-semibold text-dorika-blue"
-      >
-        <option value={20}>20</option>
-        <option value={30}>30</option>
-        <option value={50}>50</option>
-        <option value={100}>100</option>
-        <option value="all">ALL</option>
-      </select>
+    {/* Desktop Back */}
+    <div className="hidden sm:block">
+      <BackButton />
     </div>
 
-    <div className="flex gap-2 items-center">
-      {/* Back button visible here only on Desktop */}
-      <div className="hidden sm:block">
-        <BackButton />
-      </div>
-      
-      <button
-            onClick={() => navigate('/designationMaster')}
-            className="bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 rounded font-semibold text-sm sm:text-base whitespace-nowrap"
-          >
-            Add Designation
-          </button>
-    </div>
+    <button
+      onClick={() => navigate('/designationMaster')}
+      className="w-full sm:w-auto bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 py-2 rounded font-semibold text-sm whitespace-nowrap"
+    >
+      Add Designation
+    </button>
   </div>
+
+</div>
 
 </div>
 

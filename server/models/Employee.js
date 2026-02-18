@@ -98,7 +98,7 @@ statusHistory: [
     type: String,
     default: '',
   },
- 
+    registrationState: { type: String, default: "" },
     salutation: { type: String, default: "" },
     firstName: { type: String, default: "" },
     middleName: { type: String, default: "" },
@@ -146,6 +146,11 @@ statusHistory: [
     presentAddress: { type: AddressSchema, default: {} },
 
     payDetails: { type: PayDetailsSchema, default: {} },
+    payType: { 
+    type: String, 
+    enum: ['SALARY', 'Stipend'], 
+    default: 'SALARY' 
+  },
     grossSalary: { type: Number, default: 0 },
     earnings: { type: [EarningSchema], default: [] },
     deductions: { type: [DeductionSchema], default: [] },

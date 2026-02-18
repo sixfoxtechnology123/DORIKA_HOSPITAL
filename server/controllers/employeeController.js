@@ -6,48 +6,55 @@ const EmployeeUserId = require("../models/EmployeeUserId");
 const LeaveApplication = require("../models/LeaveApplication");
 const OtRate = require("../models/OtRate");
 const AdminManagement = require("../models/adminManagementModel"); 
+
+
 const generateEmployeeUserId = async () => {
   try {
     const prefix = "DH";
-    const lastEmp = await Employee.findOne().sort({ employeeUserId: -1 }).lean();
+    // 1. Get all user IDs from the database
+    const employees = await Employee.find({}, { employeeUserId: 1 }).lean();
     
-    let next = 101;
+    let maxNum = 0;
 
-    // Check if the last employee has a userId and extract the number
-    if (lastEmp?.employeeUserId) {
-      // This regex matches "DH-" followed by digits
-      const match = lastEmp.employeeUserId.match(/DH-(\d+)/);
-      if (match) {
-        next = parseInt(match[1], 10) + 1;
+    // 2. Loop through all to find the REAL highest number
+    employees.forEach(emp => {
+      if (emp.employeeUserId) {
+        const match = emp.employeeUserId.match(/\d+/); // Finds the numbers in DH-00558
+        if (match) {
+          const num = parseInt(match[0], 10);
+          if (num > maxNum) maxNum = num;
+        }
       }
-    } 
+    });
 
-    // Pad the number to 5 digits (e.g., 00101)
-    const nextSerial = String(next).padStart(5, "0");
-    return `${prefix}-${nextSerial}`;
+    // 3. If no employees exist, start at 101, otherwise increment max
+    const next = maxNum === 0 ? 101 : maxNum + 1;
+    return `${prefix}-${String(next).padStart(5, "0")}`;
   } catch (err) {
-    console.error("Error generating serial number:", err);
-    return "DH-00101"; // Fallback
+    return "DH-00101"; 
   }
 };
 
-
-// Auto-generate EmployeeID with continuous serial and prefix
 const generateEmployeeID = async (employmentStatus) => {
   try {
     const prefix = employmentStatus;
+    // We look for the highest number across ALL employees to keep it continuous
+    const employees = await Employee.find({}, { employeeID: 1 }).lean();
 
-   const lastEmp = await Employee.findOne().sort({ employeeID: -1 }).lean();
+    let maxNum = 0;
 
-    let next = 101;
+    employees.forEach(emp => {
+      if (emp.employeeID) {
+        const match = emp.employeeID.match(/\d+/); // Finds the numeric part
+        if (match) {
+          const num = parseInt(match[0], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      }
+    });
 
-    if (lastEmp?.employeeID) {
-      const match = lastEmp.employeeID.match(/-(\d+)$/);
-      if (match) next = parseInt(match[1], 10) + 1;
-    }
-
-    const nextID = String(next).padStart(5, "0"); // 5 digits
-    return `${prefix}-${nextID}`;
+    const next = maxNum === 0 ? 101 : maxNum + 1;
+    return `${prefix}-${String(next).padStart(5, "0")}`;
   } catch (err) {
     return `${employmentStatus}-00101`;
   }
@@ -136,10 +143,19 @@ exports.createEmployee = async (req, res) => {
 // GET /api/employees
 exports.getAllEmployees = async (req, res) => {
   try {
-    // This will now sort: 101, 102, 103, 104...
-    const rows = await Employee.find().sort({ employeeID: 1 }); 
-    res.json(rows);
+    const rows = await Employee.find().lean();
+
+    // This sorts the list 1, 2, 3... 100, 101...
+    const sortedRows = rows.sort((a, b) => {
+      // It takes "DH-00101", pulls out 101, and compares it to the next one
+      const numA = parseInt(a.employeeUserId?.replace(/\D/g, "") || 0, 10);
+      const numB = parseInt(b.employeeUserId?.replace(/\D/g, "") || 0, 10);
+      return numA - numB;
+    });
+
+    res.json(sortedRows);
   } catch (err) {
+    console.error("Fetch employees error:", err);
     res.status(500).json({ error: "Failed to fetch employees" });
   }
 };

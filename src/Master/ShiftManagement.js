@@ -12,7 +12,7 @@ const ShiftManagement = () => {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
     const navigate = useNavigate();
-    const tableContainerRef = React.useRef(null); 
+  const tableContainerRef = React.useRef(null); 
   const [shiftOptions, setShiftOptions] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [designations, setDesignations] = useState([]);
@@ -21,6 +21,9 @@ const ShiftManagement = () => {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
+  const [departments, setDepartments] = useState([]); // To store all departments
+  const [selectedDepartment, setSelectedDepartment] = useState("ALL"); // Current selection
+  const [deptWiseDesignations, setDeptWiseDesignations] = useState([]); // Raw data for filtering
 
 useEffect(() => {
   const fetchShiftOptions = async () => {
@@ -66,24 +69,41 @@ useEffect(() => {
 }, []);
 
 
-  /* ================= FETCH DESIGNATIONS (DESIGNATION MASTER) ================= */
-  useEffect(() => {
-    const fetchDesignations = async () => {
-      try {
-        const res = await axios.get(
-          "http://localhost:5002/api/designations"
-        );
-        setDesignations([
-          "ALL",
-          ...res.data.map((d) => d.designationName),
-        ]);
-      } catch (err) {
-        console.error("Designation fetch error:", err);
-      }
-    };
+/* ================= FETCH DEPARTMENTS & DESIGNATIONS ================= */
+useEffect(() => {
+  const fetchDeptData = async () => {
+    try {
+      // Assuming you have an endpoint that returns departments or designations with dept info
+      const res = await axios.get("http://localhost:5002/api/designations");
+      
+      // 1. Store the raw data for filtering logic
+      setDeptWiseDesignations(res.data);
 
-    fetchDesignations();
-  }, []);
+      // 2. Extract unique department names
+      const uniqueDepts = ["ALL", ...new Set(res.data.map(d => d.departmentName))];
+      setDepartments(uniqueDepts);
+
+      // 3. Initialize designations list
+      setDesignations(["ALL", ...res.data.map((d) => d.designationName)]);
+    } catch (err) {
+      console.error("Dept/Designation fetch error:", err);
+    }
+  };
+  fetchDeptData();
+}, []);
+
+/* ================= FILTER DESIGNATIONS BY DEPT ================= */
+const displayDesignations = useMemo(() => {
+  if (selectedDepartment === "ALL") {
+    return ["ALL", ...deptWiseDesignations.map(d => d.designationName)];
+  }
+  // Filter the designations that belong to the selected department
+  const filtered = deptWiseDesignations
+    .filter(d => d.departmentName === selectedDepartment)
+    .map(d => d.designationName);
+    
+  return ["ALL", ...filtered];
+}, [selectedDepartment, deptWiseDesignations]);
 
   useEffect(() => {
     const fetchShifts = async () => {
@@ -128,13 +148,17 @@ useEffect(() => {
     return Array.from({ length: totalDays }, (_, i) => i + 1);
   }, [selectedMonth]);
 
-  /* ================= FILTER EMPLOYEES BY DESIGNATION ================= */
-  const filteredEmployees =
-    selectedDesignation === "ALL"
-      ? employees
-      : employees.filter(
-          (emp) => emp.designationName === selectedDesignation
-        );
+    const filteredEmployees = employees.filter((emp) => {
+      const deptMatch =
+        selectedDepartment === "ALL" ||
+        emp.departmentName === selectedDepartment;
+
+      const designationMatch =
+        selectedDesignation === "ALL" ||
+        emp.designationName === selectedDesignation;
+
+      return deptMatch && designationMatch;
+    });
 
        const handleShiftChange = (emp, day, value, isSecondHalf = null) => {
         setShifts((prev) => {
@@ -193,6 +217,7 @@ const dataToSave = filteredEmployees
       employeeUserId: emp.employeeUserId, // Keep this
       employeeName: `${emp.firstName} ${emp.middleName} ${emp.lastName}`,
       designation: emp.designationName,
+      department: emp.departmentName,
       shifts: nonEmptyShifts,
     };
   })
@@ -352,70 +377,97 @@ const scrollTable = (direction) => {
 
    {/* ================= TOP SECTION ================= */}
 <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-4 
-flex flex-col lg:flex-row lg:items-center gap-4 justify-between 
-border border-dorika-blue">
+flex flex-col gap-4 border border-dorika-blue">
 
-  {/* Month */}
-  <div className="flex flex-col lg:flex-row lg:items-center gap-2 w-full lg:w-auto">
-    <label className="font-semibold text-dorika-blue">Month:</label>
-    <input
-      type="month"
-      value={selectedMonth}
-      onChange={(e) => setSelectedMonth(e.target.value)}
-      className="w-full lg:w-auto border border-dorika-blue rounded px-3 py-1 
-      text-dorika-blue focus:outline-none focus:ring-1 focus:ring-dorika-orange"
-    />
+
+
+  {/* BOTTOM ROW (Desktop) — Department + Designation */}
+  <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+
+    {/* Department */}
+    <div className="flex flex-col lg:flex-row lg:items-center gap-2 w-full lg:w-auto">
+      <label className="font-semibold text-dorika-blue">Department:</label>
+      <select
+        value={selectedDepartment}
+        onChange={(e) => {
+          setSelectedDepartment(e.target.value);
+          setSelectedDesignation("ALL");
+        }}
+        className="w-full lg:w-auto border border-dorika-blue rounded px-3 py-1 
+        text-dorika-blue focus:outline-none focus:ring-1 focus:ring-dorika-green"
+      >
+        {departments.map((dept) => (
+          <option key={dept} value={dept}>{dept}</option>
+        ))}
+      </select>
+    </div>
+
+    {/* Designation */}
+    <div className="flex flex-col lg:flex-row lg:items-center gap-2 w-full lg:w-auto">
+      <label className="font-semibold text-dorika-blue">Designation:</label>
+      <select
+        value={selectedDesignation}
+        onChange={(e) => setSelectedDesignation(e.target.value)}
+        className="w-full lg:w-auto border border-dorika-blue rounded px-3 py-1 
+        text-dorika-blue focus:outline-none focus:ring-1 focus:ring-dorika-green"
+      >
+        {displayDesignations.map((des) => (
+          <option key={des} value={des}>
+            {des}
+          </option>
+        ))}
+      </select>
+    </div>
+
   </div>
+    {/* TOP ROW (Desktop) — Month + Show + Print */}
+  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
 
-  {/* Designation */}
-  <div className="flex flex-col lg:flex-row lg:items-center gap-2 w-full lg:w-auto">
-    <label className="font-semibold text-dorika-blue">Designation:</label>
-    <select
-      value={selectedDesignation}
-      onChange={(e) => setSelectedDesignation(e.target.value)}
-      className="w-full lg:w-auto border border-dorika-blue rounded px-3 py-1 
-      text-dorika-blue focus:outline-none focus:ring-1 focus:ring-dorika-green"
-    >
-      {designations.map((des) => (
-        <option key={des} value={des}>
-          {des}
-        </option>
-      ))}
-    </select>
+    {/* Month */}
+    <div className="flex flex-col lg:flex-row lg:items-center gap-2 w-full lg:w-auto">
+      <label className="font-semibold text-dorika-blue">Month:</label>
+      <input
+        type="month"
+        value={selectedMonth}
+        onChange={(e) => setSelectedMonth(e.target.value)}
+        className="w-full lg:w-auto border border-dorika-blue rounded px-3 py-1 
+        text-dorika-blue focus:outline-none focus:ring-1 focus:ring-dorika-orange"
+      />
+    </div>
+
+    {/* Show + Print */}
+    <div className="flex flex-col md:flex-row items-center gap-3 w-full lg:w-auto">
+
+      <div className="flex items-center gap-2 w-full md:w-auto">
+        <label className="text-xs font-bold text-dorika-blue uppercase whitespace-nowrap">
+          Show:
+        </label>
+        <select
+          value={perPage}
+          onChange={(e) => {
+            const val = e.target.value;
+            setPerPage(val === "all" ? "all" : parseInt(val));
+            setCurrentPage(1);
+          }}
+          className="flex-1 md:flex-none border border-dorika-blue rounded px-3 py-1 text-sm bg-white font-semibold text-dorika-blue"
+        >
+          <option value={8}>8</option>
+          <option value={20}>20</option>
+          <option value={50}>50</option>
+          <option value={100}>100</option>
+          <option value="all">ALL</option>
+        </select>
+      </div>
+
+      <button
+        onClick={handlePrint}
+        className="w-full md:w-auto bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1.5 rounded font-semibold whitespace-nowrap text-sm"
+      >
+        Print Report
+      </button>
+
+    </div>
   </div>
-{/* Wrapper: Stacks on mobile (col), Side-by-side on desktop (row) */}
-<div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-
-  {/* Entries per page dropdown - Full width on mobile */}
-  <div className="flex items-center gap-2 w-full md:w-auto">
-    <label className="text-xs font-bold text-dorika-blue uppercase whitespace-nowrap">Show:</label>
-    <select
-      value={perPage}
-      onChange={(e) => {
-        const val = e.target.value;
-        setPerPage(val === "all" ? "all" : parseInt(val));
-        setCurrentPage(1);
-      }}
-      className="flex-1 md:flex-none border border-dorika-blue rounded px-3 py-1 text-sm outline-none bg-white font-semibold text-dorika-blue"
-    >
-      <option value={8}>8</option>
-      <option value={20}>20</option>
-      <option value={50}>50</option>
-      <option value={100}>100</option>
-      <option value="all">ALL</option>
-    </select>
-  </div>
-
-  {/* Print Button - Full width on mobile */}
-  <button
-    onClick={handlePrint}
-    className="w-full md:w-auto bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1.5 rounded font-semibold whitespace-nowrap text-sm"
-  >
-    Print Report
-  </button>
-  
-</div>
-
 </div>
 
 <div className="relative group flex-1 flex flex-col min-h-0"> 
@@ -470,6 +522,7 @@ border border-dorika-blue">
               <th className="border px-2 py-1 border-dorika-blue">SL No</th>
               <th className="border px-2 py-1 border-dorika-blue">Emp ID</th>
               <th className="border px-2 py-1 border-dorika-blue">Employee Name</th>
+              <th className="border px-2 py-1 border-dorika-blue">Department</th>
               <th className="border px-2 py-1 border-dorika-blue">Designation</th>
               {daysInMonth.map((day) => (
                 <th key={day} className="border px-2 py-1 border-dorika-blue text-center">
@@ -500,6 +553,7 @@ border border-dorika-blue">
                 <td className="border px-2 py-1 border-dorika-blue"> {perPage === "all" ? index + 1 : startIndex + index + 1}</td>
                 <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.employeeID}</td>
                 <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.firstName} {emp.middleName} {emp.lastName}</td>
+                <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.departmentName}</td>
                 <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.designationName}</td>
                 {daysInMonth.map((day) => {
                 const currentShift = shifts?.[emp.employeeUserId]?.[day] || "";

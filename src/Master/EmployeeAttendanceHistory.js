@@ -56,9 +56,11 @@ const EmployeeAttendanceHistory = () => {
   const [attendanceMap, setAttendanceMap] = useState({});
   const [designations, setDesignations] = useState([]);
   const [selectedDesignation, setSelectedDesignation] = useState("ALL");
+  const [departments, setDepartments] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
- const [perPage, setPerPage] = useState(20);
- const tableContainerRef = React.useRef(null);
+  const [perPage, setPerPage] = useState(20);
+  const tableContainerRef = React.useRef(null);
 
   /* ================= DAYS IN MONTH ================= */
   const daysInMonth = useMemo(() => {
@@ -74,12 +76,36 @@ const EmployeeAttendanceHistory = () => {
     });
   }, []);
 
-  /* ================= FETCH DESIGNATIONS ================= */
   useEffect(() => {
-    axios.get("http://localhost:5002/api/designations").then((res) => {
-      setDesignations(["ALL", ...res.data.map((d) => d.designationName)]);
-    });
-  }, []);
+  if (employees.length > 0) {
+
+    let filteredEmployees = employees;
+
+    // If department selected, filter by department
+    if (selectedDepartment !== "ALL") {
+      filteredEmployees = employees.filter(
+        (emp) => emp.departmentName === selectedDepartment
+      );
+    }
+
+    const uniqueDesignations = [
+      "ALL",
+      ...new Set(filteredEmployees.map((emp) => emp.designationName)),
+    ];
+
+    setDesignations(uniqueDesignations);
+  }
+}, [employees, selectedDepartment]);
+
+  useEffect(() => {
+  axios.get("http://localhost:5002/api/departments").then((res) => {
+    setDepartments(["ALL", ...res.data.map((d) => d.deptName)]);
+  });
+}, []);
+
+useEffect(() => {
+  console.log(employees);
+}, [employees]);
 
   /* ================= FETCH ATTENDANCE ================= */
   useEffect(() => {
@@ -130,10 +156,17 @@ const EmployeeAttendanceHistory = () => {
   }, [selectedMonth]);
 
   /* ================= FILTER ================= */
-  const filteredEmployees =
-    selectedDesignation === "ALL"
-      ? employees
-      : employees.filter((e) => e.designationName === selectedDesignation);
+  const filteredEmployees = employees.filter((emp) => {
+  const departmentMatch =
+    selectedDepartment === "ALL" ||
+    emp.departmentName === selectedDepartment;
+
+  const designationMatch =
+    selectedDesignation === "ALL" ||
+    emp.designationName === selectedDesignation;
+
+  return departmentMatch && designationMatch;
+});
 
     const startIndex = perPage === "all" ? 0 : (currentPage - 1) * perPage;
 
@@ -164,80 +197,110 @@ const EmployeeAttendanceHistory = () => {
             </div>
           </div>
 
-    {/* ================= TOP CONTROLS ================= */}
-    <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 flex flex-col gap-4 border border-dorika-blue">
-      
-      {/* TOP ROW: Month, Designation and Show Dropdown */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
-        
-        {/* Month & Designation Group */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-          <div className="flex items-center gap-2">
-            <label className="font-semibold text-dorika-blue text-sm uppercase">Month:</label>
-            <input
-              type="month"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="border border-dorika-blue rounded px-3 py-1 bg-white text-sm focus:outline-none"
-            />
-          </div>
+{/* ================= TOP CONTROLS ================= */}
+<div className="bg-dorika-blueLight p-4 rounded-lg shadow mb-3 border border-dorika-blue">
 
-          
-            <label className="font-semibold text-dorika-blue">Designation:</label>
-              <select
-                value={selectedDesignation}
-                onChange={(e) => setSelectedDesignation(e.target.value)}
-                className="border border-dorika-blue rounded px-3 py-1"
-              >
-                {designations.map((d) => (
-                  <option key={d}>{d}</option>
-                ))}
-              </select>
-         
-        </div>
+  {/* TOP SECTION */}
+  <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
 
-        {/* SHOW DROPDOWN - Full width on Mobile (w-full), Auto on Desktop (md:w-auto) */}
-        <div className="flex items-center gap-2 w-full md:w-auto border-t md:border-t-0 pt-2 md:pt-0">
-          <label className="text-[10px] sm:text-xs font-bold text-dorika-blue uppercase whitespace-nowrap">Show:</label>
-          <select
-            value={perPage}
-            onChange={(e) => {
-              const val = e.target.value;
-              setPerPage(val === "all" ? "all" : parseInt(val));
-              setCurrentPage(1);
-            }}
-            className="flex-1 md:flex-none border border-dorika-blue rounded px-2 py-1 text-sm font-semibold bg-white text-dorika-blue outline-none"
-          >
-            <option value={8}>8</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-            <option value="all">ALL</option>
-          </select>
-        </div>
+    {/* LEFT SIDE CONTROLS */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+
+      {/* Month */}
+      <div className="flex flex-col">
+        <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+          Month
+        </label>
+        <input
+          type="month"
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+          className="border border-dorika-blue rounded px-3 py-2 bg-white text-sm focus:outline-none"
+        />
       </div>
 
-      {/* BOTTOM ROW: Color Codes (Legend) */}
-      <div className="flex flex-col gap-2 border-t border-dorika-blue/20 pt-3">
-        <div className="flex flex-wrap gap-x-4 gap-y-2 text-[10px] sm:text-xs font-bold justify-start">
-          <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-green-600 rounded-sm"></span><span>Present (P)</span></div>
-          <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-orange-500 rounded-sm"></span><span>Late (P(L))</span></div>
-          <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-red-600 rounded-sm"></span><span>Absent (A)</span></div>
-          <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-purple-600 rounded-sm"></span><span>Sick (SL)</span></div>
-          <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-blue-600 rounded-sm"></span><span>Casual (CL)</span></div>
-          <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-black rounded-sm"></span><span>OFF</span></div>
-        </div>
-
-        {/* Summary Text Bar */}
-        <div className="flex flex-wrap gap-x-3 gap-y-1 bg-gray-300/60 p-1.5 rounded-md text-[10px] sm:text-xs font-bold">
-          <span className="text-green-700">TP - Total Present</span>
-          <span className="text-red-600">TA - Total Absent</span>
-          <span className="text-gray-600">TO - Total OFF</span>
-          <span className="text-orange-600">TL - Total Leave (SL+CL)</span>
-          <span className="text-orange-600">TOT - Total Over Time</span>
-        </div>
+      {/* Department */}
+      <div className="flex flex-col">
+        <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+          Department
+        </label>
+        <select
+          value={selectedDepartment}
+          onChange={(e) => {
+            setSelectedDepartment(e.target.value);
+            setSelectedDesignation("ALL");
+          }}
+          className="border border-dorika-blue rounded px-3 py-2 text-sm"
+        >
+          {departments.map((d) => (
+            <option key={d}>{d}</option>
+          ))}
+        </select>
       </div>
+
+      {/* Designation */}
+      <div className="flex flex-col">
+        <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+          Designation
+        </label>
+        <select
+          value={selectedDesignation}
+          onChange={(e) => setSelectedDesignation(e.target.value)}
+          className="border border-dorika-blue rounded px-3 py-2 text-sm"
+        >
+          {designations.map((d) => (
+            <option key={d}>{d}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Show */}
+      <div className="flex flex-col">
+        <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+          Show
+        </label>
+        <select
+          value={perPage}
+          onChange={(e) => {
+            const val = e.target.value;
+            setPerPage(val === "all" ? "all" : parseInt(val));
+            setCurrentPage(1);
+          }}
+          className="border border-dorika-blue rounded px-3 py-2 text-sm font-semibold bg-white text-dorika-blue"
+        >
+          <option value={8}>8</option>
+          <option value={20}>20</option>
+          <option value={50}>50</option>
+          <option value={100}>100</option>
+          <option value="all">ALL</option>
+        </select>
+      </div>
+
     </div>
+  </div>
+
+  {/* LEGEND SECTION */}
+  <div className="mt-4 border-t border-dorika-blue/20 pt-3">
+
+    <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-bold">
+      <div className="flex items-center gap-2"><span className="w-3 h-3 bg-green-600 rounded-sm"></span>Present (P)</div>
+      <div className="flex items-center gap-2"><span className="w-3 h-3 bg-orange-500 rounded-sm"></span>Late (P(L))</div>
+      <div className="flex items-center gap-2"><span className="w-3 h-3 bg-red-600 rounded-sm"></span>Absent (A)</div>
+      <div className="flex items-center gap-2"><span className="w-3 h-3 bg-purple-600 rounded-sm"></span>Sick (SL)</div>
+      <div className="flex items-center gap-2"><span className="w-3 h-3 bg-blue-600 rounded-sm"></span>Casual (CL)</div>
+      <div className="flex items-center gap-2"><span className="w-3 h-3 bg-black rounded-sm"></span>OFF</div>
+    </div>
+
+    <div className="flex flex-wrap gap-4 bg-gray-300/60 p-2 rounded-md text-xs font-bold mt-3">
+      <span className="text-green-700">TP - Total Present</span>
+      <span className="text-red-600">TA - Total Absent</span>
+      <span className="text-gray-600">TO - Total OFF</span>
+      <span className="text-orange-600">TL - Total Leave (SL+CL)</span>
+      <span className="text-orange-600">TOT - Total Over Time</span>
+    </div>
+
+  </div>
+</div>
 
         <div className="relative group flex-1 flex flex-col min-h-0"> 
           
@@ -272,6 +335,7 @@ const EmployeeAttendanceHistory = () => {
                   <th className="border px-2 border-dorika-blue">SL</th>
                   <th className="border px-2 border-dorika-blue">Emp ID</th>
                   <th className="border px-2 border-dorika-blue">Name</th>
+                  <th className="border px-2 border-dorika-blue">Department</th>
                   <th className="border px-2 border-dorika-blue">Designation</th>
                   {daysInMonth.map((d) => (
                     <th
@@ -299,6 +363,7 @@ const EmployeeAttendanceHistory = () => {
                     <td className="border px-2 border-dorika-blue font-medium">
                       {emp.firstName} {emp.lastName}
                     </td>
+                    <td className="border px-2 border-dorika-blue">{emp.departmentName}</td>
                     <td className="border px-2 border-dorika-blue">{emp.designationName}</td>
 
                     {daysInMonth.map((day) => {

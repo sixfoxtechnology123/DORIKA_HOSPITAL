@@ -50,6 +50,7 @@ exports.saveBulkShifts = async (req, res) => {
             employeeName: item.employeeName,
             employeeUserId: item.employeeUserId,
             designation: item.designation,
+            department: item.department,
             shifts: item.shifts,
           },
         },
