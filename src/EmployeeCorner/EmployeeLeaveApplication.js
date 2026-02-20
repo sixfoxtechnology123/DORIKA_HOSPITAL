@@ -174,20 +174,33 @@ useEffect(() => {
     }
   } 
   
-  // --- CASUAL LEAVE LOGIC ---
-  else if (name.includes("CASUAL") || name === "CL") {
-    if (["P", "PD"].includes(status)) {
-      const changeDate = statusChangeDate ? new Date(statusChangeDate) : selectedAppDate;
-      const calculationStartDate = changeDate > fyData.startDate ? changeDate : fyData.startDate;
+// --- CASUAL LEAVE LOGIC (Requirement: Accrual & String Date Fix) ---
+else if (name.includes("CASUAL") || name === "CL") {
+  if (["P", "PD"].includes(status)) {
+    const selectedAppDate = new Date(formData.applicationDate);
+    const fyData = getDynamicFY(formData.applicationDate);
 
-      let monthsEarned = (selectedAppDate.getFullYear() - calculationStartDate.getFullYear()) * 12 + 
-                         (selectedAppDate.getMonth() - calculationStartDate.getMonth()) + 1;
+    // 1. Convert DB String "11-02-2026" to real Date object
+    const empStatusDate = statusChangeDate 
+      ? parseDDMMYYYY(statusChangeDate) 
+      : fyData.startDate;
+    
+    // 2. Determine start point (April 1st if joined before this FY)
+    const calculationStartDate = (empStatusDate > fyData.startDate) 
+      ? empStatusDate 
+      : fyData.startDate;
 
-      const allowedSoFar = Math.min(totalYearlyAllowed, monthsEarned);
-      calculatedInHand = Math.max(0, allowedSoFar - usedLeaves.casual);
-    }
+    // 3. Calculate months: (Application Month - Calculation Start Month) + 1
+    let monthsEarned = (selectedAppDate.getFullYear() - calculationStartDate.getFullYear()) * 12 + 
+                       (selectedAppDate.getMonth() - calculationStartDate.getMonth()) + 1;
+
+    // 4. Cap at yearly total (12)
+    const totalEarnedSoFar = Math.max(0, Math.min(totalYearlyAllowed, monthsEarned));
+    
+    // 5. Final Balance = Earned - Already Used
+    calculatedInHand = Math.max(0, totalEarnedSoFar - usedLeaves.casual);
   }
-
+}
   setFormData(prev => ({ ...prev, leaveInHand: calculatedInHand }));
 }, [formData.leaveType, formData.applicationDate, usedLeaves, leaveTypes, empStatus, statusChangeDate]);
 
@@ -208,50 +221,50 @@ useEffect(() => {
   }, [formData.fromDate, formData.toDate]);
 
 const handleLeaveTypeChange = (value) => {
- const status = empStatus?.toUpperCase();
-const name = value?.toUpperCase();
- const today = new Date();
- const currentMonth = today.getMonth(); 
+  const status = empStatus?.toUpperCase();
+  const name = value?.toUpperCase();
+  const selectedAppDate = new Date(formData.applicationDate);
+  const fyData = getDynamicFY(formData.applicationDate);
 
-  // Get total days from Master for the selected leave
   const masterType = leaveTypes.find(lt => lt.leaveName === value);
-  const totalAllowed = masterType ? masterType.totalDays : 0;
+  const totalAllowed = masterType ? masterType.totalDays : 12;
 
- let monthsPassed = (currentMonth >= 3) ? (currentMonth - 3 + 1) : (currentMonth + 9 + 1);
- let calculatedInHand = 0;
+  let calculatedInHand = 0;
 
- if (name.includes("SICK") || name === "SL") {
- if (["P", "PD", "TR", "TEP"].includes(status)) {
- calculatedInHand = Math.max(0, totalAllowed - usedLeaves.sick);
-}
- } else if (name.includes("CASUAL") || name === "CL") {
- if (["P", "PD"].includes(status)) {
- calculatedInHand = Math.max(0, Math.min(totalAllowed, monthsPassed) - usedLeaves.casual);
- }
-}
+  if (name.includes("SICK") || name === "SL") {
+    if (["P", "PD", "TR", "TEP"].includes(status)) {
+      calculatedInHand = Math.max(0, totalAllowed - usedLeaves.sick);
+    }
+  } else if (name.includes("CASUAL") || name === "CL") {
+    if (["P", "PD"].includes(status)) {
+      const empStatusDate = statusChangeDate ? new Date(statusChangeDate) : fyData.startDate;
+      const calcStart = empStatusDate > fyData.startDate ? empStatusDate : fyData.startDate;
 
- setFormData((prev) => ({
- ...prev,
- leaveType: value,
- leaveInHand: calculatedInHand,
- }));
+      let monthsEarned = (selectedAppDate.getFullYear() - calcStart.getFullYear()) * 12 + 
+                         (selectedAppDate.getMonth() - calcStart.getMonth()) + 1;
+
+      const earned = Math.max(0, Math.min(totalAllowed, monthsEarned));
+      calculatedInHand = Math.max(0, earned - usedLeaves.casual);
+    }
+  }
+
+  setFormData(prev => ({ ...prev, leaveType: value, leaveInHand: calculatedInHand }));
 };
 
 
 const getDynamicFY = (inputDate) => {
   const date = inputDate ? new Date(inputDate) : new Date();
-  const month = date.getMonth(); // 0 = Jan, 3 = April
+  const month = date.getMonth(); 
   const year = date.getFullYear();
 
-  // If Jan, Feb, or March, FY started the previous year
+  // If Jan-Mar, FY started last year. If April-Dec, FY started this year.
   const fyStartYear = month < 3 ? year - 1 : year;
-  const fyEndYear = fyStartYear + 1;
-
+  
   return {
     min: `${fyStartYear}-04-01`, 
-    max: `${fyEndYear}-03-31`,
-    startDate: new Date(fyStartYear, 3, 1), // April 1st for calculations
-    sessionName: `${fyStartYear}-${fyEndYear}`
+    max: `${fyStartYear + 1}-03-31`,
+    startDate: new Date(fyStartYear, 3, 1), // April 1st
+    sessionName: `${fyStartYear}-${fyStartYear + 1}`
   };
 };
 
@@ -374,85 +387,89 @@ const handleSubmit = async () => {
             />
           </div> */}
 
+        <div>
+          <label className="block text-xs sm:text-sm font-bold text-gray-700">Application Date</label>
+          <input 
+            type="text" 
+            readOnly
+            disabled
+            className={inputClass} 
+            value={formatDDMMYYYY(formData.applicationDate)}
+            onChange={(e) => {
+              setFormData(prev => ({ 
+                ...prev, 
+                applicationDate: e.target.value,
+                fromDate: "", 
+                toDate: "",
+                noOfDays: 0
+              }));
+            }}
+          />
+        </div>
+      <div>
+          <label className="block text-xs sm:text-sm font-bold text-gray-700">Leave Type</label>
+          <select 
+            className={inputClass} 
+            value={formData.leaveType} 
+            onChange={(e) => handleLeaveTypeChange(e.target.value)}
+          >
+            <option value="">-- Select Leave --</option>
+            {leaveTypes.map((lt) => {
+              const status = empStatus?.toUpperCase();
+              const name = lt.leaveName?.toUpperCase();
+              const code = lt.leaveCode?.toUpperCase();
+              
+              const isSick = name.includes("SICK") || code === "SL";
+              const isCasual = name.includes("CASUAL") || code === "CL";
 
-          <div>
-            <label className="block text-xs sm:text-sm font-bold text-gray-700">Application Date</label>
-            {/* The real (hidden) picker remains as is */}
-            <input 
-              type="date" 
-              id="appDatePicker"
-              className="hidden" 
-              value={formData.applicationDate} 
-              readOnly // Added readOnly here too for safety
-            />
-            {/* The visible text box: Click removed, disabled added */}
-            <input
-              type="text"
-              disabled // This prevents any interaction
-              className={`${inputClass} cursor-not-allowed bg-gray-100 opacity-80`} // Styles it as locked
-              value={formatDDMMYYYY(formData.applicationDate)} 
-              // REMOVED: onClick={() => document.getElementById("appDatePicker").showPicker()}
-            />
-          </div>
-            <div>
-            <label className="block text-xs sm:text-sm font-bold text-gray-700">Leave Type</label>
-            <select 
-              className={inputClass} 
-              value={formData.leaveType} 
-              onChange={(e) => handleLeaveTypeChange(e.target.value)}
-            >
-              <option value="">-- Select Leave --</option>
-              {leaveTypes.map((lt) => {
-                const status = empStatus?.toUpperCase();
-                const name = lt.leaveName?.toUpperCase();
-                const code = lt.leaveCode?.toUpperCase();
-                
-                // 1. ELIGIBILITY CHECK
-                // P/PD can take anything. TR/TEP can ONLY take Sick Leave.
-                const isSick = name.includes("SICK") || code === "SL";
-                const isCasual = name.includes("CASUAL") || code === "CL";
+              // 1. ELIGIBILITY CHECK
+              let isEligible = (status === "P" || status === "PD") || 
+                              ((status === "TR" || status === "TEP") && isSick);
 
-                let isEligible = (status === "P" || status === "PD") || 
-                                ((status === "TR" || status === "TEP") && isSick);
+              // 2. DYNAMIC BALANCE CHECK
+              let hasBalance = true;
+              let reason = "";
 
-                // 2. DYNAMIC BALANCE CHECK (Using lt.totalDays from your Master Data)
-                let hasBalance = true;
-                let reason = "";
-
-                if (isSick) {
-                  // If used leaves (e.g. 6) >= Master totalDays (e.g. 6)
-                  if (usedLeaves.sick >= lt.totalDays) {
-                    hasBalance = false;
-                    reason = "(Limit Reached)";
-                  }
-                } else if (isCasual) {
-                  const today = new Date();
-                  const m = today.getMonth();
-                  // Calculate monthly accrual (April is start of FY)
-                  let monthsAccrued = (m >= 3) ? (m - 3 + 1) : (m + 9 + 1);
-                  
-                  // Cannot exceed 12 total OR the months passed so far
-                  const allowedSoFar = Math.min(lt.totalDays, monthsAccrued);
-                  
-                  if (usedLeaves.casual >= allowedSoFar) {
-                    hasBalance = false;
-                    reason = "(Limit Reached)";
-                  }
+              if (isSick) {
+                if (usedLeaves.sick >= lt.totalDays) {
+                  hasBalance = false;
+                  reason = "(Limit Reached)";
                 }
+              } 
+              else if (isCasual) {
+                const appDate = new Date(formData.applicationDate);
+                const fyData = getDynamicFY(formData.applicationDate);
 
-            return (
-              <option 
-                key={lt._id} 
-                value={lt.leaveName} 
-                disabled={!isEligible || !hasBalance}
-                className={!hasBalance || !isEligible ? "text-gray-400 bg-gray-100" : "text-black"}
-              >
-                {lt.leaveName} {reason} {!isEligible ? "(Ineligible)" : ""}
-              </option>
-            );
-          })}
-        </select>
-      </div>
+                // Parse DB Joining Date string "11-02-2026"
+                const empStatusDate = statusChangeDate ? parseDDMMYYYY(statusChangeDate) : fyData.startDate;
+                const calcStart = empStatusDate > fyData.startDate ? empStatusDate : fyData.startDate;
+
+                // Calculate months earned up to the application date
+                let monthsEarned = (appDate.getFullYear() - calcStart.getFullYear()) * 12 + 
+                                  (appDate.getMonth() - calcStart.getMonth()) + 1;
+
+                const allowedSoFar = Math.max(0, Math.min(lt.totalDays, monthsEarned));
+
+                // NEW LOGIC: Disable if used leaves meet or exceed the earned amount for that month
+                if (usedLeaves.casual >= allowedSoFar) {
+                  hasBalance = false;
+                  reason = "(Limit Reached)";
+                }
+              }
+
+              return (
+                <option 
+                  key={lt._id} 
+                  value={lt.leaveName} 
+                  disabled={!isEligible || !hasBalance}
+                  className={!hasBalance || !isEligible ? "text-gray-400 bg-gray-100" : "text-black"}
+                >
+                  {lt.leaveName} {reason} {!isEligible ? "(Ineligible)" : ""}
+                </option>
+              );
+            })}
+          </select>
+        </div>
 
 
           <div>

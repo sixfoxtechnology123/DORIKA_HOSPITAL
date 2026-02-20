@@ -16,55 +16,99 @@ const parseDate = (dateStr) => {
 
 export const applyLeave = async (req, res) => {
   try {
-    const { employeeId,employeeUserId, leaveType, fromDate, noOfDays, applicationDate, employeeName, toDate, reason } = req.body;
+    const { 
+      employeeId, 
+      employeeUserId, 
+      leaveType, 
+      fromDate, 
+      noOfDays, 
+      applicationDate, 
+      employeeName, 
+      toDate, 
+      reason 
+    } = req.body;
 
-    // 1. Find Leave Master Data
-    const leaveMaster = await LeaveType.findOne({
-      $or: [{ leaveName: leaveType }, { leaveCode: leaveType }]
-    });
+    // 1. Find Leave Master Data & Employee Profile
+    const [leaveMaster, empProfile] = await Promise.all([
+      LeaveType.findOne({ $or: [{ leaveName: leaveType }, { leaveCode: leaveType }] }),
+      Employee.findOne({ employeeID: employeeId })
+    ]);
 
     if (!leaveMaster) return res.status(400).json({ message: "Invalid leave type" });
-    const totalAllowed = leaveMaster.totalDays;
+    if (!empProfile) return res.status(404).json({ message: "Employee not found" });
 
-    // 2. FIX: Setup Financial Year based on the LEAVE START DATE (fromDate)
+    const totalYearlyAllowed = leaveMaster.totalDays;
+    const isCasual = leaveType.toUpperCase().includes("CASUAL") || leaveType.toUpperCase() === "CL";
+
+    // 2. Setup Date Objects
+    const appDateObj = parseDate(applicationDate); 
     const leaveStartDate = parseDate(fromDate); 
-    const month = leaveStartDate.getMonth(); // 0-indexed
     const year = leaveStartDate.getFullYear();
-    
-    // Logic: If Jan-Mar, the FY started April of the previous year
+    const month = leaveStartDate.getMonth(); // 0-indexed (Jan=0, April=3)
+
+    // 3. Define Financial Year (FY) Boundaries (April 1st to March 31st)
     const fyStartYear = month < 3 ? year - 1 : year;
     const fyStartDate = new Date(fyStartYear, 3, 1); // April 1st
-    const fyEndDate = new Date(fyStartYear + 1, 2, 31); // March 31st next year
+    const fyEndDate = new Date(fyStartYear + 1, 2, 31); // March 31st
 
-const used = await LeaveApplication.aggregate([
-  {
-    $match: {
-      employeeId,
-      leaveType,
-      approveRejectedStatus: "APPROVED", 
-      $expr: {
-        $and: [
-          { $gte: [{ $toDate: "$fromDate" }, fyStartDate] },
-          { $lte: [{ $toDate: "$fromDate" }, fyEndDate] }
-        ]
+    // 4. REQUIREMENT: ACCRUAL LOGIC BASED ON JOINING/STATUS DATE
+    let currentEarnedBalance;
+
+    if (isCasual) {
+      // RULE A: Max 5 days at a time
+      if (noOfDays > 5) {
+        return res.status(400).json({ message: "For Casual Leave, you can only apply for a maximum of 5 days at a time." });
       }
-    }
-  },
-  {
-    $group: {
-      _id: null,
-      total: { $sum: "$noOfDays" }
-    }
-  }
-]);
-    const usedDays = used[0]?.total || 0;
-    const remaining = totalAllowed - usedDays;
 
-    // 4. Validation
-    if (remaining <= 0) return res.status(400).json({ message: "Leave limit exhausted for this session" });
-    if (noOfDays > remaining) return res.status(400).json({ message: `Only ${remaining} days remaining for this session` });
-    const empMaster = await Employee.findOne({ employeeID: employeeId });
-    // 5. Create new application
+      // RULE B: Pro-Rata Starting Point
+      // Use parseDate to handle the DD-MM-YYYY string from your DB ("11-02-2026")
+      const empStatusDate = empProfile.statusChangeDate ? parseDate(empProfile.statusChangeDate) : fyStartDate;
+      
+      // Determine if we start counting from Join Date or the current FY Start (April 1st)
+      const calculationStartDate = empStatusDate > fyStartDate ? empStatusDate : fyStartDate;
+
+      // RULE C: Calculate Months Earned up to the Application Date
+      let monthsEarned = (appDateObj.getFullYear() - calculationStartDate.getFullYear()) * 12 + 
+                         (appDateObj.getMonth() - calculationStartDate.getMonth()) + 1;
+
+      // Cap at yearly total (usually 12)
+      currentEarnedBalance = Math.max(0, Math.min(totalYearlyAllowed, monthsEarned));
+    } else {
+      // For Sick Leave or others, use full yearly allocation
+      currentEarnedBalance = totalYearlyAllowed;
+    }
+
+    // 5. GET APPROVED LEAVES IN CURRENT FINANCIAL YEAR
+    const used = await LeaveApplication.aggregate([
+      {
+        $match: {
+          employeeId,
+          leaveType,
+          approveRejectedStatus: "APPROVED", 
+          $expr: {
+            $and: [
+              { $gte: [{ $toDate: "$fromDate" }, fyStartDate] },
+              { $lte: [{ $toDate: "$fromDate" }, fyEndDate] }
+            ]
+          }
+        }
+      },
+      { $group: { _id: null, total: { $sum: "$noOfDays" } } }
+    ]);
+
+    const usedDays = used[0]?.total || 0;
+    
+    // 6. CALCULATE FINAL STORED BALANCE
+    const remainingStored = currentEarnedBalance - usedDays;
+
+    // 7. FINAL VALIDATION
+    if (noOfDays > remainingStored) {
+      return res.status(400).json({ 
+        message: `Insufficient balance. Based on your joining date and application month, you have only ${remainingStored} days accumulated.` 
+      });
+    }
+
+    // 8. CREATE NEW APPLICATION
     const newLeave = new LeaveApplication({
       employeeId,
       employeeUserId,
@@ -74,21 +118,21 @@ const used = await LeaveApplication.aggregate([
       fromDate: leaveStartDate.toISOString().split("T")[0], 
       toDate: parseDate(toDate).toISOString().split("T")[0],
       noOfDays,
-      reason,
-      leaveInHand: remaining - noOfDays,
+      reason: reason || "",
+      leaveInHand: remainingStored - noOfDays, // Store the updated earned balance
       status: "PENDING",
-      reportingManager: empMaster?.reportingManager || null, 
-      reportingManagerEmpID: empMaster?.reportingManagerEmpID || null, 
-      reportingManagerEmployeeUserId: empMaster?.reportingManagerEmployeeUserId || null, 
-      departmentHead: empMaster?.departmentHead|| null,
-      departmentHeadEmpID: empMaster?.departmentHeadEmpID|| null,
-      departmentHeadEmployeeUserId: empMaster?.departmentHeadEmployeeUserId|| null,
+      reportingManager: empProfile.reportingManager || null,
+      reportingManagerEmployeeUserId: empProfile.reportingManagerEmployeeUserId || null,
+      departmentHead: empProfile.departmentHead || null,
+      departmentHeadEmployeeUserId: empProfile.departmentHeadEmployeeUserId || null,
     });
 
     await newLeave.save();
-    res.status(201).json({ message: "Leave application submitted", remaining: remaining - noOfDays });
+    res.status(201).json({ message: "Leave application submitted successfully", remaining: remainingStored - noOfDays });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Apply Leave Error:", error);
+    res.status(500).json({ message: "Internal Server Error: " + error.message });
   }
 };
 
