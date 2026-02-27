@@ -4,6 +4,29 @@ const LeaveType = require("../models/LeaveType");
 const bcrypt = require("bcryptjs"); // Import bcrypt
 const jwt = require("jsonwebtoken");
 
+const maskLastFour = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return raw;
+  if (raw.length <= 4) return "*".repeat(raw.length);
+  return `${"*".repeat(raw.length - 4)}${raw.slice(-4)}`;
+};
+
+const maskEmail = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw || !raw.includes("@")) return raw;
+  const [name, domain] = raw.split("@");
+  if (!name) return raw;
+  if (name.length <= 2) return `${name[0] || "*"}*@${domain}`;
+  return `${name.slice(0, 2)}${"*".repeat(name.length - 2)}@${domain}`;
+};
+
+const maskMobile = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return raw;
+  if (raw.length <= 4) return "*".repeat(raw.length);
+  return `${"*".repeat(raw.length - 4)}${raw.slice(-4)}`;
+};
+
 // 1. GET ALL (Master + Credential status)
 exports.getAllEmployeeUserIds = async (req, res) => {
   try {
@@ -160,7 +183,33 @@ exports.getEmployeeDetails = async (req, res) => {
 
     const emp = await Employee.findOne({ employeeID: employeeId }).lean();
     if (!emp) return res.status(404).json({ message: "Employee not found" });
-    res.json(emp);
+    if (role === "employee") {
+      const safeEmployee = {
+        ...emp,
+        permanentAddress: {
+          ...(emp.permanentAddress || {}),
+          mobile: maskMobile(emp.permanentAddress?.mobile),
+          email: maskEmail(emp.permanentAddress?.email),
+        },
+        presentAddress: {
+          ...(emp.presentAddress || {}),
+          mobile: maskMobile(emp.presentAddress?.mobile),
+          email: maskEmail(emp.presentAddress?.email),
+        },
+        payDetails: {
+          ...(emp.payDetails || {}),
+          aadhaarNo: maskLastFour(emp.payDetails?.aadhaarNo),
+          panNo: maskLastFour(emp.payDetails?.panNo),
+          accountNo: maskLastFour(emp.payDetails?.accountNo),
+          passportNo: maskLastFour(emp.payDetails?.passportNo),
+          uanNo: maskLastFour(emp.payDetails?.uanNo),
+          ifscCode: maskLastFour(emp.payDetails?.ifscCode),
+        },
+      };
+      return res.json(safeEmployee);
+    }
+
+    return res.json(emp);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

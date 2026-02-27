@@ -208,8 +208,8 @@ const paginatedEmployees = perPage === "all"
         </thead>
         <tbody className="text-xs sm:text-sm text-center">
           {employees.length ? (
-           paginatedEmployees.map((e,index) => (
-              <tr key={e._id} className="hover:bg-dorika-blueLight transition">
+           paginatedEmployees.filter(Boolean).map((e,index) => (
+              <tr key={e?._id || index} className="hover:bg-dorika-blueLight transition">
                 <td className="border border-dorika-blue px-2 py-1">{perPage === "all" ? index + 1 : (currentPage - 1) * perPage + index + 1}</td>
                 <td className="border border-dorika-blue px-2 py-1">{e.employeeID}</td>
                 <td className="border border-dorika-blue px-2 py-1">
@@ -225,7 +225,9 @@ const paginatedEmployees = perPage === "all"
                 <td className="border border-dorika-blue px-2 py-1">
                   {e.designationName}
                 </td>
-                <td className="border border-dorika-blue px-2 py-1">{e.permanentAddress.mobile}</td>
+                <td className="border border-dorika-blue px-2 py-1">
+                  {e?.permanentAddress?.mobile || e?.presentAddress?.mobile || "-"}
+                </td>
                 {/* <td className="border border-dorika-blue px-2 py-1">{e.employmentType}</td>
                 <td className="border border-dorika-blue px-2 py-1">{e.workLocation}</td>
                 <td className="border border-dorika-blue px-2 py-1">{e.contactNo}</td>
