@@ -5,6 +5,8 @@ const ShiftManagement = require("../models/ShiftManagement");
 
 const OFFICE_LAT = 26.652193600000007;
 const OFFICE_LNG = 92.79050463016533;
+// const OFFICE_LAT = 22.965561;
+// const OFFICE_LNG = 88.457227;
 const ALLOWED_DISTANCE = 50;
 
 const getDistance = (lat1, lng1, lat2, lng2) => {
@@ -125,6 +127,11 @@ const markDailyAttendance = async (req, res) => {
     const yesterdayIndex = attendance.records.findIndex(r => r.date === yesterdayStr);
     const todayIndex = attendance.records.findIndex(r => r.date === todayStr);
 
+    const distance = getDistance(latitude, longitude, OFFICE_LAT, OFFICE_LNG);
+    if (distance > ALLOWED_DISTANCE) {
+      return res.status(400).json({ message: "You are Not inside office location" });
+    }
+
     let recordToUpdate = null;
     if (yesterdayIndex !== -1) {
       const rec = attendance.records[yesterdayIndex];
@@ -181,12 +188,6 @@ const markDailyAttendance = async (req, res) => {
       await attendance.save();
       return res.status(200).json({ message: "Check-out recorded successfully!" });
     }
-
-      const distance = getDistance(latitude, longitude, OFFICE_LAT, OFFICE_LNG);
-
-      if (distance > ALLOWED_DISTANCE) {
-        return res.status(400).json({ message: "You are Not inside office location" });
-      }
 
     // --- 3. GAP-FILLING LOGIC ---
     if (attendance.records.length > 0) {

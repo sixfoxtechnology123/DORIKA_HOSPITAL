@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import EmployeeCornerSidebar from "./EmployeeCornerSidebar";
@@ -24,6 +24,7 @@ const EmployeeAttendance = () => {
   const [history, setHistory] = useState([]);
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
+  const attendanceRequestInFlightRef = useRef(false);
   const [employeeFullName, setEmployeeFullName] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
   
@@ -107,11 +108,14 @@ const EmployeeAttendance = () => {
 };
 
   const handleAttendanceAction = async () => {
+    if (attendanceRequestInFlightRef.current || loading) return;
+
     if (!loggedUser || !loggedUser.employeeUserId) {
       toast.error("You must be logged in!");
       return;
     }
 
+  attendanceRequestInFlightRef.current = true;
   setLoading(true);
   try {
     const storageName = `${loggedUser.firstName || ""} ${loggedUser.lastName || ""}`.trim();
@@ -138,6 +142,7 @@ const EmployeeAttendance = () => {
     const errorMsg = err.response?.data?.message || "Error marking attendance";
     toast.error(errorMsg);
   } finally {
+    attendanceRequestInFlightRef.current = false;
     setLoading(false);
   }
 };

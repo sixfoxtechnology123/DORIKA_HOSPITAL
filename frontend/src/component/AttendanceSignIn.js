@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -9,6 +9,7 @@ const AttendanceSignIn = () => {
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState("");
   const [loading, setLoading] = useState(false);
+  const requestInFlightRef = useRef(false);
   const [employeeFullName, setEmployeeFullName] = useState("");
   const [alreadyMarked, setAlreadyMarked] = useState(false); // New state to track today's status
   
@@ -96,7 +97,8 @@ const AttendanceSignIn = () => {
   };
 
   const handleOkClick = async () => {
-    if (!loggedUser || alreadyMarked) return;
+    if (!loggedUser || alreadyMarked || requestInFlightRef.current || loading) return;
+    requestInFlightRef.current = true;
     setLoading(true);
     try {
       const loc = await getLocation();
@@ -113,6 +115,7 @@ const AttendanceSignIn = () => {
     } catch (err) {
       toast.error(err.response?.data?.message || "Error marking attendance");
     } finally {
+      requestInFlightRef.current = false;
       setLoading(false);
     }
   };

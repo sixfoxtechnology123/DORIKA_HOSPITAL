@@ -27,7 +27,7 @@ import AdminLogin from "./component/AdminLogin";
 import EditProfile from "./component/EditProfile";
 import ChangePassword from "./component/ChangePassword";
 import AdminManagement from "./component/AdminManagement";
-import { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import LeaveRuleMaster from "./Master/LeaveRuleMaster";
 import LeaveRuleList from "./Master/LeaveRuleList";
 import LeaveAllocationForm from "./Master/LeaveAllocationForm";
@@ -60,6 +60,27 @@ import QualificationList from "./Master/QualificationList";
 import ProtectedRoute from "./component/ProtectedRoute";
 import EmployeeShiftTime from "./EmployeeCorner/EmployeeShiftTime";
 import DepartmrentHead from "./Master/DepartmrentHead";
+
+const getToastMessageText = (message) => {
+  if (typeof message === "string") return message.trim();
+  if (message instanceof Error) return message.message || "Error";
+  if (message && typeof message === "object") {
+    if (typeof message.message === "string") return message.message.trim();
+    return "Something went wrong";
+  }
+  return String(message || "Error");
+};
+
+if (!toast.__errorDedupePatched) {
+  const originalError = toast.error.bind(toast);
+  toast.error = (message, options = {}) => {
+    const normalizedMessage = getToastMessageText(message);
+    const providedId = options && typeof options === "object" ? options.id : undefined;
+    const dedupeId = providedId || `error:${normalizedMessage.toLowerCase()}`;
+    return originalError(normalizedMessage, { ...options, id: dedupeId });
+  };
+  toast.__errorDedupePatched = true;
+}
 
 export default function App(){
   return (
