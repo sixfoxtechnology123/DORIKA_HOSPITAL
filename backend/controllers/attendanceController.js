@@ -3,11 +3,11 @@ const Leave = require("../models/LeaveApplication");
 const ShiftMaster = require("../models/Shift");
 const ShiftManagement = require("../models/ShiftManagement");
 
-const OFFICE_LAT = 26.570388;
-const OFFICE_LNG = 88.164351;
+const OFFICE_LAT = 22.158676;
+const OFFICE_LNG = 87.675858;
 // const OFFICE_LAT = 22.965561;
 // const OFFICE_LNG = 88.457227;
-const ALLOWED_DISTANCE = 100;
+const ALLOWED_DISTANCE = 200;
 
 
 const getDistance = (lat1, lng1, lat2, lng2) => {
@@ -148,9 +148,22 @@ const markDailyAttendance = async (req, res) => {
     const todayIndex = attendance.records.findIndex(r => r.date === todayStr);
 
     const distance = getDistance(lat, lng, OFFICE_LAT, OFFICE_LNG);
-    const accuracyBuffer = Number.isFinite(gpsAccuracy) && gpsAccuracy > 0 ? gpsAccuracy : 0;
+    // Some clients/frontends may not send accuracy. Use a safe default buffer to avoid false rejects.
+    const accuracyBufferRaw = Number.isFinite(gpsAccuracy) && gpsAccuracy > 0 ? gpsAccuracy : 60;
+    const accuracyBuffer = Math.min(accuracyBufferRaw, 150);
     const effectiveDistance = Math.max(0, distance - accuracyBuffer);
     if (effectiveDistance > ALLOWED_DISTANCE) {
+      console.warn("ATTENDANCE_GEOFENCE_REJECT", {
+        employeeUserId: safeEmployeeUserId,
+        officeLat: OFFICE_LAT,
+        officeLng: OFFICE_LNG,
+        userLat: lat,
+        userLng: lng,
+        distance: Math.round(distance),
+        accuracyBuffer: Math.round(accuracyBuffer),
+        effectiveDistance: Math.round(effectiveDistance),
+        allowedDistance: ALLOWED_DISTANCE
+      });
       return res.status(400).json({ message: "You are Not inside office location" });
     }
 
