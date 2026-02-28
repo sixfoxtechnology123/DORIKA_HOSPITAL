@@ -90,7 +90,11 @@ const AttendanceSignIn = () => {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) reject("Geolocation not supported");
       navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        (pos) => resolve({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy
+        }),
         () => reject("Location permission denied")
       );
     });
@@ -109,6 +113,7 @@ const AttendanceSignIn = () => {
         employeeName: employeeFullName || loggedUser.employeeUserId,
         latitude: loc.latitude,
         longitude: loc.longitude,
+        accuracy: loc.accuracy,
       });
 
       toast.success(res.data.message);

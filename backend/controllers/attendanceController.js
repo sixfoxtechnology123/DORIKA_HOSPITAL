@@ -84,7 +84,7 @@ const calculateDuration = (shiftStart, shiftEnd) => {
 
 const markDailyAttendance = async (req, res) => {
   try {
-    const { employeeId, employeeUserId, employeeName, latitude, longitude } = req.body;
+    const { employeeId, employeeUserId, employeeName, latitude, longitude, accuracy } = req.body;
     const role = String(req.user?.role || "").toLowerCase();
     const tokenUserId = req.user?.employeeUserId;
     const tokenEmpId = req.user?.employeeID;
@@ -104,6 +104,12 @@ const markDailyAttendance = async (req, res) => {
 
     if (latitude == null || longitude == null) {
       return res.status(400).json({ message: "Location not received" });
+    }
+    const lat = Number(latitude);
+    const lng = Number(longitude);
+    const gpsAccuracy = Number(accuracy);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return res.status(400).json({ message: "Invalid location coordinates" });
     }
 
     const now = new Date();
@@ -141,8 +147,10 @@ const markDailyAttendance = async (req, res) => {
     const yesterdayIndex = attendance.records.findIndex(r => r.date === yesterdayStr);
     const todayIndex = attendance.records.findIndex(r => r.date === todayStr);
 
-    const distance = getDistance(latitude, longitude, OFFICE_LAT, OFFICE_LNG);
-    if (distance > ALLOWED_DISTANCE) {
+    const distance = getDistance(lat, lng, OFFICE_LAT, OFFICE_LNG);
+    const accuracyBuffer = Number.isFinite(gpsAccuracy) && gpsAccuracy > 0 ? gpsAccuracy : 0;
+    const effectiveDistance = Math.max(0, distance - accuracyBuffer);
+    if (effectiveDistance > ALLOWED_DISTANCE) {
       return res.status(400).json({ message: "You are Not inside office location" });
     }
 
@@ -195,8 +203,8 @@ const markDailyAttendance = async (req, res) => {
       // Update Paid Days before save
       attendance.totalPaidDays = calculateTotalPaidDays(attendance.records);
       recordToUpdate.geoTag = {
-        latitude,
-        longitude
+        latitude: lat,
+        longitude: lng
       };
 
       await attendance.save();
@@ -312,8 +320,8 @@ const markDailyAttendance = async (req, res) => {
       shiftEndTime: shiftEndTime,      
       isLate: lateEntry,
         geoTag: {
-        latitude,
-        longitude
+        latitude: lat,
+        longitude: lng
       }                                     
     });
 

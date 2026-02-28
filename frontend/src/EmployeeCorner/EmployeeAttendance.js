@@ -100,6 +100,7 @@ const EmployeeAttendance = () => {
         resolve({
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
         });
       },
       () => reject("Location permission denied")
@@ -128,6 +129,7 @@ const EmployeeAttendance = () => {
       employeeName: nameToStore,
       latitude: loc.latitude,
       longitude: loc.longitude,
+      accuracy: loc.accuracy,
     });
     
     // Check if the backend returned a successful save but with an "Absent" status
