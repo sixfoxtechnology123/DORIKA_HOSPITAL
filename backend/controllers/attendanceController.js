@@ -3,11 +3,12 @@ const Leave = require("../models/LeaveApplication");
 const ShiftMaster = require("../models/Shift");
 const ShiftManagement = require("../models/ShiftManagement");
 
-const OFFICE_LAT = 26.652193600000007;
-const OFFICE_LNG = 92.79050463016533;
+const OFFICE_LAT = 26.65218;
+const OFFICE_LNG = 92.79051;
 // const OFFICE_LAT = 22.965561;
 // const OFFICE_LNG = 88.457227;
-const ALLOWED_DISTANCE = 50;
+const ALLOWED_DISTANCE = 100;
+
 
 const getDistance = (lat1, lng1, lat2, lng2) => {
   const R = 6371000;
@@ -85,10 +86,18 @@ const markDailyAttendance = async (req, res) => {
   try {
     const { employeeId, employeeUserId, employeeName, latitude, longitude } = req.body;
     const role = String(req.user?.role || "").toLowerCase();
+    const tokenUserId = req.user?.employeeUserId;
+    const tokenEmpId = req.user?.employeeID;
+    const safeEmployeeUserId = employeeUserId || tokenUserId;
+    const safeEmployeeId = employeeId || tokenEmpId;
+    const safeEmployeeName = (employeeName || "").trim() || safeEmployeeUserId;
+
+    if (!safeEmployeeUserId) {
+      return res.status(400).json({ message: "Employee user ID is required" });
+    }
+
     if (role === "employee") {
-      const tokenUserId = req.user?.employeeUserId;
-      const tokenEmpId = req.user?.employeeID;
-      if (!tokenUserId || tokenUserId !== employeeUserId || (tokenEmpId && tokenEmpId !== employeeId)) {
+      if (!tokenUserId || tokenUserId !== safeEmployeeUserId || (tokenEmpId && safeEmployeeId && tokenEmpId !== safeEmployeeId)) {
         return res.status(403).json({ message: "Forbidden" });
       }
     }
@@ -107,18 +116,23 @@ const markDailyAttendance = async (req, res) => {
     const currentYear = now.getFullYear();
     const fy = currentMonth <= 3 ? `${currentYear - 1}-${currentYear}` : `${currentYear}-${currentYear + 1}`;
 
-    const shiftMgmt = await ShiftManagement.findOne({ employeeUserId, month: shiftMonthStr }).lean();
+    const shiftMgmt = await ShiftManagement.findOne({ employeeUserId: safeEmployeeUserId, month: shiftMonthStr }).lean();
     if (!shiftMgmt) {
       return res.status(400).json({ message: "No shift schedule found for this month in Master." });
     }
 
-    let attendance = await Attendance.findOne({ employeeUserId, month: currentMonth, year: currentYear });
+    let attendance = await Attendance.findOne({ employeeUserId: safeEmployeeUserId, month: currentMonth, year: currentYear });
     if (!attendance) {
       attendance = new Attendance({
-        employeeId, employeeUserId, employeeName,
+        employeeId: safeEmployeeId,
+        employeeUserId: safeEmployeeUserId,
+        employeeName: safeEmployeeName,
         month: currentMonth, year: currentYear, financialYear: fy,
         records: []
       });
+    } else {
+      if (!attendance.employeeId && safeEmployeeId) attendance.employeeId = safeEmployeeId;
+      if (!attendance.employeeName) attendance.employeeName = safeEmployeeName;
     }
 
     const yesterday = new Date(now);
@@ -223,7 +237,7 @@ const markDailyAttendance = async (req, res) => {
         }
 
         const approvedLeave = await Leave.findOne({
-          employeeUserId,
+          employeeUserId: safeEmployeeUserId,
           approveRejectedStatus: "APPROVED",
           fromDate: { $lte: gapDateStr },
           toDate: { $gte: gapDateStr }

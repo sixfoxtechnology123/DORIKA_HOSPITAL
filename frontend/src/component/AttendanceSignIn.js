@@ -101,9 +101,10 @@ const AttendanceSignIn = () => {
     requestInFlightRef.current = true;
     setLoading(true);
     try {
+      const resolvedEmployeeId = loggedUser.employeeID || loggedUser.employeeId || "";
       const loc = await getLocation();
       const res = await axios.post("/api/attendance/mark", {
-        employeeId: loggedUser.employeeID,
+        employeeId: resolvedEmployeeId,
         employeeUserId: loggedUser.employeeUserId,
         employeeName: employeeFullName || loggedUser.employeeUserId,
         latitude: loc.latitude,

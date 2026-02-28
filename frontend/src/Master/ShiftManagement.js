@@ -719,6 +719,3 @@ flex flex-col gap-4 border border-dorika-blue">
 };
 
 export default ShiftManagement;
-
-
-
