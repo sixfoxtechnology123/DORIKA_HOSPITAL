@@ -7,7 +7,7 @@ const OFFICE_LAT = 26.652061;
 const OFFICE_LNG = 92.790961;
 // const OFFICE_LAT = 22.965561;
 // const OFFICE_LNG = 88.457227;
-const ALLOWED_DISTANCE = 200;
+const ALLOWED_DISTANCE = 600;
 
 
 const getDistance = (lat1, lng1, lat2, lng2) => {
