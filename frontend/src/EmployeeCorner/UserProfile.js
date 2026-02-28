@@ -226,7 +226,7 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
               {/* Earnings Details */}
          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Earnings Section */}
-          <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl p-3 shadow-sm ring-1 ring-emerald-100">
+          {/* <div className="bg-emerald-50/70 border border-emerald-100 rounded-xl p-3 shadow-sm ring-1 ring-emerald-100">
             <h4 className="font-semibold border-b border-emerald-200 pb-1 text-emerald-800 mb-2">📈 Earnings</h4>
             <table className="w-full text-xs sm:text-sm">
               <thead>
@@ -248,10 +248,10 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
                 )}
               </tbody>
             </table>
-          </div>
+          </div> */}
 
           {/* Deductions Section */}
-          <div className="bg-rose-50/80 border border-rose-100 rounded-xl p-3 shadow-sm ring-1 ring-rose-100">
+          {/* <div className="bg-rose-50/80 border border-rose-100 rounded-xl p-3 shadow-sm ring-1 ring-rose-100">
             <h4 className="font-semibold border-b border-rose-200 pb-1 text-rose-700 mb-2">📉 Deductions</h4>
             <table className="w-full text-xs sm:text-sm">
               <thead>
@@ -273,7 +273,7 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
                 )}
               </tbody>
             </table>
-          </div>
+          </div> */}
         </div>
             {/* Pay Details */}
             <div className="bg-cyan-50/70 border border-cyan-100 rounded-xl p-3 shadow-sm ring-1 ring-cyan-100">
@@ -320,8 +320,6 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
           </div>
 
         </div>
-
-
         </div>
         {isModalOpen && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/50">
