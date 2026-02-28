@@ -3,8 +3,8 @@ const Leave = require("../models/LeaveApplication");
 const ShiftMaster = require("../models/Shift");
 const ShiftManagement = require("../models/ShiftManagement");
 
-const OFFICE_LAT = 26.65218;
-const OFFICE_LNG = 92.79051;
+const OFFICE_LAT = 26.570388;
+const OFFICE_LNG = 88.164351;
 // const OFFICE_LAT = 22.965561;
 // const OFFICE_LNG = 88.457227;
 const ALLOWED_DISTANCE = 100;
