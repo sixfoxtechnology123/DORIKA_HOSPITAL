@@ -39,6 +39,8 @@ const attendanceSchema = new mongoose.Schema({
   totalPaidDays: { type: Number, default: 0 },
 }, { timestamps: true });
 
+const normalizeShiftCode = (value) => String(value || "").trim().toUpperCase();
+
 attendanceSchema.index({ employeeUserId: 1, month: 1, year: 1 }, { unique: true });
 
 attendanceSchema.pre("save", function (next) {
@@ -90,10 +92,10 @@ attendanceSchema.pre("save", function (next) {
       if (!record.date || processedDates.has(record.date)) return;
       processedDates.add(record.date);
 
-   const status = record.status;
-    const shift = record.shiftCode || "";
-    // Count as double if shift is 2 characters (excluding G/OFF) OR specifically DD, ME, or EN
-    const isDoubleShift = (shift.length === 2 && !["G", "OFF"].includes(shift)) || ["DD", "ME", "EN"].includes(shift);
+    const status = record.status;
+    const shift = normalizeShiftCode(record.shiftCode);
+    const isLegacyDouble = /^[A-Z]{2}$/.test(shift) && !["OFF", "DD"].includes(shift);
+    const isDoubleShift = shift.startsWith("DD:") || isLegacyDouble;
 
     if (status === "Present") {
       if (isDoubleShift) {

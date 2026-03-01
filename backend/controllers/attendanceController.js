@@ -9,6 +9,74 @@ const OFFICE_LNG = 92.790961;
 // const OFFICE_LNG = 88.457227;
 const ALLOWED_DISTANCE = 600;
 
+const normalizeShiftCode = (value) => String(value || "").trim().toUpperCase();
+
+const parseDoubleDutyCodes = (value) => {
+  const code = normalizeShiftCode(value);
+  if (!code.startsWith("DD:")) return null;
+  const payload = code.slice(3);
+
+  if (payload.includes("+")) {
+    const [first = "", second = ""] = payload.split("+");
+    return [first, second || first];
+  }
+
+  // Legacy DD payload support: DD:MN
+  if (payload.length === 2) return [payload[0], payload[1]];
+  return [payload, payload];
+};
+
+const getShiftTimingByCode = async (rawCode) => {
+  const code = normalizeShiftCode(rawCode);
+  if (!code || code === "OFF") {
+    return { ok: false, code, reason: "EMPTY_OR_OFF" };
+  }
+
+  const ddCodes = parseDoubleDutyCodes(code);
+  if (ddCodes) {
+    const [firstCode, secondCode] = ddCodes;
+    const firstShift = await ShiftMaster.findOne({ shiftCode: firstCode }).lean();
+    const secondShift = await ShiftMaster.findOne({ shiftCode: secondCode }).lean();
+    if (!firstShift || !secondShift) return { ok: false, code, reason: "DD_COMPONENT_MISSING" };
+    return {
+      ok: true,
+      normalizedCode: `DD:${firstCode}+${secondCode}`,
+      shiftStartTime: firstShift.startTime,
+      shiftEndTime: secondShift.endTime,
+      isDouble: true,
+    };
+  }
+
+  // Prefer exact match first. This prevents codes like G4/G5 from being treated as DD.
+  const singleShift = await ShiftMaster.findOne({ shiftCode: code }).lean();
+  if (singleShift) {
+    return {
+      ok: true,
+      normalizedCode: code,
+      shiftStartTime: singleShift.startTime,
+      shiftEndTime: singleShift.endTime,
+      isDouble: false,
+    };
+  }
+
+  // Legacy fallback: old DD payload may be stored as "MN" without DD prefix.
+  if (code.length === 2) {
+    const firstShift = await ShiftMaster.findOne({ shiftCode: code[0] }).lean();
+    const secondShift = await ShiftMaster.findOne({ shiftCode: code[1] }).lean();
+    if (firstShift && secondShift) {
+      return {
+        ok: true,
+        normalizedCode: `DD:${code[0]}+${code[1]}`,
+        shiftStartTime: firstShift.startTime,
+        shiftEndTime: secondShift.endTime,
+        isDouble: true,
+      };
+    }
+  }
+
+  return { ok: false, code, reason: "NOT_FOUND" };
+};
+
 
 const getDistance = (lat1, lng1, lat2, lng2) => {
   const R = 6371000;
@@ -27,8 +95,9 @@ const calculateTotalPaidDays = (records) => {
   // 1. Count Present (Check for double-credit shift codes)
   const presentCount = records.reduce((total, r) => {
     if (r.status === "Present") {
-      const shift = r.shiftCode || "";
-      const isDouble = (shift.length === 2 && !["G", "OFF"].includes(shift)) || ["DD", "ME", "EN"].includes(shift);
+      const shift = normalizeShiftCode(r.shiftCode);
+      const isLegacyDouble = /^[A-Z]{2}$/.test(shift) && !["OFF", "DD"].includes(shift);
+      const isDouble = shift.startsWith("DD:") || isLegacyDouble;
       return total + (isDouble ? 2 : 1);
     }
     return total;
@@ -236,24 +305,15 @@ const markDailyAttendance = async (req, res) => {
         gapDate.setDate(gapDate.getDate() + i);
         const gapDateStr = gapDate.toLocaleDateString('en-CA');
         const gapDayNum = gapDate.getDate();
-        const gapShiftCode = shiftMgmt.shifts[gapDayNum] || shiftMgmt.shifts[gapDayNum.toString()];
-        const isOffDay = gapShiftCode === "OFF";
+      const gapShiftCode = shiftMgmt.shifts[gapDayNum] || shiftMgmt.shifts[gapDayNum.toString()];
+        const isOffDay = normalizeShiftCode(gapShiftCode) === "OFF";
 
         let gapStartTime = "--", gapEndTime = "--";
-        if (gapShiftCode && gapShiftCode !== "OFF") {
-          if (gapShiftCode.length === 2 && gapShiftCode !== "DD") {
-            const firstShift = await ShiftMaster.findOne({ shiftCode: gapShiftCode[0] }).lean();
-            const secondShift = await ShiftMaster.findOne({ shiftCode: gapShiftCode[1] }).lean();
-            if (firstShift && secondShift) {
-              gapStartTime = firstShift.startTime;
-              gapEndTime = secondShift.endTime;
-            }
-          } else {
-            const sMaster = await ShiftMaster.findOne({ shiftCode: gapShiftCode }).lean();
-            if (sMaster) {
-              gapStartTime = sMaster.startTime;
-              gapEndTime = sMaster.endTime;
-            }
+        if (gapShiftCode && !isOffDay) {
+          const timing = await getShiftTimingByCode(gapShiftCode);
+          if (timing.ok) {
+            gapStartTime = timing.shiftStartTime;
+            gapEndTime = timing.shiftEndTime;
           }
         }
 
@@ -289,24 +349,16 @@ const markDailyAttendance = async (req, res) => {
     }
 
     // --- 4. TODAY'S CHECK-IN LOGIC ---
-    const assignedShiftCode = shiftMgmt.shifts[dayKey] || shiftMgmt.shifts[dayKey.toString()];
+    const assignedShiftCodeRaw = shiftMgmt.shifts[dayKey] || shiftMgmt.shifts[dayKey.toString()];
+    const assignedShiftCode = normalizeShiftCode(assignedShiftCodeRaw);
     if (!assignedShiftCode || assignedShiftCode === "OFF") {
       return res.status(400).json({ message: assignedShiftCode === "OFF" ? "Today is your OFF day." : "No shift assigned for today." });
     }
 
-    let shiftStartTime, shiftEndTime;
-    if (assignedShiftCode.length === 2 && assignedShiftCode !== "DD") {
-      const firstShift = await ShiftMaster.findOne({ shiftCode: assignedShiftCode[0] }).lean();
-      const secondShift = await ShiftMaster.findOne({ shiftCode: assignedShiftCode[1] }).lean();
-      if (!firstShift || !secondShift) return res.status(400).json({ message: "Shift components not found." });
-      shiftStartTime = firstShift.startTime;
-      shiftEndTime = secondShift.endTime;
-    } else {
-      const shiftMaster = await ShiftMaster.findOne({ shiftCode: assignedShiftCode }).lean();
-      if (!shiftMaster) return res.status(400).json({ message: "Shift details not found." });
-      shiftStartTime = shiftMaster.startTime;
-      shiftEndTime = shiftMaster.endTime;
-    }
+    const assignedTiming = await getShiftTimingByCode(assignedShiftCode);
+    if (!assignedTiming.ok) return res.status(400).json({ message: "Shift details not found." });
+    const shiftStartTime = assignedTiming.shiftStartTime;
+    const shiftEndTime = assignedTiming.shiftEndTime;
 
     const startMin = parseTimeToMinutes(shiftStartTime);
     const endMin = parseTimeToMinutes(shiftEndTime);
@@ -328,7 +380,7 @@ const markDailyAttendance = async (req, res) => {
       checkOutTime: "",
       workDuration: calculateDuration(shiftStartTime, shiftEndTime),
       actualWorkDuration: "--",
-      shiftCode: assignedShiftCode,
+      shiftCode: assignedTiming.normalizedCode,
       shiftStartTime: shiftStartTime, 
       shiftEndTime: shiftEndTime,      
       isLate: lateEntry,

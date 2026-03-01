@@ -18,6 +18,19 @@ const EmployeeShiftTime = () => {
   const [loading, setLoading] = useState(false);
 
   const loggedUser = useMemo(() => JSON.parse(localStorage.getItem("employeeUser") || "{}"), []);
+  const normalizeCode = (value) => String(value || "").trim().toUpperCase();
+
+  const parseDDCodes = (value) => {
+    const code = normalizeCode(value);
+    if (!code.startsWith("DD:")) return ["", ""];
+    const payload = code.slice(3);
+    if (payload.includes("+")) {
+      const [first = "", second = ""] = payload.split("+");
+      return [first, second || first];
+    }
+    if (payload.length === 2) return [payload[0], payload[1]];
+    return [payload, payload];
+  };
 
   useEffect(() => {
     const fetchShiftMaster = async () => {
@@ -25,7 +38,7 @@ const EmployeeShiftTime = () => {
         const res = await axios.get("/api/shifts");
         const map = {};
         (Array.isArray(res.data) ? res.data : []).forEach((s) => {
-          map[s.shiftCode] = {
+          map[normalizeCode(s.shiftCode)] = {
             name: s.shiftName || "-",
             time: s.startTime && s.endTime ? `${s.startTime} - ${s.endTime}` : "-",
           };
@@ -56,7 +69,7 @@ const EmployeeShiftTime = () => {
           .sort((a, b) => Number(a[0]) - Number(b[0]))
           .map(([day, shiftCodeRaw]) => {
             const dayNum = String(day).padStart(2, "0");
-            const shiftCode = String(shiftCodeRaw || "").toUpperCase();
+            const shiftCode = normalizeCode(shiftCodeRaw);
 
             if (!shiftCode) {
               return {
@@ -67,12 +80,25 @@ const EmployeeShiftTime = () => {
               };
             }
 
-            if (shiftCode.length === 2 && shiftCode !== "OFF" && shiftCode !== "DD") {
+            if (shiftCode.startsWith("DD:")) {
+              const [firstCode, secondCode] = parseDDCodes(shiftCode);
+              const first = shiftMasterMap[firstCode];
+              const second = shiftMasterMap[secondCode];
+              return {
+                date: `${dayNum}-${month}-${year}`,
+                shiftCode,
+                shiftName: `${first?.name || firstCode} + ${second?.name || secondCode}`,
+                shiftTime: `${first?.time || "-"} + ${second?.time || "-"}`,
+              };
+            }
+
+            // Legacy fallback: old DD values may be stored as "MN" without prefix.
+            if (shiftCode.length === 2 && shiftCode !== "OFF" && !shiftMasterMap[shiftCode]) {
               const first = shiftMasterMap[shiftCode[0]];
               const second = shiftMasterMap[shiftCode[1]];
               return {
                 date: `${dayNum}-${month}-${year}`,
-                shiftCode,
+                shiftCode: `DD:${shiftCode[0]}+${shiftCode[1]}`,
                 shiftName: `${first?.name || shiftCode[0]} + ${second?.name || shiftCode[1]}`,
                 shiftTime: `${first?.time || "-"} + ${second?.time || "-"}`,
               };
@@ -168,4 +194,3 @@ const EmployeeShiftTime = () => {
 };
 
 export default EmployeeShiftTime;
-

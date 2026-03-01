@@ -19,6 +19,18 @@ const AttendanceSignIn = () => {
   });
 
   const loggedUser = JSON.parse(localStorage.getItem("employeeUser"));
+  const normalizeCode = (value) => String(value || "").trim().toUpperCase();
+  const parseDDCodes = (value) => {
+    const code = normalizeCode(value);
+    if (!code.startsWith("DD:")) return ["", ""];
+    const payload = code.slice(3);
+    if (payload.includes("+")) {
+      const [first = "", second = ""] = payload.split("+");
+      return [first, second || first];
+    }
+    if (payload.length === 2) return [payload[0], payload[1]];
+    return [payload, payload];
+  };
 
   useEffect(() => {
     // 1. Digital Clock
@@ -49,19 +61,28 @@ const AttendanceSignIn = () => {
         const mySchedule = mgmtRes.data.find(item => item.employeeUserId === loggedUser.employeeUserId);
 
         if (mySchedule && mySchedule.shifts) {
-          const assignedShiftCode = mySchedule.shifts[dayKey] || mySchedule.shifts[dayKey.toString()];
+          const assignedShiftCodeRaw = mySchedule.shifts[dayKey] || mySchedule.shifts[dayKey.toString()];
+          const assignedShiftCode = normalizeCode(assignedShiftCodeRaw);
 
           if (assignedShiftCode && assignedShiftCode !== "OFF") {
             const shiftMasterRes = await axios.get("/api/shifts");
-            const allShifts = shiftMasterRes.data;
+            const allShifts = Array.isArray(shiftMasterRes.data) ? shiftMasterRes.data : [];
 
-            if (assignedShiftCode.length === 2 && assignedShiftCode !== "DD") {
-              const first = allShifts.find(s => s.shiftCode === assignedShiftCode[0]);
-              const second = allShifts.find(s => s.shiftCode === assignedShiftCode[1]);
+            if (assignedShiftCode.startsWith("DD:")) {
+              const [firstCode, secondCode] = parseDDCodes(assignedShiftCode);
+              const first = allShifts.find(s => normalizeCode(s.shiftCode) === firstCode);
+              const second = allShifts.find(s => normalizeCode(s.shiftCode) === secondCode);
               if (first && second) setShiftTimes({ start: first.startTime, end: second.endTime });
             } else {
-              const single = allShifts.find(s => s.shiftCode === assignedShiftCode);
-              if (single) setShiftTimes({ start: single.startTime, end: single.endTime });
+              const single = allShifts.find(s => normalizeCode(s.shiftCode) === assignedShiftCode);
+              if (single) {
+                setShiftTimes({ start: single.startTime, end: single.endTime });
+              } else if (assignedShiftCode.length === 2) {
+                // Legacy fallback: old DD payload may be stored as "MN" without prefix.
+                const first = allShifts.find(s => normalizeCode(s.shiftCode) === assignedShiftCode[0]);
+                const second = allShifts.find(s => normalizeCode(s.shiftCode) === assignedShiftCode[1]);
+                if (first && second) setShiftTimes({ start: first.startTime, end: second.endTime });
+              }
             }
           } else if (assignedShiftCode === "OFF") {
             setShiftTimes({ start: "WEEK OFF", end: "WEEK OFF" });

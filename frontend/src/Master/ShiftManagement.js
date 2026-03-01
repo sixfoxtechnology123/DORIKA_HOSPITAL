@@ -28,6 +28,26 @@ const ShiftManagement = () => {
   const [scopedDepartment, setScopedDepartment] = useState("");
   const [scopedDesignations, setScopedDesignations] = useState([]);
 
+  const normalizeCode = (value) => String(value || "").trim().toUpperCase();
+
+  const parseDDCodes = (value) => {
+    const code = normalizeCode(value);
+    if (!code.startsWith("DD:")) return ["", ""];
+    const payload = code.slice(3);
+
+    if (payload.includes("+")) {
+      const [first = "", second = ""] = payload.split("+");
+      return [first, second || first];
+    }
+
+    // Legacy payload support: DD:MN
+    if (payload.length === 2) return [payload[0], payload[1]];
+    return [payload, payload];
+  };
+
+  const encodeDDCode = (first, second) =>
+    `DD:${normalizeCode(first)}+${normalizeCode(second || first)}`;
+
 useEffect(() => {
   const loadDepartmentHeadScope = async () => {
     try {
@@ -69,7 +89,7 @@ useEffect(() => {
      const options = res.data
       .filter(s => s.status === "Active")
       .map(s => ({
-       code: s.shiftCode, // M, N
+       code: normalizeCode(s.shiftCode), // M, N, G4...
         name: s.shiftName,                         // MORNING
         start: s.startTime,                        // 02.36 AM
         end: s.endTime                             // 06.40 AM
@@ -159,6 +179,7 @@ const visibleDepartments = useMemo(() => {
   useEffect(() => {
     const fetchShifts = async () => {
       try {
+        if (shiftOptions.length === 0) return;
         const formatMonth = (ym) => {
           const [y, m] = ym.split("-");
           return new Date(y, m - 1).toLocaleString("en-US", { month: "short" }) + "-" + y;
@@ -167,14 +188,23 @@ const visibleDepartments = useMemo(() => {
         const res = await axios.get(
           `/api/shift-management/${formatMonth(selectedMonth)}`
         );
-  
+
         const formatted = {};
+        const validCodes = new Set(shiftOptions.map((opt) => normalizeCode(opt.code)));
         res.data.forEach((item) => {
           const processedShifts = {};
-          // Convert stored "MG" back to "DD:MG" for the UI
-          Object.entries(item.shifts || {}).forEach(([day, code]) => {
-            if (code.length === 2 && code !== "DD" && code !== "OFF") {
-              processedShifts[day] = `DD:${code}`;
+          Object.entries(item.shifts || {}).forEach(([day, rawCode]) => {
+            const code = normalizeCode(rawCode);
+            if (!code) return;
+
+            if (code.startsWith("DD:")) {
+              const [first, second] = parseDDCodes(code);
+              processedShifts[day] = encodeDDCode(first, second);
+            } else if (validCodes.has(code) || code === "OFF") {
+              processedShifts[day] = code;
+            } else if (code.length === 2) {
+              // Legacy DD payload fallback: "MN" (no prefix in DB)
+              processedShifts[day] = encodeDDCode(code[0], code[1]);
             } else {
               processedShifts[day] = code;
             }
@@ -189,7 +219,7 @@ const visibleDepartments = useMemo(() => {
       }
     };
     fetchShifts();
-  }, [selectedMonth]);
+  }, [selectedMonth, shiftOptions]);
 
 
   /* ================= DAYS IN MONTH ================= */
@@ -221,23 +251,27 @@ const visibleDepartments = useMemo(() => {
        const handleShiftChange = (emp, day, value, isSecondHalf = null) => {
         setShifts((prev) => {
           const empShifts = { ...(prev[emp.employeeUserId] || {}) };
-          let currentVal = empShifts[day] || "";
+          const currentVal = normalizeCode(empShifts[day] || "");
+          const normalizedValue = normalizeCode(value);
+          const singleShiftOptions = shiftOptions.filter(
+            (o) => normalizeCode(o.code) !== "OFF" && normalizeCode(o.code) !== "DD"
+          );
 
-          if (value === "DD") {
+          if (normalizedValue === "DD") {
             // Initialize DD
-            const def = shiftOptions[0]?.code || "M";
-            empShifts[day] = `DD:${def}${def}`;
+            const def = normalizeCode(singleShiftOptions[0]?.code || "M");
+            empShifts[day] = encodeDDCode(def, def);
           } else if (isSecondHalf !== null && currentVal.startsWith("DD:")) {
             // Update specific sub-boxes
-            const codes = currentVal.replace("DD:", "").split("");
+            const [first, second] = parseDDCodes(currentVal);
             if (isSecondHalf) {
-              empShifts[day] = `DD:${codes[0]}${value}`; // Update second
+              empShifts[day] = encodeDDCode(first, normalizedValue);
             } else {
-              empShifts[day] = `DD:${value}${codes[1] || value}`; // Update first
+              empShifts[day] = encodeDDCode(normalizedValue, second || normalizedValue);
             }
           } else {
             // NORMAL SHIFT SELECTION: This resets the DD state
-            empShifts[day] = value;
+            empShifts[day] = normalizedValue;
           }
 
           return { ...prev, [emp.employeeUserId]: empShifts };
@@ -264,7 +298,7 @@ const dataToSave = filteredEmployees
     const nonEmptyShifts = Object.fromEntries(
       Object.entries(empShifts).map(([day, val]) => [
         day,
-        val.startsWith("DD:") ? val.replace("DD:", "") : val
+        normalizeCode(val)
       ]).filter(([_, shift]) => shift)
     );
     
@@ -618,7 +652,7 @@ flex flex-col gap-4 border border-dorika-blue">
                 {daysInMonth.map((day) => {
                 const currentShift = shifts?.[emp.employeeUserId]?.[day] || "";
                 const isDD = currentShift.startsWith("DD:");
-                const ddParts = isDD ? currentShift.replace("DD:", "").split("") : ["", ""];
+                const ddParts = isDD ? parseDDCodes(currentShift) : ["", ""];
 
                 return (
                   <td
