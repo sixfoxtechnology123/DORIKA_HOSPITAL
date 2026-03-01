@@ -116,7 +116,12 @@ const AttendanceSignIn = () => {
           longitude: pos.coords.longitude,
           accuracy: pos.coords.accuracy
         }),
-        () => reject("Location permission denied")
+        () => reject("Location permission denied"),
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
+        }
       );
     });
   };
@@ -140,7 +145,13 @@ const AttendanceSignIn = () => {
       toast.success(res.data.message);
       navigate("/EmployeeAttendance");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Error marking attendance");
+      const serverMessage = err?.response?.data?.message;
+      if (serverMessage) {
+        toast.error(serverMessage);
+      } else {
+        // Keep unexpected errors in console only; avoid generic UI error noise.
+        console.error("Attendance mark failed:", err);
+      }
     } finally {
       requestInFlightRef.current = false;
       setLoading(false);

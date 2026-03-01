@@ -7,7 +7,7 @@ const OFFICE_LAT = 26.652061;
 const OFFICE_LNG = 92.790961;
 // const OFFICE_LAT = 22.965561;
 // const OFFICE_LNG = 88.457227;
-const ALLOWED_DISTANCE = 600;
+const ALLOWED_DISTANCE = 300;
 
 const normalizeShiftCode = (value) => String(value || "").trim().toUpperCase();
 
@@ -219,7 +219,9 @@ const markDailyAttendance = async (req, res) => {
     const distance = getDistance(lat, lng, OFFICE_LAT, OFFICE_LNG);
     // Some clients/frontends may not send accuracy. Use a safe default buffer to avoid false rejects.
     const accuracyBufferRaw = Number.isFinite(gpsAccuracy) && gpsAccuracy > 0 ? gpsAccuracy : 60;
-    const accuracyBuffer = Math.min(accuracyBufferRaw, 150);
+    // Mobile browsers can report noisy GPS accuracy (especially indoors).
+    // Use a larger capped buffer to reduce false geofence rejections.
+    const accuracyBuffer = Math.min(accuracyBufferRaw, 500);
     const effectiveDistance = Math.max(0, distance - accuracyBuffer);
     if (effectiveDistance > ALLOWED_DISTANCE) {
       console.warn("ATTENDANCE_GEOFENCE_REJECT", {
