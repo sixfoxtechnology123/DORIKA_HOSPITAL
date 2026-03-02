@@ -50,6 +50,8 @@ import EmployeeLeaveDetails from "./EmployeeCorner/EmployeeLeaveDetails";
 import EmployeeAttendance from "./EmployeeCorner/EmployeeAttendance";
 import LeaveHistory from "./Master/LeaveHistory";
 import EmployeeAttendanceHistory from "./Master/EmployeeAttendanceHistory";
+import AttendanceRegisterHistory from "./Master/AttendanceRegisterHistory";
+import DutyRoasterHistory from "./Master/DutyRoasterHistory";
 import EmployeePayslipView from "./EmployeeCorner/EmployeePayslipView";
 import AttendanceSignIn from "./component/AttendanceSignIn";
 import OtRateMaster from "./Master/OtRateMaster";
@@ -136,6 +138,8 @@ export default function App(){
         <Route path="/EmployeeAttendance" element={<EmployeeAttendance/>} />
         <Route path="/LeaveHistory" element={<LeaveHistory/>} />
         <Route path="/EmployeeAttendanceHistory" element={<EmployeeAttendanceHistory/>} />
+        <Route path="/AttendanceRegisterHistory" element={<AttendanceRegisterHistory/>} />
+        <Route path="/DutyRoasterHistory" element={<DutyRoasterHistory/>} />
         <Route path="/EmployeePayslipView" element={<EmployeePayslipView/>} />
         <Route path="/AttendanceSignIn" element={<AttendanceSignIn/>} />
         <Route path="/OtRateMaster" element={<OtRateMaster/>} />

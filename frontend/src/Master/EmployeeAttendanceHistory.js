@@ -47,6 +47,15 @@ const getAttendanceTextColor = (val) => {
 };
 
 const EmployeeAttendanceHistory = () => {
+  const PER_PAGE_STORAGE_KEY = "employeeAttendanceHistory.perPage";
+  const getStoredPerPage = () => {
+    const raw = localStorage.getItem(PER_PAGE_STORAGE_KEY);
+    if (!raw) return 20;
+    if (raw === "all") return "all";
+    const num = Number(raw);
+    return Number.isFinite(num) && num > 0 ? num : 20;
+  };
+
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -59,7 +68,7 @@ const EmployeeAttendanceHistory = () => {
   const [departments, setDepartments] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
+  const [perPage, setPerPage] = useState(getStoredPerPage);
   const tableContainerRef = React.useRef(null);
 
   /* ================= DAYS IN MONTH ================= */
@@ -106,6 +115,10 @@ const EmployeeAttendanceHistory = () => {
 useEffect(() => {
   console.log(employees);
 }, [employees]);
+
+  useEffect(() => {
+    localStorage.setItem(PER_PAGE_STORAGE_KEY, String(perPage));
+  }, [perPage]);
 
   /* ================= FETCH ATTENDANCE ================= */
   useEffect(() => {

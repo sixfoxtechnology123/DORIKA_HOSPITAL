@@ -145,7 +145,10 @@ useEffect(() => {
         const leaveDays = Number(att.totalLeave || 0);
         const absentDays = Number(att.totalAbsent || 0);
         const totalPaidDays = Number(att.totalPaidDays || 0);
-        const otHours = saved ? saved.otHours : (att.totalOTHours > 0 ? att.totalOTHours : "");
+        
+        //const otHours = saved ? saved.otHours : (att.totalOTHours > 0 ? att.totalOTHours : "");
+         const otHours = saved ? saved.otHours : "";
+
         const otAmount = saved ? saved.otAmount : (otHours !== "" ? Math.round(otHours * otRate) : "");
         
         const totalDedSum = normalizedDeductions.reduce((sum, d) => sum + (Number(d.value) || 0), 0);

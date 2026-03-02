@@ -12,6 +12,7 @@ const EmployeeUserIdCreated = () => {
   const [editingRow, setEditingRow] = useState(null);
   const [tempPassword, setTempPassword] = useState("");
   const [visiblePasswords, setVisiblePasswords] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
 
   const token = localStorage.getItem("token");
   const API_URL = "/api/employee-ids";
@@ -38,9 +39,27 @@ const EmployeeUserIdCreated = () => {
     }));
   };
 
+  const normalizeSearchInput = (value) => {
+    let v = String(value || "").toUpperCase();
+    if (/^[A-Z]+\d/.test(v)) {
+      v = v.replace(/^([A-Z]+)-?(\d.*)$/, "$1-$2");
+    }
+    return v;
+  };
+
+  const filteredDataList = dataList.filter((emp) => {
+    const q = String(searchTerm || "").toUpperCase().trim();
+    if (!q) return true;
+    return (
+      String(emp.name || "").toUpperCase().includes(q) ||
+      String(emp.employeeUserId || "").toUpperCase().includes(q) ||
+      String(emp.employeeId || "").toUpperCase().includes(q)
+    );
+  });
+
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedIds(dataList.map((emp) => emp.employeeId));
+      setSelectedIds(filteredDataList.map((emp) => emp.employeeId));
     } else {
       setSelectedIds([]);
     }
@@ -118,20 +137,32 @@ const EmployeeUserIdCreated = () => {
               <label className="block text-sm font-bold text-gray-700 mb-2 font-mono uppercase">
                 {selectedIds.length > 0 
                   ? `Target: (${selectedIds.length}) Selected` 
-                  : "Target: All Employees"}
+                  : "Enter Password"}
               </label>
               <input
                 type="text"
                 placeholder="Enter password to generate..."
                 value={bulkPassword}
                 onChange={(e) => setBulkPassword(e.target.value)}
-                className="w-full border-2 border-gray-200 p-2 md:p-3 rounded-xl focus:border-dorika-blue outline-none transition-all"
+                className="w-full border-2 border-gray-200 p-2 md:p-2 rounded-xl focus:border-dorika-blue outline-none transition-all"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-bold text-gray-700 mb-2 font-mono uppercase">
+                Search Employee
+              </label>
+              <input
+                type="text"
+                placeholder="Search by Name / User ID / Employee ID"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(normalizeSearchInput(e.target.value))}
+                className="w-full border-2 border-dorika-blue p-2 md:p-2 rounded-xl uppercase focus:border-dorika-orange outline-none transition-all"
               />
             </div>
             <button
               onClick={handleBulkGenerate}
               disabled={loading}
-              className="bg-dorika-blue hover:bg-black text-white px-6 md:px-8 py-3 md:py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              className="bg-dorika-blue hover:bg-black text-white px-6 md:px-8 py-3 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50"
             >
               {loading ? <RefreshCw className="animate-spin" /> : <Key size={20} />}
               <span className="whitespace-nowrap">
@@ -147,30 +178,33 @@ const EmployeeUserIdCreated = () => {
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead className="bg-blue-50 text-dorika-blue text-[10px] md:text-xs uppercase font-bold">
                 <tr>
-                  <th className="p-3 md:p-4 border-b w-10">
+                  <th className="p-2 md:p-4 border-b w-10">
                     <input 
                       type="checkbox" 
                       onChange={handleSelectAll}
-                      checked={selectedIds.length === dataList.length && dataList.length > 0}
+                      checked={
+                        filteredDataList.length > 0 &&
+                        filteredDataList.every((emp) => selectedIds.includes(emp.employeeId))
+                      }
                       className="w-4 h-4 accent-dorika-orange cursor-pointer"
                     />
                   </th>
-                  <th className="p-3 md:p-4 border-b">Sl No</th>
-                  <th className="p-3 md:p-4 border-b">Employee ID</th>
-                  <th className="p-3 md:p-4 border-b">User ID</th>
-                  <th className="p-3 md:p-4 border-b">Name</th>
-                  <th className="p-3 md:p-4 border-b">Designation</th>
-                  <th className="p-3 md:p-4 border-b">Password Status</th>
-                  <th className="p-3 md:p-4 border-b text-center">Action</th>
+                  <th className="p-2 md:p-4 border-b">Sl No</th>
+                  <th className="p-2 md:p-4 border-b">Employee ID</th>
+                  <th className="p-2 md:p-4 border-b">User ID</th>
+                  <th className="p-2 md:p-4 border-b">Name</th>
+                  <th className="p-2 md:p-4 border-b">Designation</th>
+                  <th className="p-2 md:p-4 border-b">Password Status</th>
+                  <th className="p-2 md:p-4 border-b text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="text-xs md:text-sm">
-                {dataList.map((emp, index) => (
+                {filteredDataList.map((emp, index) => (
                   <tr 
                     key={index} 
                     className={`${selectedIds.includes(emp.employeeId) ? 'bg-orange-50' : 'hover:bg-gray-50'} border-b last:border-0 transition-colors`}
                   >
-                    <td className="p-3 md:p-4">
+                    <td className="p-2 md:p-4">
                       <input 
                         type="checkbox" 
                         checked={selectedIds.includes(emp.employeeId)}
@@ -178,14 +212,14 @@ const EmployeeUserIdCreated = () => {
                         className="w-4 h-4 accent-dorika-orange cursor-pointer"
                       />
                     </td>
-                    <td className="p-3 md:p-4 text-gray-500">{index + 1}</td>
-                    <td className="p-3 md:p-4 font-semibold text-gray-800">{emp.employeeId}</td>
-                    <td className="p-3 md:p-4 font-bold text-dorika-blue">{emp.employeeUserId}</td>
-                    <td className="p-3 md:p-4 font-medium uppercase">{emp.name}</td>
-                    <td className="p-3 md:p-4 text-[10px] md:text-xs text-gray-600 truncate max-w-[150px]" title={emp.designation}>
+                    <td className="p-2 md:p-4 text-gray-500">{index + 1}</td>
+                    <td className="p-2 md:p-4 font-semibold text-gray-800">{emp.employeeId}</td>
+                    <td className="p-2 md:p-4 font-bold text-dorika-blue">{emp.employeeUserId}</td>
+                    <td className="p-2 md:p-4 font-medium uppercase">{emp.name}</td>
+                    <td className="p-2 md:p-4 text-[10px] md:text-xs text-gray-600 truncate max-w-[150px]" title={emp.designation}>
                       {emp.designation}
                     </td>
-                    <td className="p-3 md:p-4">
+                    <td className="p-2 md:p-4">
                       {editingRow === emp.employeeId ? (
                         <input 
                           type="text"
@@ -220,7 +254,7 @@ const EmployeeUserIdCreated = () => {
                         </div>
                       )}
                     </td>
-                    <td className="p-3 md:p-4 text-center">
+                    <td className="p-2 md:p-4 text-center">
                       {editingRow === emp.employeeId ? (
                         <div className="flex justify-center gap-2">
                           <button onClick={() => saveIndividualPassword(emp)} className="text-green-600 hover:text-green-800">
@@ -248,6 +282,3 @@ const EmployeeUserIdCreated = () => {
 };
 
 export default EmployeeUserIdCreated;
-
-
-

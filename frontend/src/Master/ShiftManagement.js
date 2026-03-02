@@ -7,6 +7,15 @@ import Pagination from "./Pagination";
 import toast from "react-hot-toast";
 
 const ShiftManagement = () => {
+  const PER_PAGE_STORAGE_KEY = "shiftManagement.perPage";
+  const getStoredPerPage = () => {
+    const raw = localStorage.getItem(PER_PAGE_STORAGE_KEY);
+    if (!raw) return 20;
+    if (raw === "all") return "all";
+    const num = Number(raw);
+    return Number.isFinite(num) && num > 0 ? num : 20;
+  };
+
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -20,7 +29,7 @@ const ShiftManagement = () => {
   const [shifts, setShifts] = useState({});
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
+  const [perPage, setPerPage] = useState(getStoredPerPage);
   const [departments, setDepartments] = useState([]); // To store all departments
   const [selectedDepartment, setSelectedDepartment] = useState("ALL"); // Current selection
   const [deptWiseDesignations, setDeptWiseDesignations] = useState([]); // Raw data for filtering
@@ -47,6 +56,10 @@ const ShiftManagement = () => {
 
   const encodeDDCode = (first, second) =>
     `DD:${normalizeCode(first)}+${normalizeCode(second || first)}`;
+
+useEffect(() => {
+  localStorage.setItem(PER_PAGE_STORAGE_KEY, String(perPage));
+}, [perPage]);
 
 useEffect(() => {
   const loadDepartmentHeadScope = async () => {

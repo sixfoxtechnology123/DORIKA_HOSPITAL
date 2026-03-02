@@ -9,12 +9,21 @@ import Pagination from "./Pagination";
 
 
 const EmployeeList = () => {
+  const PER_PAGE_STORAGE_KEY = "employeeList.perPage";
+  const getStoredPerPage = () => {
+    const raw = localStorage.getItem(PER_PAGE_STORAGE_KEY);
+    if (!raw) return 20;
+    if (raw === "all") return "all";
+    const num = Number(raw);
+    return Number.isFinite(num) && num > 0 ? num : 20;
+  };
+
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]); // normalized: [{id, name}]
   const [designations, setDesignations] = useState([]);
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, setPerPage] = useState(20); 
+  const [perPage, setPerPage] = useState(getStoredPerPage); 
   const [searchTerm, setSearchTerm] = useState("");
 
 
@@ -55,6 +64,10 @@ const EmployeeList = () => {
   useEffect(() => {
     fetchAll();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(PER_PAGE_STORAGE_KEY, String(perPage));
+  }, [perPage]);
 
 const handleSearchChange = (e) => {
   let value = e.target.value.toUpperCase();

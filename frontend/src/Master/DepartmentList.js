@@ -8,9 +8,18 @@ import toast from "react-hot-toast";
 import Pagination from "../Master/Pagination";
 
 const DepartmentList = () => {
+  const PER_PAGE_STORAGE_KEY = "departmentList.perPage";
+  const getStoredPerPage = () => {
+    const raw = localStorage.getItem(PER_PAGE_STORAGE_KEY);
+    if (!raw) return 20;
+    if (raw === "all") return "all";
+    const num = Number(raw);
+    return Number.isFinite(num) && num > 0 ? num : 20;
+  };
+
   const [departments, setDepartments] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
+  const [perPage, setPerPage] = useState(getStoredPerPage);
   const navigate = useNavigate();
 
   // Fetch all departments
@@ -38,6 +47,10 @@ const DepartmentList = () => {
   useEffect(() => {
     fetchDepartments();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(PER_PAGE_STORAGE_KEY, String(perPage));
+  }, [perPage]);
 
  const indexOfLast = perPage === "all" ? departments.length : currentPage * perPage;
 const indexOfFirst = perPage === "all" ? 0 : indexOfLast - perPage;

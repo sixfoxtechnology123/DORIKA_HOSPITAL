@@ -89,14 +89,20 @@ const Sidebar = () => {
             {
               name:"Duty Roaster", path:"/ShiftManagement"
             },
+            {
+              name:"Duty Roaster History", path:"/DutyRoasterHistory"
+            },
           
           ]
         },
         {
-            name: "Attendance History",
-            path: "/EmployeeAttendanceHistory",
+            name: "Attendace",
             icon: ClipboardList,
             permission:"Attendance_history_view",
+            submenus: [
+              { name: "Attendance History", path: "/EmployeeAttendanceHistory" },
+              { name: "Attendance Register History", path: "/AttendanceRegisterHistory" },
+            ],
           },
           //   {
           //   name: "Leave History",

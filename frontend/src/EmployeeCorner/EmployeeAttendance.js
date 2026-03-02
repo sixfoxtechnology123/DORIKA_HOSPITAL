@@ -19,6 +19,21 @@ const formatOTDisplay = (otValue) => {
   return `${h}h ${m}m`;
 };
 
+const parseTimeToMinutes = (timeStr) => {
+  if (!timeStr || typeof timeStr !== "string" || timeStr === "--") return null;
+  const normalized = timeStr.replace(/\./g, ":").trim();
+  const parts = normalized.split(" ");
+  if (parts.length < 2) return null;
+  const clock = parts[0];
+  const meridiem = parts[1].toUpperCase();
+  const hm = clock.split(":").map(Number);
+  if (hm.length < 2 || Number.isNaN(hm[0]) || Number.isNaN(hm[1])) return null;
+  let [hours, minutes] = hm;
+  if (meridiem === "PM" && hours < 12) hours += 12;
+  if (meridiem === "AM" && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+};
+
 
 const EmployeeAttendance = () => {
   const [history, setHistory] = useState([]);
@@ -114,6 +129,32 @@ const EmployeeAttendance = () => {
     if (!loggedUser || !loggedUser.employeeUserId) {
       toast.error("You must be logged in!");
       return;
+    }
+
+    const isPunchOutAction = hasIn && !hasOut;
+    const openRecord = isNightShiftPending ? yesterdaysRecord : todaysRecord;
+
+    if (isPunchOutAction && openRecord?.shiftStartTime && openRecord?.shiftEndTime) {
+      const startMin = parseTimeToMinutes(openRecord.shiftStartTime);
+      const endMinRaw = parseTimeToMinutes(openRecord.shiftEndTime);
+      if (startMin != null && endMinRaw != null) {
+        const now = new Date();
+        const shiftDate = new Date(openRecord.date);
+        const endDateTime = new Date(shiftDate);
+
+        let endMin = endMinRaw;
+        if (endMin < startMin) {
+          endDateTime.setDate(endDateTime.getDate() + 1);
+          endMin += 1440;
+        }
+
+        endDateTime.setHours(Math.floor(endMin / 60), endMin % 60, 0, 0);
+
+        if (now < endDateTime) {
+          const proceed = window.confirm("Your shift is not ending. Do you punch out?");
+          if (!proceed) return;
+        }
+      }
     }
 
   attendanceRequestInFlightRef.current = true;
