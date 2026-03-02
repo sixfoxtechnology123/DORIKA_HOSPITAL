@@ -3,10 +3,10 @@ const Leave = require("../models/LeaveApplication");
 const ShiftMaster = require("../models/Shift");
 const ShiftManagement = require("../models/ShiftManagement");
 
-const OFFICE_LAT = 26.652061;
-const OFFICE_LNG = 92.790961;
-// const OFFICE_LAT = 22.965561;
-// const OFFICE_LNG = 88.457227;
+// const OFFICE_LAT = 26.652061;
+// const OFFICE_LNG = 92.790961;
+const OFFICE_LAT = 22.965561;
+const OFFICE_LNG = 88.457227;
 const ALLOWED_DISTANCE = 300;
 
 const normalizeShiftCode = (value) => String(value || "").trim().toUpperCase();
@@ -32,44 +32,110 @@ const getShiftTimingByCode = async (rawCode) => {
     return { ok: false, code, reason: "EMPTY_OR_OFF" };
   }
 
+  const parseTime = (t) => {
+    if (!t || typeof t !== "string") return 0;
+    try {
+      const normalized = t.replace(".", ":");
+      const [time, modifier] = normalized.split(" ");
+      let [hours, minutes] = time.split(":").map(Number);
+      if (modifier === "PM" && hours < 12) hours += 12;
+      if (modifier === "AM" && hours === 12) hours = 0;
+      return hours * 60 + (minutes || 0);
+    } catch (e) {
+      return 0;
+    }
+  };
+
+  const spanMinutes = (startTime, endTime) => {
+    const startMin = parseTime(startTime);
+    let endMin = parseTime(endTime);
+    if (endMin < startMin) endMin += 1440;
+    return Math.max(0, endMin - startMin);
+  };
+
+  const formatDuration = (minutes) => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `${h}h ${m}m`;
+  };
+
   const ddCodes = parseDoubleDutyCodes(code);
   if (ddCodes) {
     const [firstCode, secondCode] = ddCodes;
     const firstShift = await ShiftMaster.findOne({ shiftCode: firstCode }).lean();
     const secondShift = await ShiftMaster.findOne({ shiftCode: secondCode }).lean();
     if (!firstShift || !secondShift) return { ok: false, code, reason: "DD_COMPONENT_MISSING" };
+
+    const firstStartMin = parseTime(firstShift.startTime);
+    const secondStartRaw = parseTime(secondShift.startTime);
+    const secondEndRaw = parseTime(secondShift.endTime);
+    const secondStartAbs = secondStartRaw < firstStartMin ? secondStartRaw + 1440 : secondStartRaw;
+    let secondEndAbs = secondEndRaw;
+    if (secondEndRaw < secondStartRaw) secondEndAbs += 1440;
+    secondEndAbs += (secondStartAbs - secondStartRaw);
+
+    const totalDutyMinutes =
+      spanMinutes(firstShift.startTime, firstShift.endTime) +
+      spanMinutes(secondShift.startTime, secondShift.endTime);
+
     return {
       ok: true,
       normalizedCode: `DD:${firstCode}+${secondCode}`,
       shiftStartTime: firstShift.startTime,
       shiftEndTime: secondShift.endTime,
       isDouble: true,
+      shiftWindowEndMin: secondEndAbs,
+      workDurationMinutes: totalDutyMinutes,
+      workDurationText: formatDuration(totalDutyMinutes),
     };
   }
 
   // Prefer exact match first. This prevents codes like G4/G5 from being treated as DD.
   const singleShift = await ShiftMaster.findOne({ shiftCode: code }).lean();
   if (singleShift) {
+    const singleStartMin = parseTime(singleShift.startTime);
+    const singleEndRaw = parseTime(singleShift.endTime);
+    const singleEndAbs = singleEndRaw < singleStartMin ? singleEndRaw + 1440 : singleEndRaw;
+    const singleMinutes = spanMinutes(singleShift.startTime, singleShift.endTime);
+
     return {
       ok: true,
       normalizedCode: code,
       shiftStartTime: singleShift.startTime,
       shiftEndTime: singleShift.endTime,
       isDouble: false,
+      shiftWindowEndMin: singleEndAbs,
+      workDurationMinutes: singleMinutes,
+      workDurationText: formatDuration(singleMinutes),
     };
   }
 
   // Legacy fallback: old DD payload may be stored as "MN" without DD prefix.
-  if (code.length === 2) {
+  if (/^[A-Z]{2}$/.test(code)) {
     const firstShift = await ShiftMaster.findOne({ shiftCode: code[0] }).lean();
     const secondShift = await ShiftMaster.findOne({ shiftCode: code[1] }).lean();
     if (firstShift && secondShift) {
+      const firstStartMin = parseTime(firstShift.startTime);
+      const secondStartRaw = parseTime(secondShift.startTime);
+      const secondEndRaw = parseTime(secondShift.endTime);
+      const secondStartAbs = secondStartRaw < firstStartMin ? secondStartRaw + 1440 : secondStartRaw;
+      let secondEndAbs = secondEndRaw;
+      if (secondEndRaw < secondStartRaw) secondEndAbs += 1440;
+      secondEndAbs += (secondStartAbs - secondStartRaw);
+
+      const totalDutyMinutes =
+        spanMinutes(firstShift.startTime, firstShift.endTime) +
+        spanMinutes(secondShift.startTime, secondShift.endTime);
+
       return {
         ok: true,
         normalizedCode: `DD:${code[0]}+${code[1]}`,
         shiftStartTime: firstShift.startTime,
         shiftEndTime: secondShift.endTime,
         isDouble: true,
+        shiftWindowEndMin: secondEndAbs,
+        workDurationMinutes: totalDutyMinutes,
+        workDurationText: formatDuration(totalDutyMinutes),
       };
     }
   }

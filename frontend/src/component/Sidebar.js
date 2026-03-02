@@ -100,8 +100,8 @@ const Sidebar = () => {
             icon: ClipboardList,
             permission:"Attendance_history_view",
             submenus: [
-              { name: "Attendance History", path: "/EmployeeAttendanceHistory" },
-              { name: "Attendance Register History", path: "/AttendanceRegisterHistory" },
+              { name: "Attendance Controller", path: "/EmployeeAttendanceHistory" },
+              { name: "Attendance History", path: "/AttendanceRegisterHistory" },
             ],
           },
           //   {

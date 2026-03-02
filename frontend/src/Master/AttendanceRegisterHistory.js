@@ -33,6 +33,24 @@ const toISODate = (value) => {
   return "";
 };
 
+const getStatusClass = (status, isLateEntry) => {
+  if (isLateEntry && String(status || "").toUpperCase() === "PRESENT") {
+    return "bg-orange-100 text-orange-700";
+  }
+  const s = String(status || "").toUpperCase();
+  if (s === "PRESENT") return "bg-green-100 text-green-700";
+  if (s === "ABSENT") return "bg-red-100 text-red-700";
+  if (s === "OFF") return "bg-gray-100 text-gray-700";
+  if (s.startsWith("CL")) return "bg-blue-100 text-blue-700";
+  if (s.startsWith("SL")) return "bg-purple-100 text-purple-700";
+  return "bg-yellow-100 text-yellow-700";
+};
+
+const getDisplayStatus = (status, isLateEntry) =>
+  isLateEntry ? "LATE ENTRY" : status;
+
+const normalizeStatus = (status) => String(status || "").trim().toUpperCase();
+
 const AttendanceRegisterHistory = () => {
   const PER_PAGE_STORAGE_KEY = "attendanceRegisterHistory.perPage";
   const DATE_STORAGE_KEY = "attendanceRegisterHistory.selectedDate";
@@ -57,6 +75,7 @@ const AttendanceRegisterHistory = () => {
   const [designations, setDesignations] = useState(["ALL"]);
   const [selectedDepartment, setSelectedDepartment] = useState("ALL");
   const [selectedDesignation, setSelectedDesignation] = useState("ALL");
+  const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(getStoredPerPage);
@@ -143,6 +162,7 @@ const AttendanceRegisterHistory = () => {
             workDuration: record.workDuration || "-",
             actualWorkDuration: record.actualWorkDuration || "-",
             status: record.status || "-",
+            isLateEntry: !!(record.isLateEntry || (record.status === "Present" && record.isLate)),
             otHours: Number(record.otHours || 0),
           });
         });
@@ -162,7 +182,7 @@ const AttendanceRegisterHistory = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedDate, selectedDepartment, selectedDesignation, searchTerm, perPage]);
+  }, [selectedDate, selectedDepartment, selectedDesignation, selectedStatus, searchTerm, perPage]);
 
   useEffect(() => {
     localStorage.setItem(PER_PAGE_STORAGE_KEY, String(perPage));
@@ -180,7 +200,18 @@ const AttendanceRegisterHistory = () => {
         selectedDepartment === "ALL" || row.departmentName === selectedDepartment;
       const designationMatch =
         selectedDesignation === "ALL" || row.designationName === selectedDesignation;
-      if (!dateMatch || !departmentMatch || !designationMatch) return false;
+      const statusUpper = normalizeStatus(row.status);
+      const statusMatch =
+        selectedStatus === "ALL" ||
+        (selectedStatus === "PRESENT" &&
+          (statusUpper === "PRESENT" || statusUpper === "P" || statusUpper === "P(L)")) ||
+        (selectedStatus === "ABSENT" && (statusUpper === "ABSENT" || statusUpper === "A")) ||
+        (selectedStatus === "OFF" && statusUpper === "OFF") ||
+        (selectedStatus === "CL" && statusUpper.startsWith("CL")) ||
+        (selectedStatus === "SL" && statusUpper.startsWith("SL")) ||
+        (selectedStatus === "LATEENTRY" && row.isLateEntry);
+
+      if (!dateMatch || !departmentMatch || !designationMatch || !statusMatch) return false;
       if (!q) return true;
 
       const name = String(row.employeeName || "").toUpperCase();
@@ -190,7 +221,7 @@ const AttendanceRegisterHistory = () => {
         name.includes(q) || userId.includes(q) || employeeId.includes(q)
       );
     });
-  }, [rows, selectedDepartment, selectedDesignation, searchTerm]);
+  }, [rows, selectedDate, selectedDepartment, selectedDesignation, selectedStatus, searchTerm]);
 
   const startIndex = perPage === "all" ? 0 : (currentPage - 1) * perPage;
   const paginatedRows =
@@ -214,7 +245,7 @@ const AttendanceRegisterHistory = () => {
       "Punch Out": row.checkOutTime,
       "Work Time": row.workDuration,
       "Actual Work": row.actualWorkDuration,
-      "Status": row.status,
+      "Status": getDisplayStatus(row.status, row.isLateEntry),
       "OT Hours": row.otHours,
     }));
 
@@ -236,7 +267,7 @@ const AttendanceRegisterHistory = () => {
                   </div>
 
         <div className="bg-dorika-blueLight p-2 rounded-lg shadow mb-3 border border-dorika-blue">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
             <div className="flex flex-col">
               <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
                 Date
@@ -279,6 +310,25 @@ const AttendanceRegisterHistory = () => {
                 {designations.map((d) => (
                   <option key={d}>{d}</option>
                 ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+                Status
+              </label>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="border border-dorika-blue rounded px-3 py-1 text-sm bg-white"
+              >
+                <option value="ALL">ALL</option>
+                <option value="PRESENT">Present</option>
+                <option value="ABSENT">Absent</option>
+                <option value="OFF">OFF</option>
+                <option value="CL">CL</option>
+                <option value="SL">SL</option>
+                <option value="LATEENTRY">Late Entry</option>
               </select>
             </div>
 
@@ -325,22 +375,22 @@ const AttendanceRegisterHistory = () => {
           <table className="min-w-[1500px] w-full border-collapse text-xs sm:text-sm">
             <thead className="bg-dorika-blue text-white sticky top-0 z-10">
               <tr>
-                <th className="border border-dorika-blue px-2 py-1">SL</th>
-                <th className="border border-dorika-blue px-2 py-1">Date</th>
-                <th className="border border-dorika-blue px-2 py-1">Employee ID</th>
-                <th className="border border-dorika-blue px-2 py-1">User ID</th>
-                <th className="border border-dorika-blue px-2 py-1">Name</th>
-                <th className="border border-dorika-blue px-2 py-1">Department</th>
-                <th className="border border-dorika-blue px-2 py-1">Designation</th>
-                <th className="border border-dorika-blue px-2 py-1">Shift</th>
-                <th className="border border-dorika-blue px-2 py-1">Shift Start</th>
-                <th className="border border-dorika-blue px-2 py-1">Shift End</th>
-                <th className="border border-dorika-blue px-2 py-1">Punch In</th>
-                <th className="border border-dorika-blue px-2 py-1">Punch Out</th>
-                <th className="border border-dorika-blue px-2 py-1">Work Time</th>
-                <th className="border border-dorika-blue px-2 py-1">Actual Work</th>
-                <th className="border border-dorika-blue px-2 py-1">Status</th>
-                <th className="border border-dorika-blue px-2 py-1">OT Hours</th>
+                <th className="border border-dorika-blue px-1 py-1">SL</th>
+                <th className="border border-dorika-blue px-1 py-1">Date</th>
+                <th className="border border-dorika-blue px-1 py-1">Employee ID</th>
+                <th className="border border-dorika-blue px-1 py-1">User ID</th>
+                <th className="border border-dorika-blue px-1 py-1">Name</th>
+                <th className="border border-dorika-blue px-1 py-1">Department</th>
+                <th className="border border-dorika-blue px-1 py-1">Designation</th>
+                <th className="border border-dorika-blue px-1 py-1">Shift</th>
+                <th className="border border-dorika-blue px-1 py-1">Shift Start</th>
+                <th className="border border-dorika-blue px-1 py-1">Shift End</th>
+                <th className="border border-dorika-blue px-1 py-1">Punch In</th>
+                <th className="border border-dorika-blue px-1 py-1">Punch Out</th>
+                <th className="border border-dorika-blue px-1 py-1">Work Time</th>
+                <th className="border border-dorika-blue px-1 py-1">Actual Work</th>
+                <th className="border border-dorika-blue px-1 py-1">Status</th>
+                <th className="border border-dorika-blue px-1 py-1">OT Hours</th>
               </tr>
             </thead>
             <tbody>
@@ -350,24 +400,28 @@ const AttendanceRegisterHistory = () => {
                     key={`${row.employeeUserId}-${row.date}-${idx}`}
                     className={idx % 2 === 0 ? "bg-dorika-blueLight/40" : "bg-white"}
                   >
-                    <td className="border border-dorika-blue px-2 py-1 text-center">
+                    <td className="border border-dorika-blue px-1 py-1 text-center">
                       {perPage === "all" ? idx + 1 : startIndex + idx + 1}
                     </td>
-                    <td className="border border-dorika-blue px-2 py-1">{row.date}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{row.employeeId}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{row.employeeUserId}</td>
-                    <td className="border border-dorika-blue px-2 py-1 uppercase">{row.employeeName}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{row.departmentName}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{row.designationName}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{row.shiftCode}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{row.shiftStartTime}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{row.shiftEndTime}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{row.checkInTime}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{row.checkOutTime}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{row.workDuration}</td>
-                    <td className="border border-dorika-blue px-2 py-1">{row.actualWorkDuration}</td>
-                    <td className="border border-dorika-blue px-2 py-1 uppercase">{row.status}</td>
-                    <td className="border border-dorika-blue px-2 py-1 text-right">{row.otHours}</td>
+                    <td className="border border-dorika-blue px-1 py-1">{row.date}</td>
+                    <td className="border border-dorika-blue px-1 py-1">{row.employeeId}</td>
+                    <td className="border border-dorika-blue px-1 py-1">{row.employeeUserId}</td>
+                    <td className="border border-dorika-blue px-1 py-1 uppercase">{row.employeeName}</td>
+                    <td className="border border-dorika-blue px-1 py-1">{row.departmentName}</td>
+                    <td className="border border-dorika-blue px-1 py-1">{row.designationName}</td>
+                    <td className="border border-dorika-blue px-1 py-1">{row.shiftCode}</td>
+                    <td className="border border-dorika-blue px-1 py-1">{row.shiftStartTime}</td>
+                    <td className="border border-dorika-blue px-1 py-1">{row.shiftEndTime}</td>
+                    <td className="border border-dorika-blue px-1 py-1">{row.checkInTime}</td>
+                    <td className="border border-dorika-blue px-1 py-1">{row.checkOutTime}</td>
+                    <td className="border border-dorika-blue px-1 py-1">{row.workDuration}</td>
+                    <td className="border border-dorika-blue px-1 py-1">{row.actualWorkDuration}</td>
+                    <td className="border border-dorika-blue px-1 py-1">
+                      <span className={`px-1 py-1 rounded text-xs font-bold uppercase ${getStatusClass(row.status, row.isLateEntry)}`}>
+                        {getDisplayStatus(row.status, row.isLateEntry)}
+                      </span>
+                    </td>
+                    <td className="border border-dorika-blue px-1 py-1 text-right">{row.otHours}</td>
                   </tr>
                 ))
               ) : (

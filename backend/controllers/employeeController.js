@@ -6,6 +6,10 @@ const EmployeeUserId = require("../models/EmployeeUserId");
 const LeaveApplication = require("../models/LeaveApplication");
 const OtRate = require("../models/OtRate");
 const AdminManagement = require("../models/adminManagementModel"); 
+const Attendance = require("../models/Attendance");
+const ShiftManagement = require("../models/ShiftManagement");
+const DepartmentHead = require("../models/DepartmentHead");
+const mongoose = require("mongoose");
 
 
 const generateEmployeeUserId = async () => {
@@ -327,18 +331,65 @@ exports.deleteEmployee = async (req, res) => {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    const targetUserId = employee.employeeUserId; // e.g., "EMP8"
+    const targetUserId = employee.employeeUserId; // e.g., "DH-00518"
+    const targetEmployeeID = employee.employeeID; // e.g., "P-00518"
 
-    // 2. Delete from associated collections using employeeUserId
+    // 2. Delete from associated collections using employeeUserId + employeeID
     await Promise.all([
-      // Delete login credentials/user session data
-      EmployeeUserId.deleteMany({ employeeUserId: targetUserId }),
-      
-      // Delete all leave applications for this user
-      LeaveApplication.deleteMany({ employeeUserId: targetUserId }),
-      OtRate.deleteMany({ employeeId: employee.employeeID }),
-      
+      EmployeeUserId.deleteMany({
+        $or: [{ employeeUserId: targetUserId }, { employeeId: targetEmployeeID }],
+      }),
+      AdminManagement.deleteMany({
+        $or: [{ employeeUserId: targetUserId }, { employeeID: targetEmployeeID }, { userId: targetUserId }],
+      }),
+      ShiftManagement.deleteMany({
+        $or: [{ employeeUserId: targetUserId }, { employeeID: targetEmployeeID }],
+      }),
+      Attendance.deleteMany({
+        $or: [{ employeeUserId: targetUserId }, { employeeId: targetEmployeeID }],
+      }),
+      LeaveApplication.deleteMany({
+        $or: [{ employeeUserId: targetUserId }, { employeeId: targetEmployeeID }],
+      }),
+      OtRate.deleteMany({
+        $or: [{ employeeUserId: targetUserId }, { employeeId: targetEmployeeID }],
+      }),
+      DepartmentHead.deleteMany({
+        $or: [{ employeeUserId: targetUserId }, { employeeID: targetEmployeeID }],
+      }),
+      Activity.deleteMany({ employeeUserId: targetUserId }),
+      // Remove this employee as reporting manager reference from other employee records
+      Employee.updateMany(
+        { reportingManagerEmpID: targetEmployeeID },
+        { $set: { reportingManagerEmpID: "", reportingManagerEmployeeUserId: "" } }
+      ),
+      // Remove this employee as department head reference from other employee records
+      Employee.updateMany(
+        { departmentHeadEmpID: targetEmployeeID },
+        { $set: { departmentHeadEmpID: "", departmentHeadEmployeeUserId: "" } }
+      ),
     ]);
+
+    // Collections implemented as ES modules are cleaned via native collection handles
+    const db = mongoose.connection?.db;
+    if (db) {
+      try {
+        await db.collection("leaveallocations").deleteMany({ employeeID: targetEmployeeID });
+      } catch (_) {}
+
+      try {
+        await db.collection("payslips").updateMany(
+          {},
+          {
+            $pull: {
+              employeePayslips: {
+                $or: [{ employeeUserId: targetUserId }, { employeeId: targetEmployeeID }],
+              },
+            },
+          }
+        );
+      } catch (_) {}
+    }
 
     // 3. Finally, delete the main employee record
     await Employee.findByIdAndDelete(req.params.id);
@@ -347,11 +398,11 @@ exports.deleteEmployee = async (req, res) => {
     try {
  // Replace the old Activity.create block with this:
     await Activity.create({
-      name: `${employee.firstName} ${employee.lastName}`,
-      employeeUserId: employee.employeeUserId,
+      name: String(req.user?.name || req.user?.userId || "SYSTEM"),
+      employeeUserId: String(req.user?.employeeUserId || req.user?.userId || "SYSTEM-001"),
       module: "Employee Management",
       action: "Delete",
-      details: `Permanently deleted employee and associated records (Leaves, OT Rates, Login).`,
+      details: `Permanently deleted employee and associated records (Login, Admin, Duty Roaster, Attendance, Leave, OT, Department Head, Activity, Leave Allocation, Payslip).`,
       text: `Permanent Deletion: ${employee.firstName} ${employee.lastName} (${employee.employeeID})`,
     });
     } catch (logErr) {
@@ -359,7 +410,7 @@ exports.deleteEmployee = async (req, res) => {
     }
 
     res.json({ 
-      message: "Employee and all associated records (Login, Leaves) deleted successfully" 
+      message: "Employee and all associated linked records deleted successfully" 
     });
 
   } catch (err) {

@@ -14,8 +14,10 @@ const AttendanceSignIn = () => {
   const [alreadyMarked, setAlreadyMarked] = useState(false); // New state to track today's status
   
   const [shiftTimes, setShiftTimes] = useState({
+    code: "--",
     start: "--:--",
-    end: "--:--"
+    end: "--:--",
+    isEndNextDay: false,
   });
 
   const loggedUser = JSON.parse(localStorage.getItem("employeeUser"));
@@ -30,6 +32,22 @@ const AttendanceSignIn = () => {
     }
     if (payload.length === 2) return [payload[0], payload[1]];
     return [payload, payload];
+  };
+  const parseTimeToMinutes = (timeStr) => {
+    if (!timeStr || typeof timeStr !== "string") return null;
+    try {
+      const normalized = timeStr.replace(/\./g, ":").trim();
+      const [clock, meridiemRaw] = normalized.split(" ");
+      if (!clock || !meridiemRaw) return null;
+      const meridiem = meridiemRaw.toUpperCase();
+      let [hours, minutes] = clock.split(":").map(Number);
+      if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+      if (meridiem === "PM" && hours < 12) hours += 12;
+      if (meridiem === "AM" && hours === 12) hours = 0;
+      return hours * 60 + minutes;
+    } catch {
+      return null;
+    }
   };
 
   useEffect(() => {
@@ -72,20 +90,57 @@ const AttendanceSignIn = () => {
               const [firstCode, secondCode] = parseDDCodes(assignedShiftCode);
               const first = allShifts.find(s => normalizeCode(s.shiftCode) === firstCode);
               const second = allShifts.find(s => normalizeCode(s.shiftCode) === secondCode);
-              if (first && second) setShiftTimes({ start: first.startTime, end: second.endTime });
+              if (first && second) {
+                const secondStartMin = parseTimeToMinutes(second.startTime);
+                const secondEndMin = parseTimeToMinutes(second.endTime);
+                const isEndNextDay =
+                  secondStartMin != null &&
+                  secondEndMin != null &&
+                  secondEndMin < secondStartMin;
+                setShiftTimes({
+                  code: assignedShiftCode,
+                  start: first.startTime,
+                  end: second.endTime,
+                  isEndNextDay,
+                });
+              }
             } else {
               const single = allShifts.find(s => normalizeCode(s.shiftCode) === assignedShiftCode);
               if (single) {
-                setShiftTimes({ start: single.startTime, end: single.endTime });
+                const singleStartMin = parseTimeToMinutes(single.startTime);
+                const singleEndMin = parseTimeToMinutes(single.endTime);
+                const isEndNextDay =
+                  singleStartMin != null &&
+                  singleEndMin != null &&
+                  singleEndMin < singleStartMin;
+                setShiftTimes({
+                  code: assignedShiftCode,
+                  start: single.startTime,
+                  end: single.endTime,
+                  isEndNextDay,
+                });
               } else if (assignedShiftCode.length === 2) {
                 // Legacy fallback: old DD payload may be stored as "MN" without prefix.
                 const first = allShifts.find(s => normalizeCode(s.shiftCode) === assignedShiftCode[0]);
                 const second = allShifts.find(s => normalizeCode(s.shiftCode) === assignedShiftCode[1]);
-                if (first && second) setShiftTimes({ start: first.startTime, end: second.endTime });
+                if (first && second) {
+                  const secondStartMin = parseTimeToMinutes(second.startTime);
+                  const secondEndMin = parseTimeToMinutes(second.endTime);
+                  const isEndNextDay =
+                    secondStartMin != null &&
+                    secondEndMin != null &&
+                    secondEndMin < secondStartMin;
+                  setShiftTimes({
+                    code: `DD:${assignedShiftCode[0]}+${assignedShiftCode[1]}`,
+                    start: first.startTime,
+                    end: second.endTime,
+                    isEndNextDay,
+                  });
+                }
               }
             }
           } else if (assignedShiftCode === "OFF") {
-            setShiftTimes({ start: "WEEK OFF", end: "WEEK OFF" });
+            setShiftTimes({ code: "OFF", start: "WEEK OFF", end: "WEEK OFF", isEndNextDay: false });
           }
         }
 
@@ -195,12 +250,19 @@ const AttendanceSignIn = () => {
                 <td className="border py-1 px-4 text-center font-semibold">{new Date().toLocaleDateString("en-GB")}</td>
               </tr>
               <tr>
+                <td className="border py-1 px-4  bg-gray-100 text-gray-600 font-medium">Shift Code</td>
+                <td className="border py-1 px-4 font-bold text-indigo-700 text-center">{shiftTimes.code}</td>
+              </tr>
+              <tr>
                 <td className="border py-1 px-4  bg-gray-100 text-gray-600 font-medium">Shift Start Time</td>
                 <td className="border py-1 px-4 font-bold text-indigo-700 text-center">{shiftTimes.start}</td>
               </tr>
               <tr>
                 <td className="border py-1 px-4  bg-gray-100 text-gray-600 font-medium">Shift End Time</td>
-                <td className="border py-1 px-4 font-bold text-indigo-700 text-center">{shiftTimes.end}</td>
+                <td className="border py-1 px-4 font-bold text-indigo-700 text-center">
+                  {shiftTimes.end}
+                  {shiftTimes.isEndNextDay ? " (Next Day)" : ""}
+                </td>
               </tr>
               <tr>
                 <td className="border py-1 px-4  bg-gray-100 text-gray-600 font-medium">Current Time</td>

@@ -189,6 +189,14 @@ const visibleDepartments = useMemo(() => {
   return departments;
 }, [departments, isDepartmentHeadScoped, scopedDepartment]);
 
+const nonDDShiftOptions = useMemo(
+  () =>
+    shiftOptions.filter(
+      (o) => normalizeCode(o.code) !== "OFF" && normalizeCode(o.code) !== "DD"
+    ),
+  [shiftOptions]
+);
+
   useEffect(() => {
     const fetchShifts = async () => {
       try {
@@ -242,37 +250,42 @@ const visibleDepartments = useMemo(() => {
     return Array.from({ length: totalDays }, (_, i) => i + 1);
   }, [selectedMonth]);
 
-    const filteredEmployees = employees.filter((emp) => {
-      const scopedDeptMatch =
-        !isDepartmentHeadScoped || emp.departmentName === scopedDepartment;
-      const scopedDesignationMatch =
-        !isDepartmentHeadScoped ||
-        scopedDesignations.length === 0 ||
-        scopedDesignations.includes(emp.designationName);
+    const filteredEmployees = useMemo(() => {
+      return employees.filter((emp) => {
+        const scopedDeptMatch =
+          !isDepartmentHeadScoped || emp.departmentName === scopedDepartment;
+        const scopedDesignationMatch =
+          !isDepartmentHeadScoped ||
+          scopedDesignations.length === 0 ||
+          scopedDesignations.includes(emp.designationName);
 
-      const deptMatch =
-        selectedDepartment === "ALL" ||
-        emp.departmentName === selectedDepartment;
+        const deptMatch =
+          selectedDepartment === "ALL" ||
+          emp.departmentName === selectedDepartment;
 
-      const designationMatch =
-        selectedDesignation === "ALL" ||
-        emp.designationName === selectedDesignation;
+        const designationMatch =
+          selectedDesignation === "ALL" ||
+          emp.designationName === selectedDesignation;
 
-      return scopedDeptMatch && scopedDesignationMatch && deptMatch && designationMatch;
-    });
+        return scopedDeptMatch && scopedDesignationMatch && deptMatch && designationMatch;
+      });
+    }, [
+      employees,
+      isDepartmentHeadScoped,
+      scopedDepartment,
+      scopedDesignations,
+      selectedDepartment,
+      selectedDesignation,
+    ]);
 
        const handleShiftChange = (emp, day, value, isSecondHalf = null) => {
         setShifts((prev) => {
           const empShifts = { ...(prev[emp.employeeUserId] || {}) };
           const currentVal = normalizeCode(empShifts[day] || "");
           const normalizedValue = normalizeCode(value);
-          const singleShiftOptions = shiftOptions.filter(
-            (o) => normalizeCode(o.code) !== "OFF" && normalizeCode(o.code) !== "DD"
-          );
-
           if (normalizedValue === "DD") {
             // Initialize DD
-            const def = normalizeCode(singleShiftOptions[0]?.code || "M");
+            const def = normalizeCode(nonDDShiftOptions[0]?.code || "M");
             empShifts[day] = encodeDDCode(def, def);
           } else if (isSecondHalf !== null && currentVal.startsWith("DD:")) {
             // Update specific sub-boxes
@@ -292,9 +305,17 @@ const visibleDepartments = useMemo(() => {
       };
        // Find and update these lines
       const startIndex = perPage === "all" ? 0 : (currentPage - 1) * perPage;
-      const paginatedEmployees = perPage === "all" 
-        ? filteredEmployees 
-        : filteredEmployees.slice(startIndex, startIndex + perPage);
+      const paginatedEmployees = useMemo(
+        () =>
+          perPage === "all"
+            ? filteredEmployees
+            : filteredEmployees.slice(startIndex, startIndex + perPage),
+        [filteredEmployees, perPage, startIndex]
+      );
+      const selectedEmployeeSet = useMemo(
+        () => new Set(selectedEmployees),
+        [selectedEmployees]
+      );
 
 const handleSubmit = async () => {
   try {
@@ -562,6 +583,8 @@ flex flex-col gap-4 border border-dorika-blue">
           <option value={20}>20</option>
           <option value={50}>50</option>
           <option value={100}>100</option>
+          <option value={300}>300</option>
+          <option value={400}>400</option>
           <option value="all">ALL</option>
         </select>
       </div>
@@ -645,7 +668,7 @@ flex flex-col gap-4 border border-dorika-blue">
                      <td className="border px-2 py-1 border-dorika-blue text-center">
                     <input
                       type="checkbox"
-                      checked={selectedEmployees.includes(emp.employeeID)}
+                      checked={selectedEmployeeSet.has(emp.employeeID)}
                       onChange={(e) => {
                         if (e.target.checked) {
                           setSelectedEmployees(prev => [...prev, emp.employeeID]);
@@ -700,7 +723,7 @@ flex flex-col gap-4 border border-dorika-blue">
                             onChange={(e) => handleShiftChange(emp, day, e.target.value, false)}
                             className="bg-white border rounded text-[10px] w-10 px-0.5 font-bold"
                           >
-                            {shiftOptions.filter(o => o.code !== "OFF" && o.code !== "DD").map(opt => (
+                            {nonDDShiftOptions.map(opt => (
                               <option 
                                 key={opt.code} 
                                 value={opt.code} 
@@ -719,7 +742,7 @@ flex flex-col gap-4 border border-dorika-blue">
                             onChange={(e) => handleShiftChange(emp, day, e.target.value, true)}
                             className="bg-white border rounded text-[10px] w-10 px-0.5 font-bold"
                           >
-                            {shiftOptions.filter(o => o.code !== "OFF" && o.code !== "DD").map(opt => (
+                            {nonDDShiftOptions.map(opt => (
                               <option 
                                 key={opt.code} 
                                 value={opt.code} 
