@@ -3,10 +3,10 @@ const Leave = require("../models/LeaveApplication");
 const ShiftMaster = require("../models/Shift");
 const ShiftManagement = require("../models/ShiftManagement");
 
-// const OFFICE_LAT = 26.652061;
-// const OFFICE_LNG = 92.790961;
-const OFFICE_LAT = 22.965561;
-const OFFICE_LNG = 88.457227;
+const OFFICE_LAT = 26.652061;
+const OFFICE_LNG = 92.790961;
+// const OFFICE_LAT = 22.965561;
+// const OFFICE_LNG = 88.457227;
 const ALLOWED_DISTANCE = 300;
 
 const normalizeShiftCode = (value) => String(value || "").trim().toUpperCase();
