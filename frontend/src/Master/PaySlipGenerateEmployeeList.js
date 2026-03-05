@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
 import toast from "react-hot-toast";
 import BackButton from "../component/BackButton";
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import { FaEye, FaPlusCircle, FaPrint } from "react-icons/fa";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -47,14 +48,28 @@ const [hasPayslipForMonth, setHasPayslipForMonth] = useState(false);
 ];
 // Checkbox states
 const [selectedEmployees, setSelectedEmployees] = useState([]); // array of selected employee IDs
-const [selectAll, setSelectAll] = useState(false); // "Select All" checkbox
+const [searchTerm, setSearchTerm] = useState("");
 const navigate = useNavigate();
+const normalizeSearchInput = (value) => {
+  let v = String(value || "").toUpperCase();
+  if (/^[A-Z]+\d/.test(v)) {
+    v = v.replace(/^([A-Z]+)-?(\d.*)$/, "$1-$2");
+  }
+  return v;
+};
+const filteredEmployees = employees.filter((emp) => {
+  const q = String(searchTerm || "").toUpperCase().trim();
+  if (!q) return true;
+  const name = `${emp.salutation || ""} ${emp.firstName || ""} ${emp.lastName || ""}`.toUpperCase();
+  const employeeId = String(emp.employeeID || "").toUpperCase();
+  const employeeUserId = String(emp.employeeUserId || "").toUpperCase();
+  return name.includes(q) || employeeId.includes(q) || employeeUserId.includes(q);
+});
 // Select All employees
 const handleSelectAll = (e) => {
   const checked = e.target.checked;
-  setSelectAll(checked);
   if (checked) {
-    setSelectedEmployees(employees.map(emp => emp._id));
+    setSelectedEmployees(filteredEmployees.map(emp => emp._id));
   } else {
     setSelectedEmployees([]);
   }
@@ -67,7 +82,6 @@ const handleSelectEmployee = (e, empId) => {
     setSelectedEmployees(prev => [...prev, empId]);
   } else {
     setSelectedEmployees(prev => prev.filter(id => id !== empId));
-    setSelectAll(false);
   }
 };
 
@@ -416,15 +430,13 @@ const canPrint = !!selectedMonth && hasPayslipForMonth;
     <>
 <div className="flex h-screen flex-col md:flex-row">
       <Sidebar/>
-    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
-    <div className="bg-white shadow-md rounded-md p-3 md:p-4">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+    <div className="bg-white shadow-md rounded-md p-3 md:p-4 flex-1 flex flex-col min-h-0">
 
+      <MobileHeaderToggle>
       {/* Header with Month Picker */}
-      <div className="
-        bg-blue-50 border w-full border-blue-300 rounded-lg shadow-md 
-        p-3 mb-4
-        flex flex-wrap items-center justify-between gap-3
-      ">
+      <div className="bg-blue-50 border w-full border-blue-300 rounded-lg shadow-md p-3 mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
 
         {/* Title */}
         <h2 className="text-lg sm:text-xl font-bold text-blue-800 whitespace-nowrap">
@@ -499,14 +511,30 @@ const canPrint = !!selectedMonth && hasPayslipForMonth;
           </div>
 
         </div>
+        </div>
+        <div className="mt-2">
+          <label className="font-semibold text-dorika-blue text-xs uppercase mb-1 block">Search</label>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(normalizeSearchInput(e.target.value))}
+            placeholder="SEARCH NAME / USER ID / EMP ID"
+            className="w-full border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none"
+          />
+        </div>
       </div>
+      </MobileHeaderToggle>
 
-      <div className="overflow-x-auto w-full border rounded-md">
+      <div className="w-full flex-1 min-h-0 overflow-auto border rounded-md">
         <table className="w-full min-w-[800px] table-auto text-sm">
-            <thead className="bg-gray-200">
+            <thead className="bg-gray-200 sticky top-0 z-10">
               <tr>
                 <th className="border border-blue-500 px-2 py-1">
-                  <input type="checkbox" checked={selectAll} onChange={handleSelectAll} />
+                  <input
+                    type="checkbox"
+                    checked={filteredEmployees.length > 0 && filteredEmployees.every((emp) => selectedEmployees.includes(emp._id))}
+                    onChange={handleSelectAll}
+                  />
                 </th>
                 <th className="border border-blue-500 px-2 py-1">S.No</th>
                 <th className="border border-blue-500 px-2 py-1">Employee ID</th>
@@ -518,8 +546,8 @@ const canPrint = !!selectedMonth && hasPayslipForMonth;
             </thead>
 
             <tbody className="text-center">
-              {employees && employees.length > 0 ? (
-                employees.map((emp, index) => (
+              {filteredEmployees && filteredEmployees.length > 0 ? (
+                filteredEmployees.map((emp, index) => (
                   <tr key={emp._id} className="hover:bg-gray-100 transition">
                      <td className="border border-blue-500 px-2 py-1">
                       <input

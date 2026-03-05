@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Sidebar from "../component/Sidebar";
 import BackButton from "../component/BackButton";
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useLocation } from "react-router-dom";
@@ -817,6 +818,7 @@ const handleSubmit = async (e) => {
           {/* ===================== STEP 1 ===================== */}
 
 
+          <MobileHeaderToggle>
          <div className="flex items-center font-semibold gap-2 border-b border-gray-300 mb-4 pb-2 overflow-x-auto whitespace-nowrap scrollbar-hide px-1">
           {["Personal & Service details", "Education", "Nominees/Medical/Address", "Pay Details", "Pay Structure","Doccument"].map((s, i) => (
             <React.Fragment key={i}>
@@ -834,6 +836,7 @@ const handleSubmit = async (e) => {
             </React.Fragment>
           ))}
         </div>
+          </MobileHeaderToggle>
           {step === 1 && (
             <>
               <h2 className="text-2xl font-semibold mb-4 text-center text-black">

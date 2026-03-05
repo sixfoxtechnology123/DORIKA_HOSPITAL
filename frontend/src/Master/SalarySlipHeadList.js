@@ -5,6 +5,7 @@ import { FaTrash, FaEdit } from "react-icons/fa";
 import Sidebar from "../component/Sidebar";
 import toast from "react-hot-toast";
 import BackButton from "../component/BackButton";
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 
 const SalarySlipHeadList = () => {
   const [salaryHeads, setSalaryHeads] = useState([]);
@@ -37,10 +38,11 @@ useEffect(() => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    <div className="flex h-screen flex-col md:flex-row">
       <Sidebar />
-      <div className="flex-1 overflow-y-auto p-3">
-        <div className="bg-white shadow-md rounded-md p-3">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-3">
+        <div className="bg-white shadow-md rounded-md p-3 flex-1 flex flex-col min-h-0">
+          <MobileHeaderToggle>
           <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
             <h2 className="text-xl font-bold text-dorika-blue">Salary Slip Head List</h2>
             <div className="flex gap-2">
@@ -53,9 +55,11 @@ useEffect(() => {
               </button>
             </div>
           </div>
+          </MobileHeaderToggle>
 
+          <div className="w-full flex-1 min-h-0 overflow-auto">
           <table className="w-full table-auto border border-dorika-blue text-sm">
-            <thead className="bg-dorika-blue text-white
+            <thead className="bg-dorika-blue text-white sticky top-0 z-10
 ">
               <tr>
                 <th className="border border-dorika-blue px-2 py-1">S.No</th>
@@ -104,6 +108,7 @@ useEffect(() => {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>

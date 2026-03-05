@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import Sidebar from "../component/Sidebar";
 import BackButton from "../component/BackButton";
 import { FaEdit, FaTrash } from "react-icons/fa";
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 
 const DepartmrentHead = () => {
   const [departmentHeadId, setDepartmentHeadId] = useState("");
@@ -192,20 +193,22 @@ const DepartmrentHead = () => {
       <Sidebar />
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-2 sm:p-3 md:p-4">
         <div className="bg-white shadow-md rounded-md p-3">
-          <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
-            <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
-              Department Head
-            </h2>
-            <div className="flex shrink-0 gap-2">
-              <button
-                onClick={openAddModal}
-                className="bg-dorika-blue hover:bg-dorika-orange text-white px-3 py-1 rounded text-sm font-semibold"
-              >
-                Add
-              </button>
-              <BackButton />
+          <MobileHeaderToggle>
+            <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
+              <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
+                Department Head
+              </h2>
+              <div className="flex shrink-0 gap-2">
+                <button
+                  onClick={openAddModal}
+                  className="bg-dorika-blue hover:bg-dorika-orange text-white px-3 py-1 rounded text-sm font-semibold"
+                >
+                  Add
+                </button>
+                <BackButton />
+              </div>
             </div>
-          </div>
+          </MobileHeaderToggle>
 
           <div className="border border-dorika-blue rounded-md overflow-x-auto">
             <table className="min-w-[1250px] w-full text-xs sm:text-sm border-collapse">

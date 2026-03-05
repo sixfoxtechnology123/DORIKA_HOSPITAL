@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import Sidebar from "../component/Sidebar";
 import BackButton from "../component/BackButton";
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import Pagination from "./Pagination";
 import toast from "react-hot-toast";
 
@@ -67,9 +68,17 @@ const EmployeeAttendanceHistory = () => {
   const [selectedDesignation, setSelectedDesignation] = useState("ALL");
   const [departments, setDepartments] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(getStoredPerPage);
   const tableContainerRef = React.useRef(null);
+  const normalizeSearchInput = (value) => {
+    let v = String(value || "").toUpperCase();
+    if (/^[A-Z]+\d/.test(v)) {
+      v = v.replace(/^([A-Z]+)-?(\d.*)$/, "$1-$2");
+    }
+    return v;
+  };
 
   /* ================= DAYS IN MONTH ================= */
   const daysInMonth = useMemo(() => {
@@ -169,17 +178,29 @@ useEffect(() => {
   }, [selectedMonth]);
 
   /* ================= FILTER ================= */
-  const filteredEmployees = employees.filter((emp) => {
-  const departmentMatch =
-    selectedDepartment === "ALL" ||
-    emp.departmentName === selectedDepartment;
+  const filteredEmployees = useMemo(() => {
+    const q = String(searchTerm || "").toUpperCase().trim();
+    return employees.filter((emp) => {
+      const departmentMatch =
+        selectedDepartment === "ALL" ||
+        emp.departmentName === selectedDepartment;
 
-  const designationMatch =
-    selectedDesignation === "ALL" ||
-    emp.designationName === selectedDesignation;
+      const designationMatch =
+        selectedDesignation === "ALL" ||
+        emp.designationName === selectedDesignation;
 
-  return departmentMatch && designationMatch;
-});
+      if (!departmentMatch || !designationMatch) return false;
+      if (!q) return true;
+
+      const name = `${emp.firstName || ""} ${emp.middleName || ""} ${emp.lastName || ""}`
+        .replace(/\s+/g, " ")
+        .trim()
+        .toUpperCase();
+      const employeeId = String(emp.employeeID || "").toUpperCase();
+      const employeeUserId = String(emp.employeeUserId || "").toUpperCase();
+      return name.includes(q) || employeeId.includes(q) || employeeUserId.includes(q);
+    });
+  }, [employees, selectedDepartment, selectedDesignation, searchTerm]);
 
     const startIndex = perPage === "all" ? 0 : (currentPage - 1) * perPage;
 
@@ -200,24 +221,27 @@ useEffect(() => {
   return (
    <div className="flex h-screen flex-col md:flex-row">
       <Sidebar/>
-    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
-        <div className="p-3 bg-white shadow-md rounded-md">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="p-3 bg-white shadow-md rounded-md flex-1 flex flex-col min-h-0">
+          <MobileHeaderToggle>
           {/* ================= HEADER ================= */}
-          <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-dorika-blue">Attendance History</h2>
-            <div className="flex gap-2">
-              <BackButton />
+          <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1">
+            <div className="flex justify-between items-center gap-2">
+              <h2 className="text-xl font-bold text-dorika-blue">Attendance History</h2>
+              <div className="flex gap-2">
+                <BackButton />
+              </div>
             </div>
           </div>
 
 {/* ================= TOP CONTROLS ================= */}
-<div className="bg-dorika-blueLight p-4 rounded-lg shadow mb-3 border border-dorika-blue">
+<div className="bg-dorika-blueLight p-2 rounded-lg shadow mb-3 border border-dorika-blue">
 
   {/* TOP SECTION */}
   <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
 
     {/* LEFT SIDE CONTROLS */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 w-full">
 
       {/* Month */}
       <div className="flex flex-col">
@@ -289,11 +313,24 @@ useEffect(() => {
         </select>
       </div>
 
+      <div className="flex flex-col lg:col-span-2">
+        <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+          Search
+        </label>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(normalizeSearchInput(e.target.value))}
+          placeholder="SEARCH NAME / USER ID / EMP ID"
+          className="border border-dorika-blue rounded px-3 py-2 text-sm uppercase focus:outline-none"
+        />
+      </div>
+
     </div>
   </div>
 
   {/* LEGEND SECTION */}
-  <div className="mt-4 border-t border-dorika-blue/20 pt-3">
+      <div className="mt-4 border-t border-dorika-blue/20 pt-3">
 
     <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-bold">
       <div className="flex items-center gap-2"><span className="w-3 h-3 bg-green-600 rounded-sm"></span>Present (P)</div>
@@ -314,6 +351,7 @@ useEffect(() => {
 
   </div>
 </div>
+          </MobileHeaderToggle>
 
         <div className="relative group flex-1 flex flex-col min-h-0"> 
           
@@ -339,7 +377,7 @@ useEffect(() => {
           {/* The Scrollable Box - NOW WRAPS THE TABLE CORRECTLY */}
           <div 
             ref={tableContainerRef} 
-            className="w-full overflow-x-auto bg-white rounded-lg shadow border scroll-smooth"
+            className="w-full flex-1 min-h-0 overflow-auto bg-white rounded-lg shadow border scroll-smooth"
           >
       
             <table className="w-full border-collapse border-dorika-blue text-[10px] sm:text-xs">
@@ -347,6 +385,7 @@ useEffect(() => {
                 <tr>
                   <th className="border px-2 border-dorika-blue">SL</th>
                   <th className="border px-2 border-dorika-blue">Emp ID</th>
+                  <th className="border px-2 border-dorika-blue">User ID</th>
                   <th className="border px-2 border-dorika-blue">Name</th>
                   <th className="border px-2 border-dorika-blue">Department</th>
                   <th className="border px-2 border-dorika-blue">Designation</th>
@@ -372,12 +411,13 @@ useEffect(() => {
                 {paginatedEmployees.map((emp, i) => (
                   <tr key={emp.employeeUserId} className={`${getRowColor(startIndex + i)}`}>
                     <td className="border px-2 border-dorika-blue">{perPage === "all" ? i + 1 : startIndex + i + 1}</td>
-                    <td className="border px-2 border-dorika-blue">{emp.employeeID}</td>
-                    <td className="border px-2 border-dorika-blue font-medium">
-                      {emp.firstName} {emp.lastName}
+                    <td className="border px-2 border-dorika-blue uppercase">{emp.employeeID}</td>
+                    <td className="border px-2 border-dorika-blue uppercase">{emp.employeeUserId}</td>
+                    <td className="border px-2 border-dorika-blue font-medium uppercase">
+                      {emp.firstName} {emp.middleName} {emp.lastName}
                     </td>
-                    <td className="border px-2 border-dorika-blue">{emp.departmentName}</td>
-                    <td className="border px-2 border-dorika-blue">{emp.designationName}</td>
+                    <td className="border px-2 border-dorika-blue uppercase">{emp.departmentName}</td>
+                    <td className="border px-2 border-dorika-blue uppercase">{emp.designationName}</td>
 
                     {daysInMonth.map((day) => {
                       const valObj = attendanceMap?.[emp.employeeUserId]?.days?.[day];

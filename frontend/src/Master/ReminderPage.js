@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate,useLocation } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
 import BackButton from "../component/BackButton";
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import { FaTrash } from "react-icons/fa";
 import toast from "react-hot-toast";
 import Pagination from "../Master/Pagination";
@@ -190,10 +191,11 @@ const displayedHistory = historyFilter
 
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    <div className="flex h-screen flex-col md:flex-row overflow-hidden">
       <Sidebar />
-      <div className="flex-1 overflow-x-hidden overflow-y-auto p-2 sm:p-4">
-        <div className="bg-white shadow-md rounded-md p-3">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-2 sm:p-4">
+        <div className="bg-white shadow-md rounded-md p-3 flex-1 flex flex-col min-h-0">
+         <MobileHeaderToggle>
          <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-3 mb-4
 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
           <h2 className="text-lg sm:text-xl font-bold text-dorika-blue">
@@ -213,10 +215,11 @@ flex flex-col md:flex-row md:justify-between md:items-center gap-3">
               History
             </button>
           </div>
-          <div className="overflow-x-auto">
+          </MobileHeaderToggle>
+          <div className="w-full flex-1 min-h-0 overflow-auto">
           {activeTab === "reminder" && (
             <table className="w-full min-w-[1000px] border border-dorika-blue text-xs sm:text-sm">
-              <thead className="bg-dorika-blue text-white">
+              <thead className="bg-dorika-blue text-white sticky top-0 z-10">
                 <tr>
                   <th className="border px-2 py-1">S.No</th>
                   <th className="border px-2 py-1">Employee ID</th>
@@ -274,7 +277,7 @@ flex flex-col md:flex-row md:justify-between md:items-center gap-3">
           
             
             <table className="w-full min-w-[900px] border border-dorika-blue text-xs sm:text-sm">
-              <thead className="bg-dorika-blue text-white">
+              <thead className="bg-dorika-blue text-white sticky top-0 z-10">
                 <tr>
                   <th className="border px-2 py-1">S.No</th>
                   <th className="border px-2 py-1">Employee ID</th>

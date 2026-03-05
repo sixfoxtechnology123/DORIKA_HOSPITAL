@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Sidebar from "../component/Sidebar";
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import { Key, RefreshCw, Save, Edit3, XCircle, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -125,11 +126,12 @@ const EmployeeUserIdCreated = () => {
   return (
     <div className="flex h-screen flex-col md:flex-row">
       <Sidebar/>
-    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-3">
         <h2 className="text-xl md:text-2xl font-bold text-dorika-blue mb-4">
           Employee Password Management
         </h2>
 
+        <MobileHeaderToggle>
         {/* TOP SECTION */}
         <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border-t-4 border-dorika-orange mb-6">
           <div className="flex flex-col md:flex-row items-stretch md:items-end gap-4">
@@ -171,12 +173,13 @@ const EmployeeUserIdCreated = () => {
             </button>
           </div>
         </div>
+        </MobileHeaderToggle>
 
         {/* TABLE SECTION */}
         {/* <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden"> */}
-          <div className="overflow-x-auto">
+          <div className="w-full flex-1 min-h-0 overflow-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
-              <thead className="bg-blue-50 text-dorika-blue text-[10px] md:text-xs uppercase font-bold">
+              <thead className="bg-blue-50 text-dorika-blue text-[10px] md:text-xs uppercase font-bold sticky top-0 z-10">
                 <tr>
                   <th className="p-2 md:p-4 border-b w-10">
                     <input 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Sidebar from "../component/Sidebar";
 import BackButton from "../component/BackButton";
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import toast from "react-hot-toast";
 import { jsPDF } from "jspdf";
 
@@ -178,10 +179,11 @@ const LeaveHistory = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row bg-gray-50">
+    <div className="flex h-screen flex-col md:flex-row bg-gray-50">
       <Sidebar />
-      <div className="flex-1 overflow-y-auto p-2 sm:p-3 md:p-4 lg:p-6">
-        <div className="bg-white shadow-md rounded-md p-2 sm:p-3 md:p-4" id="leave-history-print-root">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-2 sm:p-3 md:p-4 lg:p-6">
+        <div className="bg-white shadow-md rounded-md p-2 sm:p-3 md:p-4 flex-1 flex flex-col min-h-0" id="leave-history-print-root">
+          <MobileHeaderToggle>
           <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
             <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
               Employee Leave history
@@ -230,10 +232,11 @@ const LeaveHistory = () => {
               ))}
             </select>
           </div>
+          </MobileHeaderToggle>
 
-          <div className="w-full overflow-x-auto" id="leave-history-print">
+          <div className="w-full flex-1 min-h-0 overflow-auto" id="leave-history-print">
             <table className="min-w-[900px] w-full border border-dorika-blue text-xs sm:text-sm border-collapse">
-              <thead className="bg-dorika-blue text-white text-[10px] sm:text-xs md:text-sm">
+              <thead className="bg-dorika-blue text-white text-[10px] sm:text-xs md:text-sm sticky top-0 z-10">
                 <tr>
                   <th className="border px-2 py-1">Emp ID</th>
                   <th className="border px-2 py-1">Emp Name</th>

@@ -3,6 +3,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import Sidebar from "../component/Sidebar";
 import BackButton from "../component/BackButton";
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import { FaSearch } from "react-icons/fa";
 
 const PaySlipHistory = () => {
@@ -70,9 +71,10 @@ const PaySlipHistory = () => {
   return (
  <div className="flex h-screen flex-col md:flex-row">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
-        <div className="bg-white shadow-lg rounded-md p-3">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="bg-white shadow-lg rounded-md p-3 flex-1 flex flex-col min-h-0">
           
+        <MobileHeaderToggle>
         <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
           {/* whitespace-nowrap ensures the text doesn't wrap and overlap */}
           <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
@@ -109,11 +111,12 @@ const PaySlipHistory = () => {
               />
             </div>
           </div>
+          </MobileHeaderToggle>
 
         
-          <div className="overflow-x-auto w-full border rounded-md">
+          <div className="w-full flex-1 min-h-0 overflow-auto border rounded-md">
             <table className="w-full min-w-[800px] table-auto text-xs">
-            <thead className="bg-blue-800 text-white uppercase tracking-tighter">
+            <thead className="bg-blue-800 text-white uppercase tracking-tighter sticky top-0 z-10">
               <tr>
                 <th className="border border-blue-500 p-1 w-8">SL</th>
                 <th className="border border-blue-500 p-1">User ID</th>

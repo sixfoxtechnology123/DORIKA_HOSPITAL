@@ -3,6 +3,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import BackButton from "../component/BackButton";
 import Sidebar from "../component/Sidebar"; 
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import { useLocation, useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -394,64 +395,66 @@ const handleSave = async () => {
 };
   return (
     <>
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100">
       <Sidebar />
-      <div className="flex-1 p-4">
-        <div className="bg-blue-50 border w-full border-blue-300 rounded-lg shadow-md p-2 mb-4 
-            flex justify-between items-center">
-          <h2 className="text-xl font-bold text-blue-800 whitespace-nowrap">
-            Generate Pay Slip
-          </h2>
-          <div className="ml-auto">
-            <BackButton />
+      <div className="flex-1 p-4 flex flex-col min-h-0 overflow-hidden">
+        <MobileHeaderToggle>
+          <div className="bg-blue-50 border w-full border-blue-300 rounded-lg shadow-md p-2 mb-4 
+              flex justify-between items-center">
+            <h2 className="text-xl font-bold text-blue-800 whitespace-nowrap">
+              Generate Pay Slip
+            </h2>
+            <div className="ml-auto">
+              <BackButton />
+            </div>
           </div>
-        </div>
 
-        <div className="bg-yellow-100 p-2 rounded shadow mb-4">
-          <ColRow
-            label1="Employee Name"
-            value1={`${selectedEmployee.salutation} ${selectedEmployee.firstName} ${selectedEmployee.middleName} ${selectedEmployee.lastName}`}
-            label2="ID"
-            value2={selectedEmployee.employeeID}
-          />
-          <ColRow
-            label1="Mobile"
-            value1={selectedEmployee.permanentAddress.mobile}
-            label2="Email"
-            value2={selectedEmployee.permanentAddress.email}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <label>Month</label>
-            <select
-              className="border p-1 rounded font-semibold w-full cursor-not-allowed"
-              value={month}
-              disabled
-              onChange={(e) => setMonth(e.target.value)}
-            >
-              <option value="">Select</option>
-              {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label>Year</label>
-            <input
-              type="number"
-              className="border p-1 rounded w-full cursor-not-allowed"
-              value={year} 
-              disabled
-              onChange={(e) => setYear(e.target.value)}
-              placeholder="2025"
+          <div className="bg-yellow-100 p-2 rounded shadow mb-4">
+            <ColRow
+              label1="Employee Name"
+              value1={`${selectedEmployee.salutation} ${selectedEmployee.firstName} ${selectedEmployee.middleName} ${selectedEmployee.lastName}`}
+              label2="ID"
+              value2={selectedEmployee.employeeID}
+            />
+            <ColRow
+              label1="Mobile"
+              value1={selectedEmployee.permanentAddress.mobile}
+              label2="Email"
+              value2={selectedEmployee.permanentAddress.email}
             />
           </div>
-        </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label>Month</label>
+              <select
+                className="border p-1 rounded font-semibold w-full cursor-not-allowed"
+                value={month}
+                disabled
+                onChange={(e) => setMonth(e.target.value)}
+              >
+                <option value="">Select</option>
+                {["January","February","March","April","May","June","July","August","September","October","November","December"].map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label>Year</label>
+              <input
+                type="number"
+                className="border p-1 rounded w-full cursor-not-allowed"
+                value={year} 
+                disabled
+                onChange={(e) => setYear(e.target.value)}
+                placeholder="2025"
+              />
+            </div>
+          </div>
+        </MobileHeaderToggle>
 
         {/* PAY STRUCTURE */}
-        <div className="bg-white min-h-screen shadow-lg rounded-lg p-4 w-full">
+        <div className="bg-white shadow-lg rounded-lg p-4 w-full flex-1 min-h-0 overflow-auto">
           <h3 className="text-xl font-semibold text-sky-600 col-span-full mb-2">PAY STRUCTURE</h3>
 
          {/* EARNING + DEDUCTION HORIZONTAL */}

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { FaTrash, FaEdit } from "react-icons/fa";
 import BackButton from "../component/BackButton";
 import Sidebar from '../component/Sidebar';
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import toast from "react-hot-toast";
 
 
@@ -37,10 +38,11 @@ const LeaveTypeList = () => {
   };
 
   return (
-  <div className="flex min-h-screen flex-col md:flex-row">
+  <div className="flex h-screen flex-col md:flex-row">
       <Sidebar/>
-    <div className="flex-1 overflow-y-auto">
-    <div className="p-3 bg-white shadow-md rounded-md">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+    <div className="p-3 bg-white shadow-md rounded-md flex-1 flex flex-col min-h-0">
+      <MobileHeaderToggle>
       <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
   
         {/* Desktop and mobile: title left, back button right */}
@@ -64,10 +66,11 @@ const LeaveTypeList = () => {
           </button>
         </div>
       </div>
+      </MobileHeaderToggle>
 
-<div className="overflow-x-auto">
+<div className="w-full flex-1 min-h-0 overflow-auto">
       <table className="w-full table-auto border border-dorika-blue">
-        <thead className="bg-dorika-blue text-white text-sm">
+        <thead className="bg-dorika-blue text-white text-sm sticky top-0 z-10">
           <tr>
             <th className="border border-dorika-blue px-2 py-1">S.No</th>
             <th className="border border-dorika-blue px-2 py-1">Leave Type ID</th>

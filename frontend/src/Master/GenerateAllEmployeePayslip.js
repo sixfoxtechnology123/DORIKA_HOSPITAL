@@ -3,6 +3,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import BackButton from "../component/BackButton";
 import Sidebar from "../component/Sidebar";
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 
@@ -10,6 +11,7 @@ const GenerateAllEmployeePayslip = () => {
   const navigate = useNavigate();
   const [selectedMonthYear, setSelectedMonthYear] = useState(localStorage.getItem("payslip_date") || "");
   const [selectedDept, setSelectedDept] = useState(localStorage.getItem("payslip_dept") || "All");
+  const [searchTerm, setSearchTerm] = useState("");
   
   const [employeesData, setEmployeesData] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -34,6 +36,13 @@ const GenerateAllEmployeePayslip = () => {
   const { month, year, monthNum } = getPeriod();
   const uniqueEarnings = ["Basic", "HRA", "Mobile Allowance", "Bonus", "Management Allowance"];
   const uniqueDeductions = ["PF", "PT", "ESI"];
+  const normalizeSearchInput = (value) => {
+    let v = String(value || "").toUpperCase();
+    if (/^[A-Z]+\d/.test(v)) {
+      v = v.replace(/^([A-Z]+)-?(\d.*)$/, "$1-$2");
+    }
+    return v;
+  };
 
   useEffect(() => {
     axios.get("/api/departments")
@@ -227,7 +236,16 @@ const handleUniversalEdit = (employeeID, field, value, headName = null) => {
     setEmployeesData(updated);
   };
 
-  const filteredEmployees = selectedDept === "All" ? employeesData : employeesData.filter(e => e.departmentName === selectedDept);
+  const filteredEmployees = employeesData.filter((e) => {
+    const deptMatch = selectedDept === "All" || e.departmentName === selectedDept;
+    if (!deptMatch) return false;
+    const q = String(searchTerm || "").toUpperCase().trim();
+    if (!q) return true;
+    const name = `${e.firstName || ""} ${e.lastName || ""}`.trim().toUpperCase();
+    const employeeId = String(e.employeeID || "").toUpperCase();
+    const employeeUserId = String(e.employeeUserId || "").toUpperCase();
+    return name.includes(q) || employeeId.includes(q) || employeeUserId.includes(q);
+  });
 
 const handleBulkSubmit = async (status = "Draft") => {
     setIsProcessing(true);
@@ -387,16 +405,28 @@ const exportExcel = () => {
   return (
    <div className="flex h-screen flex-col md:flex-row">
       <Sidebar/>
-    <div className="flex-1 pl-3 flex flex-col min-h-0 overflow-y-auto">
+    <div className="flex-1 pl-3 flex flex-col min-h-0 overflow-hidden">
+    <MobileHeaderToggle>
     {/* Header Section */}
-       <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
-          {/* whitespace-nowrap ensures the text doesn't wrap and overlap */}
-          <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
-          Payslip Control
-          </h2>
-          
-          <div className="flex shrink-0">
-            <BackButton />
+       <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4">
+          <div className="flex flex-row justify-between items-center gap-2">
+            <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
+            Payslip Control
+            </h2>
+            
+            <div className="flex shrink-0">
+              <BackButton />
+            </div>
+          </div>
+          <div className="mt-2">
+            <label className="font-semibold text-dorika-blue text-xs uppercase mb-1 block">Search</label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(normalizeSearchInput(e.target.value))}
+              placeholder="SEARCH NAME / USER ID / EMP ID"
+              className="w-full border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none"
+            />
           </div>
         </div>
 
@@ -426,10 +456,11 @@ const exportExcel = () => {
         <button onClick={() => handleBulkSubmit("Finalized")} disabled={masterLocked || isLocked || !isGenerated || isProcessing} className="flex-1 whitespace-nowrap bg-red-700 text-white px-2 md:px-4 py-2 rounded-lg font-bold text-[10px] md:text-xs uppercase disabled:bg-gray-300 shadow-md active:scale-95">Close</button>
       </div>
     </div>
+    </MobileHeaderToggle>
 
-        <div className="bg-white rounded-xl shadow-2xl overflow-x-auto border border-slate-200">
+        <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full flex-1 min-h-0 overflow-auto">
           <table className="w-full border-collapse text-center">
-            <thead>
+            <thead className="sticky top-0 z-10">
               <tr className="bg-slate-800 text-white text-[10px] uppercase">
                 <th className="p-2 border border-slate-700" colSpan="4">Employee Info</th>
                 <th className="p-2 border border-slate-700 bg-blue-900" colSpan={uniqueEarnings.length + 1}>Earnings</th>

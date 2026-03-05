@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { FaTrash, FaEdit, FaFileAlt, FaDownload } from "react-icons/fa";
 import BackButton from "../component/BackButton";
 import Sidebar from '../component/Sidebar';
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5002";
 
@@ -35,10 +36,11 @@ const PolicyList = () => {
   };
 
   return (
-  <div className="flex min-h-screen flex-col md:flex-row">
+  <div className="flex h-screen flex-col md:flex-row">
       <Sidebar/>
-    <div className="flex-1 overflow-y-auto">
-    <div className="p-3 bg-white shadow-md rounded-md">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+    <div className="p-3 bg-white shadow-md rounded-md flex-1 flex flex-col min-h-0">
+      <MobileHeaderToggle>
       <div className="bg-green-50 border border-green-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
         <h2 className="text-xl font-bold text-green-800">Policy</h2>
         <div className="flex gap-2">
@@ -51,9 +53,11 @@ const PolicyList = () => {
           </button>
         </div>
       </div>
+      </MobileHeaderToggle>
 
+      <div className="w-full flex-1 min-h-0 overflow-auto">
       <table className="w-full table-auto border border-green-500">
-        <thead className="bg-gray-200 text-sm">
+        <thead className="bg-gray-200 text-sm sticky top-0 z-10">
           <tr>
             <th className="border border-green-500 px-2 py-1">Policy ID</th>
             <th className="border border-green-500 px-2 py-1">Policy Name</th>
@@ -140,6 +144,7 @@ const PolicyList = () => {
           )}
         </tbody>
       </table>
+      </div>
     </div>
   </div>
  </div>

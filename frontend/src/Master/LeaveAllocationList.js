@@ -5,6 +5,7 @@ import { FaTrash, FaEdit } from "react-icons/fa";
 import Sidebar from "../component/Sidebar";
 import toast from "react-hot-toast";
 import BackButton from "../component/BackButton";
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 
 const LeaveAllocationList = () => {
   const [allocations, setAllocations] = useState([]);
@@ -37,10 +38,11 @@ const LeaveAllocationList = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    <div className="flex h-screen flex-col md:flex-row">
       <Sidebar />
-      <div className="flex-1 overflow-y-auto p-3">
-        <div className="bg-white shadow-md rounded-md p-3">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-3">
+        <div className="bg-white shadow-md rounded-md p-3 flex-1 flex flex-col min-h-0">
+          <MobileHeaderToggle>
           <div className="bg-blue-50 border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex justify-between items-center">
             <h2 className="text-xl font-bold text-blue-800">Leave Allocations</h2>
             <div className="flex gap-2">
@@ -53,10 +55,11 @@ const LeaveAllocationList = () => {
               </button>
             </div>
           </div>
+          </MobileHeaderToggle>
 
-          <div className="overflow-x-auto">
+          <div className="w-full flex-1 min-h-0 overflow-auto">
             <table className="w-full table-auto border border-blue-500 text-sm">
-              <thead className="bg-gray-200">
+              <thead className="bg-gray-200 sticky top-0 z-10">
                 <tr>
                   <th className="border border-blue-500 px-3 py-1">Sl.No</th>
                   <th className="border border-blue-500 px-3 py-1">Employee</th>

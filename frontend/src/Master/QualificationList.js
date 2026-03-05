@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaTrash, FaEdit } from 'react-icons/fa';
 import BackButton from '../component/BackButton';
 import Sidebar from '../component/Sidebar';
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import Pagination from "../Master/Pagination";
 
 const QualificationList = () => {
@@ -48,26 +49,28 @@ const QualificationList = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row bg-gray-50">
+    <div className="flex h-screen flex-col md:flex-row bg-gray-50">
       <Sidebar />
-      <div className="flex-1 overflow-x-hidden overflow-y-auto p-2 sm:p-3">
-        <div className="p-3 bg-white shadow-md rounded-md">
-          <div className="flex justify-between items-center gap-2">
-            <h2 className="text-lg sm:text-xl font-bold text-dorika-blue whitespace-nowrap">Qualification</h2>
-            <div className="flex gap-2">
-              <BackButton />
-              <button
-                onClick={() => navigate('/QualificationMaster')}
-                className="bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 rounded font-semibold text-sm sm:text-base whitespace-nowrap"
-              >
-                Add Qualification
-              </button>
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-2 sm:p-3">
+        <div className="p-3 bg-white shadow-md rounded-md flex-1 flex flex-col min-h-0">
+          <MobileHeaderToggle>
+            <div className="flex justify-between items-center gap-2">
+              <h2 className="text-lg sm:text-xl font-bold text-dorika-blue whitespace-nowrap">Qualification</h2>
+              <div className="flex gap-2">
+                <BackButton />
+                <button
+                  onClick={() => navigate('/QualificationMaster')}
+                  className="bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 rounded font-semibold text-sm sm:text-base whitespace-nowrap"
+                >
+                  Add Qualification
+                </button>
+              </div>
             </div>
-          </div>
+          </MobileHeaderToggle>
 
-          <div className="overflow-x-auto">
+          <div className="w-full flex-1 min-h-0 overflow-auto">
             <table className="mt-2 w-full table-auto border border-dorika-blue">
-              <thead className="bg-dorika-blue text-white text-sm">
+              <thead className="bg-dorika-blue text-white text-sm sticky top-0 z-10">
                 <tr>
                   <th className="border border-dorika-blue px-2 py-1">Code</th>
                   <th className="border border-dorika-blue px-2 py-1 ">Qualification Name</th>

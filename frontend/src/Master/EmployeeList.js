@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { FaTrash, FaEdit } from "react-icons/fa";
 import BackButton from "../component/BackButton";
 import Sidebar from '../component/Sidebar';
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import toast from "react-hot-toast";
 import Pagination from "./Pagination";
 
@@ -138,6 +139,7 @@ const paginatedEmployees = perPage === "all"
    
     <div className="flex-1 flex flex-col min-h-0 p-2 sm:p-3 md:p-2 overflow-hidden">
     <div className="flex-1 flex flex-col min-h-0 p-3 bg-white shadow-md rounded-md">
+    <MobileHeaderToggle>
     <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-3 mb-4">
 
     <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
@@ -201,9 +203,10 @@ const paginatedEmployees = perPage === "all"
       </div>
     </div>
   </div>
+    </MobileHeaderToggle>
      <div className="w-full flex-1 min-h-0 overflow-y-auto overflow-x-auto">
         <table className="min-w-[700px] w-full table-auto border border-dorika-blue">
-        <thead className="bg-dorika-blue text-white text-sm">
+        <thead className="bg-dorika-blue text-white text-sm sticky top-0 z-10">
           <tr>
             <th className="border border-dorika-blue px-2 py-1">Sl No</th>
             <th className="border border-dorika-blue px-2 py-1">Emp ID</th>

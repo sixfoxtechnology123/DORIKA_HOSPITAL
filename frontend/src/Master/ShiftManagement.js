@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import Sidebar from '../component/Sidebar';
 import BackButton from "../component/BackButton";
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import { useNavigate } from "react-router-dom";
 import Pagination from "./Pagination";
 import toast from "react-hot-toast";
@@ -26,6 +27,7 @@ const ShiftManagement = () => {
   const [employees, setEmployees] = useState([]);
   const [designations, setDesignations] = useState([]);
   const [selectedDesignation, setSelectedDesignation] = useState("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
   const [shifts, setShifts] = useState({});
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -38,6 +40,13 @@ const ShiftManagement = () => {
   const [scopedDesignations, setScopedDesignations] = useState([]);
 
   const normalizeCode = (value) => String(value || "").trim().toUpperCase();
+  const normalizeSearchInput = (value) => {
+    let v = String(value || "").toUpperCase();
+    if (/^[A-Z]+\d/.test(v)) {
+      v = v.replace(/^([A-Z]+)-?(\d.*)$/, "$1-$2");
+    }
+    return v;
+  };
 
   const parseDDCodes = (value) => {
     const code = normalizeCode(value);
@@ -254,7 +263,7 @@ const nonDDShiftOptions = useMemo(
       return employees.filter((emp) => {
         const scopedDeptMatch =
           !isDepartmentHeadScoped || emp.departmentName === scopedDepartment;
-        const scopedDesignationMatch =
+      const scopedDesignationMatch =
           !isDepartmentHeadScoped ||
           scopedDesignations.length === 0 ||
           scopedDesignations.includes(emp.designationName);
@@ -267,7 +276,27 @@ const nonDDShiftOptions = useMemo(
           selectedDesignation === "ALL" ||
           emp.designationName === selectedDesignation;
 
-        return scopedDeptMatch && scopedDesignationMatch && deptMatch && designationMatch;
+        const q = String(searchTerm || "").toUpperCase().trim();
+        if (!q) {
+          return scopedDeptMatch && scopedDesignationMatch && deptMatch && designationMatch;
+        }
+
+        const fullName = `${emp.firstName || ""} ${emp.middleName || ""} ${emp.lastName || ""}`
+          .replace(/\s+/g, " ")
+          .trim()
+          .toUpperCase();
+        const employeeId = String(emp.employeeID || "").toUpperCase();
+        const employeeUserId = String(emp.employeeUserId || "").toUpperCase();
+        const searchMatch =
+          fullName.includes(q) || employeeId.includes(q) || employeeUserId.includes(q);
+
+        return (
+          scopedDeptMatch &&
+          scopedDesignationMatch &&
+          deptMatch &&
+          designationMatch &&
+          searchMatch
+        );
       });
     }, [
       employees,
@@ -276,6 +305,7 @@ const nonDDShiftOptions = useMemo(
       scopedDesignations,
       selectedDepartment,
       selectedDesignation,
+      searchTerm,
     ]);
 
        const handleShiftChange = (emp, day, value, isSecondHalf = null) => {
@@ -485,34 +515,42 @@ const scrollTable = (direction) => {
   return (
   <div className="flex h-screen flex-col md:flex-row">
       <Sidebar/>
-    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
-    <div className="p-3 bg-white shadow-md rounded-md">
-      <div className="bg-dorika-blueLight borderborder-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
+    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-3">
+    <div className="flex-1 flex flex-col min-h-0">
+      <MobileHeaderToggle>
+      <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
         <h2 className="text-xl font-bold text-dorika-blue">Shift Management</h2>
         <div className="flex gap-2">
           <BackButton />
-          
-          {/* <button
-            onClick={() => navigate("/EmployeeMaster")}
-            className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
-          >
-            Add Employee
-          </button> */}
+
+        {/* <button
+          onClick={() => navigate("/EmployeeMaster")}
+          className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
+        >
+          Add Employee
+        </button> */}
         </div>
       </div>
+  
+      {/* ================= TOP SECTION ================= */}
+<div className="bg-dorika-blueLight p-2 rounded-lg shadow mb-3 border border-dorika-blue">
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+    <div className="flex flex-col">
+      <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+        Month
+      </label>
+      <input
+        type="month"
+        value={selectedMonth}
+        onChange={(e) => setSelectedMonth(e.target.value)}
+        className="border border-dorika-blue rounded px-3 py-1 bg-white text-sm focus:outline-none"
+      />
+    </div>
 
-   {/* ================= TOP SECTION ================= */}
-<div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-4 
-flex flex-col gap-4 border border-dorika-blue">
-
-
-
-  {/* BOTTOM ROW (Desktop) — Department + Designation */}
-  <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-
-    {/* Department */}
-    <div className="flex flex-col lg:flex-row lg:items-center gap-2 w-full lg:w-auto">
-      <label className="font-semibold text-dorika-blue">Department:</label>
+    <div className="flex flex-col">
+      <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+        Department
+      </label>
       <select
         value={selectedDepartment}
         onChange={(e) => {
@@ -520,8 +558,7 @@ flex flex-col gap-4 border border-dorika-blue">
           setSelectedDesignation("ALL");
         }}
         disabled={isDepartmentHeadScoped}
-        className="w-full lg:w-auto border border-dorika-blue rounded px-3 py-1 
-        text-dorika-blue focus:outline-none focus:ring-1 focus:ring-dorika-green"
+        className="border border-dorika-blue rounded px-3 py-1 text-sm bg-white"
       >
         {visibleDepartments.map((dept) => (
           <option key={dept} value={dept}>{dept}</option>
@@ -529,15 +566,15 @@ flex flex-col gap-4 border border-dorika-blue">
       </select>
     </div>
 
-    {/* Designation */}
-    <div className="flex flex-col lg:flex-row lg:items-center gap-2 w-full lg:w-auto">
-      <label className="font-semibold text-dorika-blue">Designation:</label>
+    <div className="flex flex-col">
+      <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+        Designation
+      </label>
       <select
         value={selectedDesignation}
         onChange={(e) => setSelectedDesignation(e.target.value)}
         disabled={isDepartmentHeadScoped}
-        className="w-full lg:w-auto border border-dorika-blue rounded px-3 py-1 
-        text-dorika-blue focus:outline-none focus:ring-1 focus:ring-dorika-green"
+        className="border border-dorika-blue rounded px-3 py-1 text-sm bg-white"
       >
         {displayDesignations.map((des) => (
           <option key={des} value={des}>
@@ -547,59 +584,54 @@ flex flex-col gap-4 border border-dorika-blue">
       </select>
     </div>
 
-  </div>
-    {/* TOP ROW (Desktop) — Month + Show + Print */}
-  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div className="flex flex-col">
+      <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+        Show
+      </label>
+      <select
+        value={perPage}
+        onChange={(e) => {
+          const val = e.target.value;
+          setPerPage(val === "all" ? "all" : parseInt(val, 10));
+          setCurrentPage(1);
+        }}
+        className="border border-dorika-blue rounded px-3 py-1 text-sm bg-white font-semibold text-dorika-blue"
+      >
+        <option value={8}>8</option>
+        <option value={20}>20</option>
+        <option value={50}>50</option>
+        <option value={100}>100</option>
+        <option value={300}>300</option>
+        <option value={400}>400</option>
+        <option value="all">ALL</option>
+      </select>
+    </div>
 
-    {/* Month */}
-    <div className="flex flex-col lg:flex-row lg:items-center gap-2 w-full lg:w-auto">
-      <label className="font-semibold text-dorika-blue">Month:</label>
+    <div className="flex flex-col lg:col-span-2">
+      <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+        Search
+      </label>
       <input
-        type="month"
-        value={selectedMonth}
-        onChange={(e) => setSelectedMonth(e.target.value)}
-        className="w-full lg:w-auto border border-dorika-blue rounded px-3 py-1 
-        text-dorika-blue focus:outline-none focus:ring-1 focus:ring-dorika-orange"
+        type="text"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(normalizeSearchInput(e.target.value))}
+        placeholder="SEARCH NAME / USER ID / EMP ID"
+        className="border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none"
       />
     </div>
+  </div>
 
-    {/* Show + Print */}
-    <div className="flex flex-col md:flex-row items-center gap-3 w-full lg:w-auto">
-
-      <div className="flex items-center gap-2 w-full md:w-auto">
-        <label className="text-xs font-bold text-dorika-blue uppercase whitespace-nowrap">
-          Show:
-        </label>
-        <select
-          value={perPage}
-          onChange={(e) => {
-            const val = e.target.value;
-            setPerPage(val === "all" ? "all" : parseInt(val));
-            setCurrentPage(1);
-          }}
-          className="flex-1 md:flex-none border border-dorika-blue rounded px-3 py-1 text-sm bg-white font-semibold text-dorika-blue"
-        >
-          <option value={8}>8</option>
-          <option value={20}>20</option>
-          <option value={50}>50</option>
-          <option value={100}>100</option>
-          <option value={300}>300</option>
-          <option value={400}>400</option>
-          <option value="all">ALL</option>
-        </select>
-      </div>
-
-      <button
-        onClick={handlePrint}
-        className="w-full md:w-auto bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1.5 rounded font-semibold whitespace-nowrap text-sm"
-      >
-        Print Report
-      </button>
-
-    </div>
+  <div className="mt-3 flex items-center justify-end gap-2">
+    <button
+      type="button"
+      onClick={handlePrint}
+      className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold text-sm"
+    >
+      Print Report
+    </button>
   </div>
 </div>
-
+      </MobileHeaderToggle>
 <div className="relative group flex-1 flex flex-col min-h-0"> 
   
 {/* Left Fixed Gray Arrow */}
@@ -624,7 +656,7 @@ flex flex-col gap-4 border border-dorika-blue">
   {/* The Scrollable Box - NOW WRAPS THE TABLE CORRECTLY */}
   <div 
     ref={tableContainerRef} 
-    className="w-full overflow-x-auto bg-white rounded-lg shadow border scroll-smooth"
+    className="w-full flex-1 min-h-0 overflow-auto bg-white rounded-lg shadow border scroll-smooth"
   >
       
         <table className="border-collapse border-dorika-blue w-full text-xs">
@@ -651,6 +683,7 @@ flex flex-col gap-4 border border-dorika-blue">
             </th>
               <th className="border px-2 py-1 border-dorika-blue">SL No</th>
               <th className="border px-2 py-1 border-dorika-blue">Emp ID</th>
+              <th className="border px-2 py-1 border-dorika-blue">User ID</th>
               <th className="border px-2 py-1 border-dorika-blue">Employee Name</th>
               <th className="border px-2 py-1 border-dorika-blue">Department</th>
               <th className="border px-2 py-1 border-dorika-blue">Designation</th>
@@ -681,10 +714,11 @@ flex flex-col gap-4 border border-dorika-blue">
                     />
                   </td>
                 <td className="border px-2 py-1 border-dorika-blue"> {perPage === "all" ? index + 1 : startIndex + index + 1}</td>
-                <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.employeeID}</td>
-                <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.firstName} {emp.middleName} {emp.lastName}</td>
-                <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.departmentName}</td>
-                <td className="border px-2 py-1 border-dorika-blue font-medium">{emp.designationName}</td>
+                <td className="border px-2 py-1 border-dorika-blue font-medium uppercase">{emp.employeeID}</td>
+                <td className="border px-2 py-1 border-dorika-blue font-medium uppercase">{emp.employeeUserId}</td>
+                <td className="border px-2 py-1 border-dorika-blue font-medium uppercase">{emp.firstName} {emp.middleName} {emp.lastName}</td>
+                <td className="border px-2 py-1 border-dorika-blue font-medium uppercase">{emp.departmentName}</td>
+                <td className="border px-2 py-1 border-dorika-blue font-medium uppercase">{emp.designationName}</td>
                 {daysInMonth.map((day) => {
                 const currentShift = shifts?.[emp.employeeUserId]?.[day] || "";
                 const isDD = currentShift.startsWith("DD:");
@@ -789,3 +823,4 @@ flex flex-col gap-4 border border-dorika-blue">
 };
 
 export default ShiftManagement;
+

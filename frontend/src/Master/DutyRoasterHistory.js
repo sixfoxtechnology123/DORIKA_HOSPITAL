@@ -3,6 +3,7 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import Sidebar from "../component/Sidebar";
 import BackButton from "../component/BackButton";
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import Pagination from "./Pagination";
 
 const pad = (n) => String(n).padStart(2, "0");
@@ -213,8 +214,10 @@ const DutyRoasterHistory = () => {
   }, [selectedShift]);
 
   const shiftOptions = useMemo(() => {
-    const codes = Object.keys(shiftMap).filter(Boolean).sort();
-    return ["ALL", "---", ...codes];
+    const codes = Object.keys(shiftMap)
+      .filter((c) => c && c !== "OFF")
+      .sort();
+    return ["ALL", "OFF", "DD", "---", ...codes];
   }, [shiftMap]);
 
   const filteredRows = useMemo(() => {
@@ -229,6 +232,10 @@ const DutyRoasterHistory = () => {
       const shiftMatch =
         selectedShiftCode === "ALL"
           ? true
+          : selectedShiftCode === "OFF"
+          ? rowShiftCode === "OFF"
+          : selectedShiftCode === "DD"
+          ? rowShiftCode.startsWith("DD:")
           : selectedShiftCode === "---"
           ? !rowShiftCode || rowShiftCode === "-"
           : rowShiftCode === selectedShiftCode ||
@@ -273,14 +280,15 @@ const DutyRoasterHistory = () => {
     <div className="flex h-screen flex-col md:flex-row">
       <Sidebar />
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-3">
-        <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-dorika-blue">Duty Roaster History</h2>
-          <div className="flex gap-2">
-            <BackButton />
+        <MobileHeaderToggle>
+          <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
+            <h2 className="text-xl font-bold text-dorika-blue">Duty Roaster History</h2>
+            <div className="flex gap-2">
+              <BackButton />
+            </div>
           </div>
-        </div>
 
-        <div className="bg-dorika-blueLight p-2 rounded-lg shadow mb-3 border border-dorika-blue">
+          <div className="bg-dorika-blueLight p-2 rounded-lg shadow mb-3 border border-dorika-blue">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
             <div className="flex flex-col">
               <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
@@ -358,7 +366,7 @@ const DutyRoasterHistory = () => {
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-end gap-2">
+            <div className="mt-3 flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={handleExportExcel}
@@ -380,8 +388,9 @@ const DutyRoasterHistory = () => {
               <option value={100}>100</option>
               <option value="all">ALL</option>
             </select>
+            </div>
           </div>
-        </div>
+        </MobileHeaderToggle>
 
         <div className="w-full flex-1 min-h-0 overflow-auto bg-white rounded-lg shadow border border-dorika-blue">
           <table className="min-w-[1200px] w-full border-collapse text-xs sm:text-sm">

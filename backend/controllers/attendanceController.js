@@ -2,6 +2,7 @@ const Attendance = require("../models/Attendance");
 const Leave = require("../models/LeaveApplication");
 const ShiftMaster = require("../models/Shift");
 const ShiftManagement = require("../models/ShiftManagement");
+const Employee = require("../models/Employee");
 
 const OFFICE_LAT = 26.652061;
 const OFFICE_LNG = 92.790961;
@@ -215,6 +216,70 @@ const calculateDuration = (shiftStart, shiftEnd) => {
   return `${h}h ${m}m`;
 };
 
+const isOpenPunchRecord = (rec) => {
+  const status = String(rec?.status || "").trim().toUpperCase();
+  const inTime = String(rec?.checkInTime || "").trim();
+  const outTime = String(rec?.checkOutTime || "").trim();
+  if (!inTime || inTime === "--") return false;
+  if (outTime && outTime !== "--") return false;
+  return status === "PRESENT" || status === "P" || status === "P(L)";
+};
+
+const sanitizeRecordForStatus = (record = {}) => {
+  const status = String(record.status || "").trim().toUpperCase();
+  if (status === "OFF" || status === "ABSENT" || status.startsWith("SL") || status.startsWith("CL")) {
+    return {
+      ...record,
+      checkInTime: "--",
+      checkOutTime: "--",
+      actualWorkDuration: "--",
+      isOT: false,
+      otHours: 0,
+    };
+  }
+  return record;
+};
+
+const autoCloseOpenRecordAtShiftEnd = (record = {}, now = new Date()) => {
+  if (!isOpenPunchRecord(record)) return false;
+  if (!record.shiftStartTime || !record.shiftEndTime || record.shiftStartTime === "--" || record.shiftEndTime === "--") {
+    return false;
+  }
+  if (!record.date) return false;
+
+  const shiftStartMin = parseTimeToMinutes(record.shiftStartTime);
+  let shiftEndMin = parseTimeToMinutes(record.shiftEndTime);
+  if (shiftEndMin < shiftStartMin) shiftEndMin += 1440;
+
+  const cutoff = new Date(`${record.date}T00:00:00`);
+  cutoff.setMinutes(cutoff.getMinutes() + shiftEndMin + 60);
+  if (now < cutoff) return false;
+
+  record.checkOutTime = record.shiftEndTime;
+  record.workDuration = calculateDuration(record.shiftStartTime, record.shiftEndTime);
+  record.actualWorkDuration = calculateActualDuration(record.checkInTime, record.shiftEndTime);
+  record.isOT = false;
+  record.otHours = 0;
+  return true;
+};
+
+const autoCloseAttendanceRecords = (attendanceDoc, now = new Date()) => {
+  if (!attendanceDoc || !Array.isArray(attendanceDoc.records)) return false;
+  let changed = false;
+  for (const rec of attendanceDoc.records) {
+    if (autoCloseOpenRecordAtShiftEnd(rec, now)) changed = true;
+  }
+  if (changed) attendanceDoc.totalPaidDays = calculateTotalPaidDays(attendanceDoc.records);
+  return changed;
+};
+
+const buildEmployeeDisplayName = (employeeDoc = {}) => {
+  const fullName = `${employeeDoc.firstName || ""} ${employeeDoc.middleName || ""} ${employeeDoc.lastName || ""}`
+    .replace(/\s+/g, " ")
+    .trim();
+  return fullName || String(employeeDoc.name || "").trim();
+};
+
 // --- MAIN CONTROLLER ---
 
 const markDailyAttendance = async (req, res) => {
@@ -223,9 +288,9 @@ const markDailyAttendance = async (req, res) => {
     const role = String(req.user?.role || "").toLowerCase();
     const tokenUserId = req.user?.employeeUserId;
     const tokenEmpId = req.user?.employeeID;
-    const safeEmployeeUserId = employeeUserId || tokenUserId;
-    const safeEmployeeId = employeeId || tokenEmpId;
-    const safeEmployeeName = (employeeName || "").trim() || safeEmployeeUserId;
+    let safeEmployeeUserId = employeeUserId || tokenUserId;
+    let safeEmployeeId = employeeId || tokenEmpId;
+    let safeEmployeeName = (employeeName || "").trim() || safeEmployeeUserId;
 
     if (!safeEmployeeUserId) {
       return res.status(400).json({ message: "Employee user ID is required" });
@@ -235,6 +300,22 @@ const markDailyAttendance = async (req, res) => {
       if (!tokenUserId || tokenUserId !== safeEmployeeUserId || (tokenEmpId && safeEmployeeId && tokenEmpId !== safeEmployeeId)) {
         return res.status(403).json({ message: "Forbidden" });
       }
+    }
+
+    const employeeDoc = await Employee.findOne({
+      $or: [
+        { employeeUserId: safeEmployeeUserId },
+        ...(safeEmployeeId ? [{ employeeID: safeEmployeeId }] : []),
+      ],
+    })
+      .select("employeeID employeeUserId firstName middleName lastName name")
+      .lean();
+
+    if (employeeDoc) {
+      safeEmployeeUserId = employeeDoc.employeeUserId || safeEmployeeUserId;
+      safeEmployeeId = employeeDoc.employeeID || safeEmployeeId;
+      const displayName = buildEmployeeDisplayName(employeeDoc);
+      if (displayName) safeEmployeeName = displayName;
     }
 
     if (latitude == null || longitude == null) {
@@ -276,6 +357,10 @@ const markDailyAttendance = async (req, res) => {
       if (!attendance.employeeName) attendance.employeeName = safeEmployeeName;
     }
 
+    if (autoCloseAttendanceRecords(attendance, now)) {
+      await attendance.save();
+    }
+
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toLocaleDateString('en-CA');
@@ -307,14 +392,14 @@ const markDailyAttendance = async (req, res) => {
     let recordToUpdate = null;
     if (yesterdayIndex !== -1) {
       const rec = attendance.records[yesterdayIndex];
-      if (rec.checkInTime && (!rec.checkOutTime || rec.checkOutTime === "" || rec.checkOutTime === "--")) {
+      if (isOpenPunchRecord(rec)) {
         recordToUpdate = rec;
       }
     }
 
     if (!recordToUpdate && todayIndex !== -1) {
       const rec = attendance.records[todayIndex];
-      if (rec.checkInTime && (!rec.checkOutTime || rec.checkOutTime === "" || rec.checkOutTime === "--")) {
+      if (isOpenPunchRecord(rec)) {
         recordToUpdate = rec;
       }
     }
@@ -496,8 +581,18 @@ const updateAttendanceRecord = async (req, res) => {
     if (status === "P" || status === "P(L)") finalStatus = "Present";
     if (status === "A") finalStatus = "Absent";
 
-    attendanceDoc.records[recordIndex].status = finalStatus;
-    attendanceDoc.records[recordIndex].isLate = finalStatus === "Present" ? !!isLate : false;
+    const target = attendanceDoc.records[recordIndex];
+    target.status = finalStatus;
+    target.isLate = finalStatus === "Present" ? !!isLate : false;
+
+    // Keep OFF/ABSENT records time-free to prevent invalid punch-out display.
+    if (finalStatus === "OFF" || finalStatus === "Absent") {
+      target.checkInTime = "--";
+      target.checkOutTime = "--";
+      target.actualWorkDuration = "--";
+      target.isOT = false;
+      target.otHours = 0;
+    }
     
     // Update Paid Days on manual edit
     attendanceDoc.totalPaidDays = calculateTotalPaidDays(attendanceDoc.records);
@@ -518,7 +613,19 @@ const getMyAttendance = async (req, res) => {
     }
 
     const history = await Attendance.find({ employeeUserId }).sort({ year: -1, month: -1 });
-    res.status(200).json(history);
+    const now = new Date();
+    const sanitized = [];
+    for (const doc of history) {
+      if (autoCloseAttendanceRecords(doc, now)) {
+        await doc.save();
+      }
+      const plain = doc.toObject();
+      sanitized.push({
+        ...plain,
+        records: Array.isArray(plain.records) ? plain.records.map(sanitizeRecordForStatus) : [],
+      });
+    }
+    res.status(200).json(sanitized);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -527,8 +634,47 @@ const getMyAttendance = async (req, res) => {
 const getAttendanceHistory = async (req, res) => {
   try {
     const { month, year } = req.query;
-    const data = await Attendance.find({ month: Number(month), year: Number(year) }).lean();
-    res.json(data);
+    const data = await Attendance.find({ month: Number(month), year: Number(year) });
+    const now = new Date();
+    const normalizedDocs = [];
+    for (const doc of data) {
+      if (autoCloseAttendanceRecords(doc, now)) {
+        await doc.save();
+      }
+      normalizedDocs.push(doc.toObject());
+    }
+
+    const employeeUserIds = normalizedDocs.map((d) => d.employeeUserId).filter(Boolean);
+    const employees = await Employee.find(
+      { employeeUserId: { $in: employeeUserIds } },
+      { employeeUserId: 1, firstName: 1, middleName: 1, lastName: 1, name: 1 }
+    ).lean();
+
+    const employeeMap = new Map(
+      employees.map((e) => [e.employeeUserId, buildEmployeeDisplayName(e)])
+    );
+
+    const patched = normalizedDocs.map((doc) => {
+      const masterName = employeeMap.get(doc.employeeUserId) || "";
+      const storedName = String(doc.employeeName || "").trim();
+      const shouldPatchName =
+        !storedName ||
+        storedName === "-" ||
+        storedName.toUpperCase() === String(doc.employeeUserId || "").toUpperCase();
+
+      const normalizedDoc = {
+        ...doc,
+        records: Array.isArray(doc.records) ? doc.records.map(sanitizeRecordForStatus) : [],
+      };
+
+      if (!shouldPatchName) return normalizedDoc;
+      return {
+        ...normalizedDoc,
+        employeeName: masterName || storedName || doc.employeeUserId || "-",
+      };
+    });
+
+    res.json(patched);
   } catch (err) {
     res.status(500).json({ message: "Attendance fetch failed" });
   }

@@ -5,6 +5,7 @@ import BackButton from "../component/BackButton";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import Select from "react-select"; // Ensure you have installed react-select
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 
 const OTRateMaster = () => {
   const navigate = useNavigate();
@@ -183,14 +184,15 @@ const OTRateMaster = () => {
 
       <div className="flex-1 p-2 sm:p-3 overflow-y-auto">
         <div className="bg-white min-h-screen shadow-lg rounded-lg p-4 w-full">
-         <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 text-center">
+          <MobileHeaderToggle>
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 text-center">
             OT Rate Master
-          </h2>
+            </h2>
 
-          <form
-            onSubmit={handleSave}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-          >
+            <form
+              onSubmit={handleSave}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            >
             <div>
               <label className="block text-sm">Rate Type</label>
               <select
@@ -270,7 +272,8 @@ const OTRateMaster = () => {
                 placeholder="Enter OT rate"
               />
             </div>
-          </form>
+            </form>
+          </MobileHeaderToggle>
 
           {filteredEmployees.length > 0 && (
             <div className="mt-4 overflow-x-auto border rounded">

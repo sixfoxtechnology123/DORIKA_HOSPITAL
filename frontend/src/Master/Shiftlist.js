@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { FaTrash, FaEdit } from "react-icons/fa";
 import BackButton from "../component/BackButton";
 import Sidebar from '../component/Sidebar';
+import MobileHeaderToggle from "../component/MobileHeaderToggle";
 
 const ShiftList = () => {
   const [shifts, setShifts] = useState([]);
@@ -33,10 +34,11 @@ const ShiftList = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    <div className="flex h-screen flex-col md:flex-row">
       <Sidebar/>
-    <div className="flex-1 overflow-y-auto">
-    <div className="p-3 bg-white shadow-md rounded-md">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+    <div className="p-3 bg-white shadow-md rounded-md flex-1 flex flex-col min-h-0">
+      <MobileHeaderToggle>
       <div className="bg-dorika-blueLight border border-green-300 rounded-lg shadow-md p-2 mb-4 flex flex-row justify-between items-center gap-2">
         <h2 className="text-xl font-bold text-dorika-blue">Shift</h2>
         <div className="flex gap-2">
@@ -49,10 +51,11 @@ const ShiftList = () => {
           </button>
         </div>
       </div>
+      </MobileHeaderToggle>
 
-      <div className="w-full overflow-x-auto rounded-lg">
+      <div className="w-full flex-1 min-h-0 overflow-auto rounded-lg">
         <table className="min-w-[750px] w-full border border-dorika-blue bg-white text-[11px] sm:text-sm border-collapse">
-        <thead className="bg-dorika-blue text-white text-[11px] sm:text-sm">
+        <thead className="bg-dorika-blue text-white text-[11px] sm:text-sm sticky top-0 z-10">
           <tr>
             <th className="border border-dorika-blue px-2 py-1 whitespace-nowrap">Shift ID</th>
             <th className="border border-dorika-blue px-2 py-1 whitespace-nowrap">Shift Name</th>
