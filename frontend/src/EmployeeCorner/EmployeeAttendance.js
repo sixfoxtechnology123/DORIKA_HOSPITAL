@@ -34,7 +34,6 @@ const parseTimeToMinutes = (timeStr) => {
   return hours * 60 + minutes;
 };
 
-
 const EmployeeAttendance = () => {
   const [history, setHistory] = useState([]);
   const [location, setLocation] = useState(null);

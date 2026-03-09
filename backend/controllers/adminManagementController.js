@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const AdminManagement = require("../models/adminManagementModel");
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 // ======================= CREATE DEFAULT MAIN ADMIN =======================
 const createDefaultAdmin = async () => {
@@ -96,6 +97,18 @@ exports.createUser = async (req, res) => {
     await newUser.save();
     const userObj = newUser.toObject();
     delete userObj.password;
+    await createAuditLog({
+      req,
+      action: "CREATE",
+      module: "Admin Controller",
+      details: `Created admin panel user ${newUser.userId} (${newUser.role}).`,
+      target: {
+        employeeUserId: newUser.employeeUserId || "",
+        employeeID: newUser.employeeID || "",
+        name: newUser.name || "",
+      },
+      current: cleanObject(userObj),
+    });
     res.status(201).json({ message: "User Created", user: userObj });
   } catch (err) { res.status(500).json({ message: "Error creating user", error: err.message }); }
 };
@@ -106,6 +119,7 @@ exports.updateUser = async (req, res) => {
     const { userId, employeeID, employeeUserId, name, password, role, permissions } = req.body;
     const user = await AdminManagement.findById(id);
     if (!user || user.isDefault) return res.status(403).json({ message: "Update not allowed" });
+    const previous = user.toObject();
 
     user.userId = userId || user.userId;
     user.employeeID = employeeID || user.employeeID;
@@ -118,6 +132,19 @@ exports.updateUser = async (req, res) => {
     await user.save();
     const userObj = user.toObject();
     delete userObj.password;
+    await createAuditLog({
+      req,
+      action: "UPDATE",
+      module: "Admin Controller",
+      details: `Updated admin panel user ${user.userId}.`,
+      target: {
+        employeeUserId: user.employeeUserId || "",
+        employeeID: user.employeeID || "",
+        name: user.name || "",
+      },
+      previous: cleanObject({ ...previous, password: undefined }),
+      current: cleanObject(userObj),
+    });
     res.json({ message: "User updated", user: userObj });
   } catch (err) { res.status(500).json({ message: "Error updating user" }); }
 };
@@ -127,6 +154,19 @@ exports.deleteUser = async (req, res) => {
     const user = await AdminManagement.findById(req.params.id);
     if (!user || user.isDefault) return res.status(403).json({ message: "Delete not allowed" });
     await AdminManagement.findByIdAndDelete(req.params.id);
+    await createAuditLog({
+      req,
+      action: "DELETE",
+      module: "Admin Controller",
+      details: `Deleted admin panel user ${user.userId}.`,
+      target: {
+        employeeUserId: user.employeeUserId || "",
+        employeeID: user.employeeID || "",
+        name: user.name || "",
+      },
+      previous: cleanObject({ ...(user.toObject ? user.toObject() : user), password: undefined }),
+      current: null,
+    });
     res.json({ message: "User deleted" });
   } catch (err) { res.status(500).json({ message: "Error deleting user" }); }
 };

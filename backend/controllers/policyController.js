@@ -1,6 +1,6 @@
 // controllers/policyController.js
 const Policy = require("../models/Policy");
-const Activity = require("../models/Activity"); // Import Activity model
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 const path = require("path");
 
 // ==================== Helpers ====================
@@ -77,9 +77,13 @@ exports.createPolicy = async (req, res) => {
 
     // Log activity
     try {
-      await Activity.create({
-        text: `Policy created: ${policyName} (${policyID})`,
-        createdAt: new Date(),
+      await createAuditLog({
+        req,
+        action: "CREATE",
+        module: "Policy Management",
+        details: `Policy created: ${policyName} (${policyID})`,
+        target: { name: policyName },
+        current: cleanObject(newPolicy.toObject ? newPolicy.toObject() : newPolicy),
       });
     } catch (err) {
       console.error("Activity log failed:", err.message);
@@ -122,6 +126,7 @@ exports.updatePolicy = async (req, res) => {
     const updateData = { policyName, effectiveDate, status };
     if (file) updateData.policyDocument = file;
 
+    const previous = await Policy.findById(req.params.id).lean();
     const updated = await Policy.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
     });
@@ -129,9 +134,14 @@ exports.updatePolicy = async (req, res) => {
 
     // Log activity
     try {
-      await Activity.create({
-        text: `Policy updated: ${updated.policyName} (${updated.policyID})`,
-        createdAt: new Date(),
+      await createAuditLog({
+        req,
+        action: "UPDATE",
+        module: "Policy Management",
+        details: `Policy updated: ${updated.policyName} (${updated.policyID})`,
+        target: { name: updated.policyName },
+        previous,
+        current: cleanObject(updated.toObject ? updated.toObject() : updated),
       });
     } catch (err) {
       console.error("Activity log failed:", err.message);
@@ -151,9 +161,14 @@ exports.deletePolicy = async (req, res) => {
 
     // Log activity
     try {
-      await Activity.create({
-        text: `Policy deleted: ${policy.policyName} (${policy.policyID})`,
-        createdAt: new Date(),
+      await createAuditLog({
+        req,
+        action: "DELETE",
+        module: "Policy Management",
+        details: `Policy deleted: ${policy.policyName} (${policy.policyID})`,
+        target: { name: policy.policyName },
+        previous: cleanObject(policy.toObject ? policy.toObject() : policy),
+        current: null,
       });
     } catch (err) {
       console.error("Activity log failed:", err.message);

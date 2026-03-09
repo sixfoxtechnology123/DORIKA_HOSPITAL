@@ -1,6 +1,7 @@
 // controllers/leaveRuleController.js
 const LeaveRule = require("../models/LeaveRule");
 const LeaveType = require("../models/LeaveType");
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 // Create Leave Rule
 exports.createLeaveRule = async (req, res) => {
@@ -18,6 +19,14 @@ exports.createLeaveRule = async (req, res) => {
     });
 
     await leaveRule.save();
+    await createAuditLog({
+      req,
+      action: "CREATE",
+      module: "Leave Rule",
+      details: `Created leave rule for ${leaveRule.leaveType}.`,
+      target: { name: leaveRule.leaveType },
+      current: cleanObject(leaveRule.toObject ? leaveRule.toObject() : leaveRule),
+    });
     res.status(201).json(leaveRule);
   } catch (err) {
     console.error(err);
@@ -52,8 +61,18 @@ exports.getLeaveRuleById = async (req, res) => {
 // Update Leave Rule
 exports.updateLeaveRule = async (req, res) => {
   try {
+    const previous = await LeaveRule.findById(req.params.id).lean();
     const rule = await LeaveRule.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!rule) return res.status(404).json({ message: "Leave rule not found" });
+    await createAuditLog({
+      req,
+      action: "UPDATE",
+      module: "Leave Rule",
+      details: `Updated leave rule for ${rule.leaveType}.`,
+      target: { name: rule.leaveType },
+      previous,
+      current: cleanObject(rule.toObject ? rule.toObject() : rule),
+    });
     res.status(200).json(rule);
   } catch (err) {
     console.error(err);
@@ -66,6 +85,15 @@ exports.deleteLeaveRule = async (req, res) => {
   try {
     const rule = await LeaveRule.findByIdAndDelete(req.params.id);
     if (!rule) return res.status(404).json({ message: "Leave rule not found" });
+    await createAuditLog({
+      req,
+      action: "DELETE",
+      module: "Leave Rule",
+      details: `Deleted leave rule for ${rule.leaveType}.`,
+      target: { name: rule.leaveType },
+      previous: cleanObject(rule.toObject ? rule.toObject() : rule),
+      current: null,
+    });
     res.status(200).json({ message: "Leave rule deleted successfully" });
   } catch (err) {
     console.error(err);

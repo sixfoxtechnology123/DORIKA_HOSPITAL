@@ -3,6 +3,7 @@ const Employee = require("../models/Employee");
 const LeaveType = require("../models/LeaveType");
 const bcrypt = require("bcryptjs"); // Import bcrypt
 const jwt = require("jsonwebtoken");
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 const maskLastFour = (value) => {
   const raw = String(value || "").trim();
@@ -92,6 +93,19 @@ exports.generateAllPasswords = async (req, res) => {
     });
 
     await Promise.all(updatePromises);
+    await createAuditLog({
+      req,
+      action: "UPDATE",
+      module: "Employee User ID",
+      details: `Generated or updated login credentials for ${employeesToUpdate.length} employees.`,
+      current: {
+        employeeIds: employeesToUpdate.map((emp) => emp.employeeID),
+        employeeUserIds: employeesToUpdate.map((emp) => emp.employeeUserId),
+      },
+      metadata: {
+        count: employeesToUpdate.length,
+      },
+    });
     res.json({ message: "Update successful with password encryption" });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -107,6 +121,19 @@ exports.toggleStatus = async (req, res) => {
     // Switch between active and disabled
     user.status = user.status === "active" ? "disabled" : "active";
     await user.save();
+    await createAuditLog({
+      req,
+      action: "UPDATE",
+      module: "Employee User ID",
+      details: `Changed login status for ${user.employeeUserId} to ${user.status}.`,
+      target: {
+        employeeUserId: user.employeeUserId || "",
+        employeeID: user.employeeId || "",
+        name: user.name || "",
+        designation: user.designation || "",
+      },
+      current: { status: user.status },
+    });
     
     res.json({ message: `User is now ${user.status}`, status: user.status });
   } catch (err) {
@@ -217,7 +244,21 @@ exports.getEmployeeDetails = async (req, res) => {
 
 exports.deleteEmployeeUserId = async (req, res) => {
   try {
-    await EmployeeUserId.findByIdAndDelete(req.params.id);
+    const deleted = await EmployeeUserId.findByIdAndDelete(req.params.id);
+    await createAuditLog({
+      req,
+      action: "DELETE",
+      module: "Employee User ID",
+      details: `Deleted login credentials for ${deleted?.employeeUserId || req.params.id}.`,
+      target: {
+        employeeUserId: deleted?.employeeUserId || "",
+        employeeID: deleted?.employeeId || "",
+        name: deleted?.name || "",
+        designation: deleted?.designation || "",
+      },
+      previous: cleanObject(deleted?.toObject ? deleted.toObject() : deleted),
+      current: null,
+    });
     res.json({ message: "Deleted" });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -226,10 +267,25 @@ exports.deleteEmployeeUserId = async (req, res) => {
 
 exports.updateEmployeeUserId = async (req, res) => {
   try {
+    const previous = await EmployeeUserId.findById(req.params.id).lean();
     const user = await EmployeeUserId.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!user) return res.status(404).json({ message: "User not found" });
     const userObj = user.toObject();
     delete userObj.password;
+    await createAuditLog({
+      req,
+      action: "UPDATE",
+      module: "Employee User ID",
+      details: `Updated login credentials for ${user.employeeUserId}.`,
+      target: {
+        employeeUserId: user.employeeUserId || "",
+        employeeID: user.employeeId || "",
+        name: user.name || "",
+        designation: user.designation || "",
+      },
+      previous: cleanObject({ ...previous, password: undefined }),
+      current: cleanObject(userObj),
+    });
     res.json(userObj);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -258,6 +314,19 @@ exports.changeEmployeePassword = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
     await user.save();
+    await createAuditLog({
+      req,
+      action: "UPDATE",
+      module: "Employee User ID",
+      details: `Changed password for ${user.employeeUserId}.`,
+      target: {
+        employeeUserId: user.employeeUserId || "",
+        employeeID: user.employeeId || "",
+        name: user.name || "",
+        designation: user.designation || "",
+      },
+      current: { passwordChanged: true },
+    });
 
     res.status(200).json({ message: "Password updated successfully!" });
   } catch (err) {

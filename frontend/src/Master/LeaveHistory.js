@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import * as XLSX from "xlsx";
 import Sidebar from "../component/Sidebar";
 import BackButton from "../component/BackButton";
 import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import toast from "react-hot-toast";
-import { jsPDF } from "jspdf";
 
 const LeaveHistory = () => {
   const [leaves, setLeaves] = useState([]);
@@ -80,101 +80,37 @@ const LeaveHistory = () => {
     return monthMatch && statusMatch && departmentMatch;
   });
 
-  const handleDownloadPDF = () => {
+  const handleExportExcel = () => {
     try {
-      const pdf = new jsPDF("l", "mm", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const headers = [
-        "Emp ID",
-        "Emp Name",
-        "Department",
-        "Apply Date",
-        "From Date",
-        "To Date",
-        "Total Days",
-        "RM",
-        "Status",
-        "Date & Time",
-        "DH",
-        "Status",
-        "Date & Time",
-        "Final Status",
-      ];
-
-      const rows = filteredLeaves.map((leave) => {
+      const exportData = filteredLeaves.map((leave, index) => {
         const rm = getByRole(leave.history, "Reporting Manager");
         const dh = getByRole(leave.history, "Department Head");
-        return [
-          String(leave.employeeId || ""),
-          String(leave.employeeName || ""),
-          String(leave.departmentName || "-"),
-          String(formatDate(leave.applicationDate)),
-          String(formatDate(leave.fromDate)),
-          String(formatDate(leave.toDate)),
-          String(leave.noOfDays ?? ""),
-          String(leave.reportingManager || ""),
-          String(rm.status || "-"),
-          String(formatDateTime(rm.date)),
-          String(leave.departmentHead || ""),
-          String(dh.status || "-"),
-          String(formatDateTime(dh.date)),
-          String(getFinalStatus(leave)),
-        ];
+        return {
+          "SL No": index + 1,
+          "Emp ID": String(leave.employeeId || ""),
+          "Emp Name": String(leave.employeeName || ""),
+          "Department": String(leave.departmentName || "-"),
+          "Apply Date": String(formatDate(leave.applicationDate)),
+          "From Date": String(formatDate(leave.fromDate)),
+          "To Date": String(formatDate(leave.toDate)),
+          "Total Days": String(leave.noOfDays ?? ""),
+          "RM": String(leave.reportingManager || ""),
+          "RM Status": String(rm.status || "-"),
+          "RM Date & Time": String(formatDateTime(rm.date)),
+          "DH": String(leave.departmentHead || ""),
+          "DH Status": String(dh.status || "-"),
+          "DH Date & Time": String(formatDateTime(dh.date)),
+          "Final Status": String(getFinalStatus(leave)),
+        };
       });
 
-      const marginX = 5;
-      const topY = 12;
-      const minRowHeight = 7;
-      const lineHeight = 3.2;
-      const colWidths = [16, 34, 22, 19, 19, 19, 14, 20, 14, 22, 20, 14, 22, 17];
-      const totalTableWidth = colWidths.reduce((a, b) => a + b, 0);
-      const scale = Math.min(1, (pageWidth - marginX * 2) / totalTableWidth);
-      const widths = colWidths.map((w) => w * scale);
-
-      const getCellLines = (text, width) => pdf.splitTextToSize(String(text ?? ""), Math.max(1, width - 2.2));
-
-      const drawRow = (cells, y, isHeader = false) => {
-        const fontSize = isHeader ? 8 : 7;
-        pdf.setLineWidth(0.2);
-        pdf.setFont("helvetica", isHeader ? "bold" : "normal");
-        pdf.setFontSize(fontSize);
-        const lineSets = cells.map((cell, i) => getCellLines(cell, widths[i]));
-        const maxLines = lineSets.reduce((m, lines) => Math.max(m, lines.length || 1), 1);
-        const rowHeight = Math.max(minRowHeight, 2.2 + maxLines * lineHeight);
-
-        let x = marginX;
-        for (let i = 0; i < cells.length; i += 1) {
-          const w = widths[i];
-          const lines = lineSets[i].length ? lineSets[i] : [""];
-          pdf.setFillColor(255, 255, 255);
-          pdf.rect(x, y, w, rowHeight, "FD");
-          pdf.text(lines, x + 1.2, y + 4.2);
-          x += w;
-        }
-        return rowHeight;
-      };
-
-      let y = topY;
-      y += drawRow(headers, y, true);
-
-      rows.forEach((row) => {
-        const rowLines = row.map((cell, i) => getCellLines(cell, widths[i]));
-        const rowMaxLines = rowLines.reduce((m, lines) => Math.max(m, lines.length || 1), 1);
-        const nextRowHeight = Math.max(minRowHeight, 2.2 + rowMaxLines * lineHeight);
-
-        if (y + nextRowHeight > pageHeight - 8) {
-          pdf.addPage();
-          y = topY;
-          y += drawRow(headers, y, true);
-        }
-        y += drawRow(row, y, false);
-      });
-
-      pdf.save("LeaveHistory.pdf");
-      toast.success("PDF Downloaded");
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Leave History");
+      XLSX.writeFile(workbook, "LeaveHistory.xlsx");
+      toast.success("Excel exported successfully");
     } catch (error) {
-      toast.error("Failed to download PDF");
+      toast.error("Failed to export Excel");
     }
   };
 
@@ -191,10 +127,10 @@ const LeaveHistory = () => {
 
             <div className="flex shrink-0">
               <button
-                onClick={handleDownloadPDF}
+                onClick={handleExportExcel}
                 className="bg-dorika-blue text-white px-3 py-1 rounded font-semibold text-xs sm:text-sm mr-2"
               >
-            Print
+           Excel
               </button>
               <BackButton />
             </div>
@@ -238,6 +174,7 @@ const LeaveHistory = () => {
             <table className="min-w-[900px] w-full border border-dorika-blue text-xs sm:text-sm border-collapse">
               <thead className="bg-dorika-blue text-white text-[10px] sm:text-xs md:text-sm sticky top-0 z-10">
                 <tr>
+                  <th className="border px-2 py-1">SL No</th>
                   <th className="border px-2 py-1">Emp ID</th>
                   <th className="border px-2 py-1">Emp Name</th>
                   <th className="border px-2 py-1">Department</th>
@@ -258,15 +195,16 @@ const LeaveHistory = () => {
               <tbody className="text-center">
                 {loading ? (
                   <tr>
-                    <td colSpan="14" className="py-4">Loading...</td>
+                    <td colSpan="15" className="py-4">Loading...</td>
                   </tr>
                 ) : filteredLeaves.length > 0 ? (
-                  filteredLeaves.map((leave) => {
+                  filteredLeaves.map((leave, index) => {
                     const rm = getByRole(leave.history, "Reporting Manager");
                     const dh = getByRole(leave.history, "Department Head");
 
                     return (
                       <tr key={leave._id} className="hover:bg-dorika-blueLight transition text-xs">
+                        <td className="border px-2 py-1">{index + 1}</td>
                         <td className="border px-2 py-1">{leave.employeeId}</td>
                         <td className="border px-2 py-1">{leave.employeeName}</td>
                         <td className="border px-2 py-1">{leave.departmentName || "-"}</td>
@@ -286,7 +224,7 @@ const LeaveHistory = () => {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="14" className="py-4 text-gray-500">
+                    <td colSpan="15" className="py-4 text-gray-500">
                       No leave history found
                     </td>
                   </tr>

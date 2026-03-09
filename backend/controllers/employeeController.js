@@ -10,6 +10,7 @@ const Attendance = require("../models/Attendance");
 const ShiftManagement = require("../models/ShiftManagement");
 const DepartmentHead = require("../models/DepartmentHead");
 const mongoose = require("mongoose");
+const { createAuditLog, getEmployeeAuditTarget, pick } = require("../utils/auditLogger");
 
 
 const generateEmployeeUserId = async () => {
@@ -127,14 +128,24 @@ exports.createEmployee = async (req, res) => {
 
     const saved = await emp.save();
 
-    // Replace the old Activity.create block with this:
-    await Activity.create({
-      name: `${saved.firstName} ${saved.lastName}`,
-      employeeUserId: saved.employeeUserId,
+    await createAuditLog({
+      req,
+      action: "CREATE",
       module: "Employee Management",
-      action: "Create",
       details: `Created new employee record for ${saved.firstName} ${saved.lastName} (${saved.employeeID})`,
-      text: `Employee Added: ${saved.firstName} ${saved.lastName} (${saved.employeeID})`, // Keep if still in schema
+      target: getEmployeeAuditTarget(saved),
+      previous: null,
+      current: pick(saved.toObject ? saved.toObject() : saved, [
+        "employeeID",
+        "employeeUserId",
+        "firstName",
+        "middleName",
+        "lastName",
+        "departmentName",
+        "designationName",
+        "employmentStatus",
+        "grossSalary",
+      ]),
     });
 
     res.status(201).json(saved);
@@ -247,6 +258,7 @@ exports.updateEmployee = async (req, res) => {
 
     const employee = await Employee.findById(req.params.id);
     if (!employee) return res.status(404).json({ message: "Employee not found" });
+    const previousEmployee = employee.toObject();
     
     const oldEmployeeID = employee.employeeID;
 
@@ -301,19 +313,39 @@ exports.updateEmployee = async (req, res) => {
       );
     }
 
-    try {
-    
-    await Activity.create({
-      name: `${updated.firstName} ${updated.lastName}`,
-      employeeUserId: updated.employeeUserId,
+    await createAuditLog({
+      req,
+      action: "UPDATE",
       module: "Employee Management",
-      action: "Update",
-      details: `Updated profile information for ${updated.firstName} ${updated.lastName}`,
-      text: `Employee Updated: ${updated.firstName} ${updated.lastName} (${updated.employeeID})`,
+      details: `Updated employee record for ${updated.firstName} ${updated.lastName} (${updated.employeeID})`,
+      target: getEmployeeAuditTarget(updated),
+      previous: pick(previousEmployee, [
+        "employeeID",
+        "employeeUserId",
+        "firstName",
+        "middleName",
+        "lastName",
+        "departmentName",
+        "designationName",
+        "employmentStatus",
+        "grossSalary",
+        "reportingManagerEmpID",
+        "departmentHeadEmpID",
+      ]),
+      current: pick(updated.toObject ? updated.toObject() : updated, [
+        "employeeID",
+        "employeeUserId",
+        "firstName",
+        "middleName",
+        "lastName",
+        "departmentName",
+        "designationName",
+        "employmentStatus",
+        "grossSalary",
+        "reportingManagerEmpID",
+        "departmentHeadEmpID",
+      ]),
     });
-    } catch (logErr) {
-      console.error("Activity log error (updateEmployee):", logErr);
-    }
 
     res.json(updated);
   } catch (err) {
@@ -395,19 +427,39 @@ exports.deleteEmployee = async (req, res) => {
     await Employee.findByIdAndDelete(req.params.id);
 
     // 4. Log the deletion activity
-    try {
- // Replace the old Activity.create block with this:
-    await Activity.create({
-      name: String(req.user?.name || req.user?.userId || "SYSTEM"),
-      employeeUserId: String(req.user?.employeeUserId || req.user?.userId || "SYSTEM-001"),
+    await createAuditLog({
+      req,
+      action: "DELETE",
       module: "Employee Management",
-      action: "Delete",
-      details: `Permanently deleted employee and associated records (Login, Admin, Duty Roaster, Attendance, Leave, OT, Department Head, Activity, Leave Allocation, Payslip).`,
-      text: `Permanent Deletion: ${employee.firstName} ${employee.lastName} (${employee.employeeID})`,
+      details: `Deleted employee ${employee.firstName} ${employee.lastName} (${employee.employeeID}) and linked records.`,
+      target: getEmployeeAuditTarget(employee),
+      previous: pick(employee.toObject ? employee.toObject() : employee, [
+        "employeeID",
+        "employeeUserId",
+        "firstName",
+        "middleName",
+        "lastName",
+        "departmentName",
+        "designationName",
+        "employmentStatus",
+        "grossSalary",
+      ]),
+      current: null,
+      metadata: {
+        removedLinkedModules: [
+          "Login",
+          "Admin",
+          "Duty Roaster",
+          "Attendance",
+          "Leave",
+          "OT",
+          "Department Head",
+          "Activity",
+          "Leave Allocation",
+          "Payslip",
+        ],
+      },
     });
-    } catch (logErr) {
-      console.error("Activity log error (deleteEmployee):", logErr);
-    }
 
     res.json({ 
       message: "Employee and all associated linked records deleted successfully" 

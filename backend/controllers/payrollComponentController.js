@@ -1,5 +1,5 @@
 const PayrollComponent = require("../models/Payroll");
-const Activity = require("../models/Activity"); // Import Activity model
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 // Auto-generate ComponentID
 const generateComponentID = async () => {
@@ -46,9 +46,13 @@ exports.createComponent = async (req, res) => {
 
     // Log activity
     try {
-      await Activity.create({
-        text: `Payroll component created: ${componentName} (${componentID})`,
-        createdAt: new Date(),
+      await createAuditLog({
+        req,
+        action: "CREATE",
+        module: "Payroll Component",
+        details: `Payroll component created: ${componentName} (${componentID})`,
+        target: { name: componentName },
+        current: cleanObject(saved.toObject ? saved.toObject() : saved),
       });
     } catch (err) {
       console.error("Activity log failed:", err.message);
@@ -73,14 +77,20 @@ exports.getAllComponents = async (req, res) => {
 // Update component
 exports.updateComponent = async (req, res) => {
   try {
+    const previous = await PayrollComponent.findById(req.params.id).lean();
     const updated = await PayrollComponent.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updated) return res.status(404).json({ message: "Component not found" });
 
     // Log activity
     try {
-      await Activity.create({
-        text: `Payroll component updated: ${updated.componentName} (${updated.componentID})`,
-        createdAt: new Date(),
+      await createAuditLog({
+        req,
+        action: "UPDATE",
+        module: "Payroll Component",
+        details: `Payroll component updated: ${updated.componentName} (${updated.componentID})`,
+        target: { name: updated.componentName },
+        previous,
+        current: cleanObject(updated.toObject ? updated.toObject() : updated),
       });
     } catch (err) {
       console.error("Activity log failed:", err.message);
@@ -100,9 +110,14 @@ exports.deleteComponent = async (req, res) => {
 
     // Log activity
     try {
-      await Activity.create({
-        text: `Payroll component deleted: ${deleted.componentName} (${deleted.componentID})`,
-        createdAt: new Date(),
+      await createAuditLog({
+        req,
+        action: "DELETE",
+        module: "Payroll Component",
+        details: `Payroll component deleted: ${deleted.componentName} (${deleted.componentID})`,
+        target: { name: deleted.componentName },
+        previous: cleanObject(deleted.toObject ? deleted.toObject() : deleted),
+        current: null,
       });
     } catch (err) {
       console.error("Activity log failed:", err.message);

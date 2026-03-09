@@ -1,11 +1,27 @@
 import LeaveAllocation from "../models/LeaveAllocation.js";
 import LeaveRule from "../models/LeaveRule.js"; // import LeaveRule model
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 // Create Leave Allocation
 export const createLeaveAllocation = async (req, res) => {
   try {
     const newAllocation = new LeaveAllocation(req.body);
     await newAllocation.save();
+    await createAuditLog({
+      req,
+      action: "CREATE",
+      module: "Leave Allocation",
+      details: `Created leave allocation for ${newAllocation.employeeName || newAllocation.employeeID || "employee"}.`,
+      target: {
+        employeeUserId: newAllocation.employeeUserId || "",
+        employeeID: newAllocation.employeeID || "",
+        name: newAllocation.employeeName || "",
+      },
+      current: cleanObject(newAllocation.toObject ? newAllocation.toObject() : newAllocation),
+    });
     res.status(201).json({ message: "Leave Allocation Saved Successfully" });
   } catch (error) {
     console.error("Error in createLeaveAllocation:", error);
@@ -40,9 +56,23 @@ export const getLeaveAllocationById = async (req, res) => {
 // Update Leave Allocation
 export const updateLeaveAllocation = async (req, res) => {
   try {
+    const previous = await LeaveAllocation.findById(req.params.id).lean();
     const updated = await LeaveAllocation.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updated)
       return res.status(404).json({ error: "Leave Allocation not found" });
+    await createAuditLog({
+      req,
+      action: "UPDATE",
+      module: "Leave Allocation",
+      details: `Updated leave allocation for ${updated.employeeName || updated.employeeID || "employee"}.`,
+      target: {
+        employeeUserId: updated.employeeUserId || "",
+        employeeID: updated.employeeID || "",
+        name: updated.employeeName || "",
+      },
+      previous,
+      current: cleanObject(updated.toObject ? updated.toObject() : updated),
+    });
     res.status(200).json({ message: "Leave Allocation updated successfully", updated });
   } catch (error) {
     console.error("Error in updateLeaveAllocation:", error);
@@ -56,6 +86,19 @@ export const deleteLeaveAllocation = async (req, res) => {
     const allocation = await LeaveAllocation.findByIdAndDelete(req.params.id);
     if (!allocation)
       return res.status(404).json({ error: "Leave Allocation not found" });
+    await createAuditLog({
+      req,
+      action: "DELETE",
+      module: "Leave Allocation",
+      details: `Deleted leave allocation for ${allocation.employeeName || allocation.employeeID || "employee"}.`,
+      target: {
+        employeeUserId: allocation.employeeUserId || "",
+        employeeID: allocation.employeeID || "",
+        name: allocation.employeeName || "",
+      },
+      previous: cleanObject(allocation.toObject ? allocation.toObject() : allocation),
+      current: null,
+    });
     res.status(200).json({ message: "Leave Allocation deleted successfully" });
   } catch (error) {
     console.error("Error in deleteLeaveAllocation:", error);

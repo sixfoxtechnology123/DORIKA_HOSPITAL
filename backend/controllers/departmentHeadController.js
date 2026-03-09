@@ -1,4 +1,5 @@
 const DepartmentHead = require("../models/DepartmentHead");
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 const generateNextDepartmentHeadId = async () => {
   const rows = await DepartmentHead.find({}, { departmentHeadId: 1 }).lean();
@@ -77,6 +78,19 @@ exports.createDepartmentHead = async (req, res) => {
       departmentName,
       designationData: normalizedDesignationData,
     });
+    await createAuditLog({
+      req,
+      action: "CREATE",
+      module: "Department Head",
+      details: `Created department head mapping for ${saved.employeeName || saved.employeeUserId}.`,
+      target: {
+        employeeUserId: saved.employeeUserId || "",
+        employeeID: saved.employeeID || "",
+        name: saved.employeeName || saved.departmentHeadName || "",
+        department: saved.departmentName || "",
+      },
+      current: cleanObject(saved.toObject ? saved.toObject() : saved),
+    });
 
     res.status(201).json(saved);
   } catch (err) {
@@ -139,6 +153,7 @@ exports.updateDepartmentHead = async (req, res) => {
         }))
       : [];
 
+    const previous = await DepartmentHead.findById(id).lean();
     const updated = await DepartmentHead.findByIdAndUpdate(
       id,
       {
@@ -156,6 +171,20 @@ exports.updateDepartmentHead = async (req, res) => {
     );
 
     if (!updated) return res.status(404).json({ message: "Department head record not found" });
+    await createAuditLog({
+      req,
+      action: "UPDATE",
+      module: "Department Head",
+      details: `Updated department head mapping for ${updated.employeeName || updated.employeeUserId}.`,
+      target: {
+        employeeUserId: updated.employeeUserId || "",
+        employeeID: updated.employeeID || "",
+        name: updated.employeeName || updated.departmentHeadName || "",
+        department: updated.departmentName || "",
+      },
+      previous,
+      current: cleanObject(updated.toObject ? updated.toObject() : updated),
+    });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to update department head" });
@@ -167,6 +196,20 @@ exports.deleteDepartmentHead = async (req, res) => {
     const { id } = req.params;
     const deleted = await DepartmentHead.findByIdAndDelete(id);
     if (!deleted) return res.status(404).json({ message: "Department head record not found" });
+    await createAuditLog({
+      req,
+      action: "DELETE",
+      module: "Department Head",
+      details: `Deleted department head mapping for ${deleted.employeeName || deleted.employeeUserId}.`,
+      target: {
+        employeeUserId: deleted.employeeUserId || "",
+        employeeID: deleted.employeeID || "",
+        name: deleted.employeeName || deleted.departmentHeadName || "",
+        department: deleted.departmentName || "",
+      },
+      previous: cleanObject(deleted.toObject ? deleted.toObject() : deleted),
+      current: null,
+    });
     res.json({ message: "Deleted" });
   } catch (err) {
     res.status(500).json({ message: err.message || "Failed to delete department head" });

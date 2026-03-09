@@ -1,4 +1,5 @@
 const OtRate = require("../models/OtRate");
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 const createOtRate = async (req, res) => {
   try {
@@ -17,6 +18,20 @@ const createOtRate = async (req, res) => {
     }
 
     const ot = await OtRate.create(req.body);
+    await createAuditLog({
+      req,
+      action: "CREATE",
+      module: "OT Rate",
+      details: `Created OT rate for ${ot.employeeName || ot.designationName || ot.departmentName || ot.rateType}.`,
+      target: {
+        employeeUserId: ot.employeeUserId || "",
+        employeeID: ot.employeeId || "",
+        name: ot.employeeName || "",
+        department: ot.departmentName || "",
+        designation: ot.designationName || "",
+      },
+      current: cleanObject(ot.toObject ? ot.toObject() : ot),
+    });
     res.status(201).json(ot);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -57,6 +72,21 @@ const deleteOtRate = async (req, res) => {
       return res.status(404).json({ message: "OT Rate not found" });
     }
 
+    await createAuditLog({
+      req,
+      action: "DELETE",
+      module: "OT Rate",
+      details: `Deleted OT rate for ${deleted.employeeName || deleted.designationName || deleted.departmentName || deleted.rateType}.`,
+      target: {
+        employeeUserId: deleted.employeeUserId || "",
+        employeeID: deleted.employeeId || "",
+        name: deleted.employeeName || "",
+        department: deleted.departmentName || "",
+        designation: deleted.designationName || "",
+      },
+      previous: cleanObject(deleted.toObject ? deleted.toObject() : deleted),
+      current: null,
+    });
     res.status(200).json({ message: "OT Rate deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -90,6 +120,7 @@ const applyBulkOtRate = async (req, res) => {
   const { employees, otRatePerHour, mode, rateType } = req.body;
 
   try {
+    const changedEmployees = [];
     for (const emp of employees) {
       // We use employeeUserId because this NEVER changes even if status changes
       const filter = { employeeUserId: emp.employeeUserId }; 
@@ -107,12 +138,24 @@ const applyBulkOtRate = async (req, res) => {
       if (mode === "ALL") {
         // Find by permanent UserID and update the details (Replacement logic)
         await OtRate.findOneAndUpdate(filter, update, { upsert: true });
+        changedEmployees.push(update);
       } else if (mode === "EXCEPT") {
         const exists = await OtRate.findOne(filter);
         if (!exists) {
           await OtRate.create(update);
+          changedEmployees.push(update);
         }
       }
+    }
+    if (changedEmployees.length > 0) {
+      await createAuditLog({
+        req,
+        action: "UPDATE",
+        module: "OT Rate",
+        details: `Bulk OT rate operation completed for ${changedEmployees.length} employees.`,
+        current: changedEmployees.map((item) => cleanObject(item)),
+        metadata: { count: changedEmployees.length, mode, rateType },
+      });
     }
     res.json({ message: "Operation successful" });
   } catch (err) {

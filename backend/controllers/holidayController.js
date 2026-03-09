@@ -1,5 +1,5 @@
 const Holiday = require("../models/Holiday");
-const Activity = require("../models/Activity");
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 // Auto-generate HolidayID
 const generateHolidayID = async () => {
@@ -42,7 +42,14 @@ exports.createHoliday = async (req, res) => {
 
     // Activity log
     try {
-      await Activity.create({ text: `Holiday Added: ${savedHoliday.holidayName} (${savedHoliday.holidayID})` });
+      await createAuditLog({
+        req,
+        action: "CREATE",
+        module: "Holiday Management",
+        details: `Holiday Added: ${savedHoliday.holidayName} (${savedHoliday.holidayID})`,
+        target: { name: savedHoliday.holidayName },
+        current: cleanObject(savedHoliday.toObject ? savedHoliday.toObject() : savedHoliday),
+      });
     } catch (logErr) {
       console.error("Activity log failed:", logErr.message);
     }
@@ -81,6 +88,7 @@ exports.getAllHolidays = async (req, res) => {
 // Update Holiday
 exports.updateHoliday = async (req, res) => {
   try {
+    const previous = await Holiday.findById(req.params.id).lean();
     const updated = await Holiday.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });
@@ -88,7 +96,15 @@ exports.updateHoliday = async (req, res) => {
 
     // Activity log
     try {
-      await Activity.create({ text: `Holiday Updated: ${updated.holidayName} (${updated.holidayID})` });
+      await createAuditLog({
+        req,
+        action: "UPDATE",
+        module: "Holiday Management",
+        details: `Holiday Updated: ${updated.holidayName} (${updated.holidayID})`,
+        target: { name: updated.holidayName },
+        previous,
+        current: cleanObject(updated.toObject ? updated.toObject() : updated),
+      });
     } catch (logErr) {
       console.error("Activity log failed:", logErr.message);
     }
@@ -107,7 +123,15 @@ exports.deleteHoliday = async (req, res) => {
 
     // Activity log
     try {
-      await Activity.create({ text: `Holiday Deleted: ${holiday.holidayName} (${holiday.holidayID})` });
+      await createAuditLog({
+        req,
+        action: "DELETE",
+        module: "Holiday Management",
+        details: `Holiday Deleted: ${holiday.holidayName} (${holiday.holidayID})`,
+        target: { name: holiday.holidayName },
+        previous: cleanObject(holiday.toObject ? holiday.toObject() : holiday),
+        current: null,
+      });
     } catch (logErr) {
       console.error("Activity log failed:", logErr.message);
     }

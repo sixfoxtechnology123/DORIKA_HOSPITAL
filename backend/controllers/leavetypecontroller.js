@@ -1,5 +1,5 @@
 const LeaveType = require("../models/LeaveType");
-const Activity = require("../models/Activity");
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 // Auto-generate LeaveTypeID
 const generateLeaveTypeID = async () => {
@@ -46,7 +46,14 @@ exports.createLeaveType = async (req, res) => {
 
     // Log activity
     try {
-      await Activity.create({ text: `Leave Type Added: ${savedLeaveType.leaveName} (${savedLeaveType.leaveTypeID})` });
+      await createAuditLog({
+        req,
+        action: "CREATE",
+        module: "Leave Type",
+        details: `Leave Type Added: ${savedLeaveType.leaveName} (${savedLeaveType.leaveTypeID})`,
+        target: { name: savedLeaveType.leaveName },
+        current: cleanObject(savedLeaveType.toObject ? savedLeaveType.toObject() : savedLeaveType),
+      });
     } catch (err) {
       console.error("Activity log failed:", err.message);
     }
@@ -72,12 +79,21 @@ exports.getAllLeaveTypes = async (req, res) => {
 // Update leave type
 exports.updateLeaveType = async (req, res) => {
   try {
+    const previous = await LeaveType.findById(req.params.id).lean();
     const updated = await LeaveType.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updated) return res.status(404).json({ message: "Leave type not found" });
 
     // Log activity
     try {
-      await Activity.create({ text: `Leave Type Updated: ${updated.leaveName} (${updated.leaveTypeID})` });
+      await createAuditLog({
+        req,
+        action: "UPDATE",
+        module: "Leave Type",
+        details: `Leave Type Updated: ${updated.leaveName} (${updated.leaveTypeID})`,
+        target: { name: updated.leaveName },
+        previous,
+        current: cleanObject(updated.toObject ? updated.toObject() : updated),
+      });
     } catch (err) {
       console.error("Activity log failed:", err.message);
     }
@@ -96,7 +112,15 @@ exports.deleteLeaveType = async (req, res) => {
 
     // Log activity
     try {
-      await Activity.create({ text: `Leave Type Deleted: ${leaveType.leaveName} (${leaveType.leaveTypeID})` });
+      await createAuditLog({
+        req,
+        action: "DELETE",
+        module: "Leave Type",
+        details: `Leave Type Deleted: ${leaveType.leaveName} (${leaveType.leaveTypeID})`,
+        target: { name: leaveType.leaveName },
+        previous: cleanObject(leaveType.toObject ? leaveType.toObject() : leaveType),
+        current: null,
+      });
     } catch (err) {
       console.error("Activity log failed:", err.message);
     }

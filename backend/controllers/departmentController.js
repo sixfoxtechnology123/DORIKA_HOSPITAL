@@ -1,5 +1,5 @@
 const Department = require("../models/Department");
-const Activity = require("../models/Activity");
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 // Utility: Generate next department code
 const generateDeptCode = async () => {
@@ -34,13 +34,13 @@ exports.createDepartment = async (req, res) => {
 
     // 💡 SAFETY LOG: Even if this fails, the response still sends "success"
     try {
-      await Activity.create({
-        employeeUserId: req.user?.employeeUserId || req.user?.userId || "SYSTEM",
-        name: req.user?.name || "Admin",
-        action: "ADD",
+      await createAuditLog({
+        req,
+        action: "CREATE",
         module: "Department Management",
         details: `Created new department: ${deptName} (${deptCode})`,
-        ipAddress: req.ip
+        target: { name: deptName },
+        current: cleanObject(savedDept.toObject ? savedDept.toObject() : savedDept),
       });
     } catch (logErr) {
       console.error("Activity log failed:", logErr.message);
@@ -68,6 +68,7 @@ exports.getAllDepartments = async (req, res) => {
 exports.updateDepartment = async (req, res) => {
   try {
     const { deptCode, deptName, description, status } = req.body;
+    const previous = await Department.findById(req.params.id).lean();
     const updated = await Department.findByIdAndUpdate(
       req.params.id,
       { deptCode, deptName, description, status },
@@ -78,13 +79,14 @@ exports.updateDepartment = async (req, res) => {
 
     // 💡 SAFETY LOG
     try {
-      await Activity.create({
-        employeeUserId: req.user?.employeeUserId || req.user?.userId || "SYSTEM",
-        name: req.user?.name || "Admin",
+      await createAuditLog({
+        req,
         action: "UPDATE",
         module: "Department Management",
         details: `Updated Department: ${updated.deptName} (${deptCode})`,
-        ipAddress: req.ip
+        target: { name: updated.deptName },
+        previous,
+        current: cleanObject(updated.toObject ? updated.toObject() : updated),
       });
     } catch (logErr) {
       console.error("Activity log failed:", logErr.message);
@@ -106,13 +108,14 @@ exports.deleteDepartment = async (req, res) => {
 
     // 💡 SAFETY LOG
     try {
-      await Activity.create({
-        employeeUserId: req.user?.employeeUserId || req.user?.userId || "SYSTEM",
-        name: req.user?.name || "Admin",
+      await createAuditLog({
+        req,
         action: "DELETE",
         module: "Department Management",
         details: `Deleted department: ${department.deptName} (${department.deptCode})`,
-        ipAddress: req.ip
+        target: { name: department.deptName },
+        previous: cleanObject(department.toObject ? department.toObject() : department),
+        current: null,
       });
     } catch (logErr) {
       console.error("Activity log failed:", logErr.message);

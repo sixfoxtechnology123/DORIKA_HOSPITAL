@@ -1,5 +1,5 @@
 const Designation = require('../models/Designation');
-const Activity = require("../models/Activity");
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 const normalizeGrade = (value) => {
   const raw = String(value || "").trim().toUpperCase();
@@ -54,8 +54,13 @@ exports.createDesignation = async (req, res) => {
 
     // ---- Activity Log ----
     try {
-      await Activity.create({
-        text: `Designation Added: ${savedDesignation.designationName} (${savedDesignation.designationID})`,
+      await createAuditLog({
+        req,
+        action: "CREATE",
+        module: "Designation Management",
+        details: `Designation Added: ${savedDesignation.designationName} (${savedDesignation.designationID})`,
+        target: { name: savedDesignation.designationName, department: savedDesignation.departmentName },
+        current: cleanObject(savedDesignation.toObject ? savedDesignation.toObject() : savedDesignation),
       });
     } catch (err) {
       console.error("Activity log failed (create):", err.message);
@@ -89,13 +94,20 @@ exports.updateDesignation = async (req, res) => {
       updateData.grade = normalizedGrade;
     }
 
+    const previous = await Designation.findById(req.params.id).lean();
     const updated = await Designation.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!updated) return res.status(404).json({ message: "Designation not found" });
 
     // ---- Activity Log ----
     try {
-      await Activity.create({
-        text: `Designation Updated: ${updated.designationName} (${updated.designationID})`,
+      await createAuditLog({
+        req,
+        action: "UPDATE",
+        module: "Designation Management",
+        details: `Designation Updated: ${updated.designationName} (${updated.designationID})`,
+        target: { name: updated.designationName, department: updated.departmentName },
+        previous,
+        current: cleanObject(updated.toObject ? updated.toObject() : updated),
       });
     } catch (err) {
       console.error("Activity log failed (update):", err.message);
@@ -116,8 +128,14 @@ exports.deleteDesignation = async (req, res) => {
 
     // ---- Activity Log ----
     try {
-      await Activity.create({
-        text: `Designation Deleted: ${designation.designationName} (${designation.designationID})`,
+      await createAuditLog({
+        req,
+        action: "DELETE",
+        module: "Designation Management",
+        details: `Designation Deleted: ${designation.designationName} (${designation.designationID})`,
+        target: { name: designation.designationName, department: designation.departmentName },
+        previous: cleanObject(designation.toObject ? designation.toObject() : designation),
+        current: null,
       });
     } catch (err) {
       console.error("Activity log failed (delete):", err.message);

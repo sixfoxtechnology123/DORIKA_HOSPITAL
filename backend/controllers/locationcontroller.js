@@ -1,6 +1,6 @@
 // controllers/locationController.js
 const Location = require("../models/Location");
-const Activity = require("../models/Activity"); // import Activity model
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 // Format: LOC01, LOC02, ...
 const generateLocationID = (num) => `LOC${String(num).padStart(2, "0")}`;
@@ -56,8 +56,13 @@ exports.createLocation = async (req, res) => {
     const saved = await loc.save();
 
     // Log activity
-    await Activity.create({
-      text: `Location Added: ${saved.locationName} (${saved.locationID})`,
+    await createAuditLog({
+      req,
+      action: "CREATE",
+      module: "Location Management",
+      details: `Location Added: ${saved.locationName} (${saved.locationID})`,
+      target: { name: saved.locationName },
+      current: cleanObject(saved.toObject ? saved.toObject() : saved),
     });
 
     res.status(201).json(saved);
@@ -81,14 +86,21 @@ exports.getAllLocations = async (_req, res) => {
 // Update Location
 exports.updateLocation = async (req, res) => {
   try {
+    const previous = await Location.findById(req.params.id).lean();
     const updated = await Location.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });
     if (!updated) return res.status(404).json({ message: "Location not found" });
 
     // Log activity
-    await Activity.create({
-      text: `Location Updated: ${updated.locationName} (${updated.locationID})`,
+    await createAuditLog({
+      req,
+      action: "UPDATE",
+      module: "Location Management",
+      details: `Location Updated: ${updated.locationName} (${updated.locationID})`,
+      target: { name: updated.locationName },
+      previous,
+      current: cleanObject(updated.toObject ? updated.toObject() : updated),
     });
 
     return res.json(updated);
@@ -105,8 +117,14 @@ exports.deleteLocation = async (req, res) => {
     if (!deleted) return res.status(404).json({ message: "Location not found" });
 
     // Log activity
-    await Activity.create({
-      text: `Location Deleted: ${deleted.locationName} (${deleted.locationID})`,
+    await createAuditLog({
+      req,
+      action: "DELETE",
+      module: "Location Management",
+      details: `Location Deleted: ${deleted.locationName} (${deleted.locationID})`,
+      target: { name: deleted.locationName },
+      previous: cleanObject(deleted.toObject ? deleted.toObject() : deleted),
+      current: null,
     });
 
     return res.json({ message: "Location deleted successfully" });

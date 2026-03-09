@@ -1,6 +1,6 @@
 // controllers/shiftController.js
 const Shift = require("../models/Shift");
-const Activity = require("../models/Activity"); // Import Activity model
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 // Auto-generate ShiftID
 const generateShiftID = async () => {
@@ -52,9 +52,13 @@ exports.createShift = async (req, res) => {
 
     // Log activity
     try {
-      await Activity.create({
-        text: `Shift created: ${shiftName} (${newId}) with Code: ${shiftCode}`,
-        createdAt: new Date(),
+      await createAuditLog({
+        req,
+        action: "CREATE",
+        module: "Shift Master",
+        details: `Shift created: ${shiftName} (${newId}) with Code: ${shiftCode}`,
+        target: { name: shiftName },
+        current: cleanObject(newShift.toObject ? newShift.toObject() : newShift),
       });
     } catch (err) {
       console.error("Activity log failed:", err.message);
@@ -94,14 +98,20 @@ exports.updateShift = async (req, res) => {
       if (exists) return res.status(400).json({ error: "Shift name already exists" });
     }
 
+    const previous = await Shift.findById(id).lean();
     const updated = await Shift.findByIdAndUpdate(id, updateData, { new: true });
     if (!updated) return res.status(404).json({ message: "Shift not found" });
 
     // Log activity
     try {
-      await Activity.create({
-        text: `Shift updated: ${updated.shiftName} (${updated.shiftID})`,
-        createdAt: new Date(),
+      await createAuditLog({
+        req,
+        action: "UPDATE",
+        module: "Shift Master",
+        details: `Shift updated: ${updated.shiftName} (${updated.shiftID})`,
+        target: { name: updated.shiftName },
+        previous,
+        current: cleanObject(updated.toObject ? updated.toObject() : updated),
       });
     } catch (err) {
       console.error("Activity log failed:", err.message);
@@ -121,9 +131,14 @@ exports.deleteShift = async (req, res) => {
 
     // Log activity
     try {
-      await Activity.create({
-        text: `Shift deleted: ${shift.shiftName} (${shift.shiftID})`,
-        createdAt: new Date(),
+      await createAuditLog({
+        req,
+        action: "DELETE",
+        module: "Shift Master",
+        details: `Shift deleted: ${shift.shiftName} (${shift.shiftID})`,
+        target: { name: shift.shiftName },
+        previous: cleanObject(shift.toObject ? shift.toObject() : shift),
+        current: null,
       });
     } catch (err) {
       console.error("Activity log failed:", err.message);

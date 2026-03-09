@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import * as XLSX from "xlsx";
 import Sidebar from '../component/Sidebar';
 import BackButton from "../component/BackButton";
 import MobileHeaderToggle from "../component/MobileHeaderToggle";
-import { useNavigate } from "react-router-dom";
 import Pagination from "./Pagination";
 import toast from "react-hot-toast";
 
@@ -21,7 +21,6 @@ const ShiftManagement = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
-    const navigate = useNavigate();
   const tableContainerRef = React.useRef(null); 
   const [shiftOptions, setShiftOptions] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -407,99 +406,40 @@ const getShiftColor = (shift, rowIndex) => {
   return getRowColor(rowIndex);
 };
 
-const handlePrint = () => {
-  const printData =
+const handleExportExcel = () => {
+  const exportRows =
     selectedEmployees.length > 0
       ? filteredEmployees.filter(emp =>
           selectedEmployees.includes(emp.employeeID)
         )
       : filteredEmployees;
 
-  const printWindow = window.open("", "", "width=1200,height=800");
-  
-  // Prepare the HTML content
-  printWindow.document.write(`
-    <html>
-    <head>
-      <title>Shift Report - ${selectedMonth}</title>
-      <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; }
-        h3 { text-align: center; color: #333; margin-bottom: 20px; }
-        table { border-collapse: collapse; width: 100%; table-layout: fixed; }
-        th, td { 
-          border: 1px solid #ccc; 
-          padding: 4px 2px; 
-          text-align: center; 
-          font-size: 9px; 
-          word-wrap: break-word;
-        }
-        th { background-color: #f2f2f2; font-weight: bold; }
-        .emp-info { text-align: left; padding-left: 5px; font-size: 10px; }
-        @page { size: A4 landscape; margin: 5mm; }
-        @media print {
-          button { display: none; }
-          body { margin: 0; }
-          table { width: 100%; }
-        }
-      </style>
-    </head>
-    <body>
-      <h3>
-        Shift Report: ${
-          new Date(
-            selectedMonth.split("-")[0],
-            selectedMonth.split("-")[1] - 1
-          ).toLocaleString("en-US", { month: "long", year: "numeric" })
-        }
-      </h3>
+  const exportData = exportRows.map((emp, index) => {
+    const empShifts = shifts[emp.employeeUserId] || {};
+    const row = {
+      "SL No": index + 1,
+      "Emp ID": emp.employeeID || "-",
+      "User ID": emp.employeeUserId || "-",
+      "Employee Name": `${emp.firstName || ""} ${emp.middleName || ""} ${emp.lastName || ""}`
+        .replace(/\s+/g, " ")
+        .trim(),
+      "Department": emp.departmentName || "-",
+      "Designation": emp.designationName || "-",
+    };
 
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 30px;">SL</th>
-            <th style="width: 50px;">ID</th>
-            <th style="width: 120px;">Name</th>
-            <th style="width: 100px;">Designation</th>
-            ${daysInMonth.map(d => `<th style="width: 25px;">${d}</th>`).join("")}
-          </tr>
-        </thead>
-        <tbody>
-          ${printData
-            .map((emp, i) => {
-              // Get the shift data using employeeUserId (which matches your state)
-              const empShifts = shifts[emp.employeeUserId] || {};
-              
-              return `
-                <tr>
-                  <td>${i + 1}</td>
-                  <td>${emp.employeeID}</td>
-                  <td class="emp-info">${emp.firstName} ${emp.lastName}</td>
-                  <td class="emp-info">${emp.designationName}</td>
-                  ${daysInMonth
-                    .map(d => {
-                      let displayVal = empShifts[d] || "";
-                      // If it's a Double Duty (DD:MN), show it clearly in the PDF
-                      if (displayVal.startsWith("DD:")) {
-                        displayVal = displayVal.replace("DD:", "");
-                      }
-                      return `<td>${displayVal}</td>`;
-                    })
-                    .join("")}
-                </tr>
-              `;
-            })
-            .join("")}
-        </tbody>
-      </table>
-    </body>
-    </html>
-  `);
-  
-  printWindow.document.close();
-  // Small delay to ensure styles are loaded before print dialog opens
-  setTimeout(() => {
-    printWindow.print();
-  }, 500);
+    daysInMonth.forEach((day) => {
+      const value = String(empShifts[day] || "").trim();
+      row[`Day ${day}`] = value.startsWith("DD:") ? value.slice(3) : value || "-";
+    });
+
+    return row;
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Shift Report");
+  XLSX.writeFile(workbook, `Shift_Report_${selectedMonth}.xlsx`);
+  toast.success("Excel exported successfully");
 };
 
 const scrollTable = (direction) => {
@@ -521,14 +461,20 @@ const scrollTable = (direction) => {
       <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
         <h2 className="text-xl font-bold text-dorika-blue">Shift Management</h2>
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold text-sm whitespace-nowrap"
+          >
+            Export Excel
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="bg-dorika-blue hover:bg-dorika-orange text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
+          >
+            Submit
+          </button>
           <BackButton />
-
-        {/* <button
-          onClick={() => navigate("/EmployeeMaster")}
-          className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
-        >
-          Add Employee
-        </button> */}
         </div>
       </div>
   
@@ -619,16 +565,6 @@ const scrollTable = (direction) => {
         className="border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none"
       />
     </div>
-  </div>
-
-  <div className="mt-3 flex items-center justify-end gap-2">
-    <button
-      type="button"
-      onClick={handlePrint}
-      className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold text-sm"
-    >
-      Print Report
-    </button>
   </div>
 </div>
       </MobileHeaderToggle>
@@ -806,14 +742,6 @@ const scrollTable = (direction) => {
           onPageChange={setCurrentPage}
         />
       )}
-          <div className="flex justify-end mt-3 md:absolute md:right-3 md:bottom-3">
-              <button
-                onClick={handleSubmit}
-                className="bg-dorika-blue hover:bg-dorika-orange text-white px-4 py-1 rounded font-semibold"
-              >
-                Submit
-              </button>
-            </div>
       </div>
     </div>
     </div>

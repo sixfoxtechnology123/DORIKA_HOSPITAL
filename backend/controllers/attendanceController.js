@@ -3,11 +3,12 @@ const Leave = require("../models/LeaveApplication");
 const ShiftMaster = require("../models/Shift");
 const ShiftManagement = require("../models/ShiftManagement");
 const Employee = require("../models/Employee");
+const { createAuditLog } = require("../utils/auditLogger");
 
-const OFFICE_LAT = 26.652061;
-const OFFICE_LNG = 92.790961;
-// const OFFICE_LAT = 22.965561;
-// const OFFICE_LNG = 88.457227;
+// const OFFICE_LAT = 26.652061;
+// const OFFICE_LNG = 92.790961;
+const OFFICE_LAT = 22.965561;
+const OFFICE_LNG = 88.457227;
 const ALLOWED_DISTANCE = 300;
 
 const normalizeShiftCode = (value) => String(value || "").trim().toUpperCase();
@@ -225,6 +226,17 @@ const isOpenPunchRecord = (rec) => {
   return status === "PRESENT" || status === "P" || status === "P(L)";
 };
 
+const isDoubleShiftCode = (value) => {
+  const shift = normalizeShiftCode(value);
+  const isLegacyDouble = /^[A-Z]{2}$/.test(shift) && !["OFF", "DD"].includes(shift);
+  return shift.startsWith("DD:") || isLegacyDouble;
+};
+
+const getWorkDurationText = (shiftCode, shiftStartTime, shiftEndTime, existingWorkDuration = "") => {
+  if (existingWorkDuration && existingWorkDuration !== "--") return existingWorkDuration;
+  return calculateDuration(shiftStartTime, shiftEndTime);
+};
+
 const sanitizeRecordForStatus = (record = {}) => {
   const status = String(record.status || "").trim().toUpperCase();
   if (status === "OFF" || status === "ABSENT" || status.startsWith("SL") || status.startsWith("CL")) {
@@ -249,14 +261,21 @@ const autoCloseOpenRecordAtShiftEnd = (record = {}, now = new Date()) => {
 
   const shiftStartMin = parseTimeToMinutes(record.shiftStartTime);
   let shiftEndMin = parseTimeToMinutes(record.shiftEndTime);
-  if (shiftEndMin < shiftStartMin) shiftEndMin += 1440;
+  if (shiftEndMin < shiftStartMin || (isDoubleShiftCode(record.shiftCode) && shiftEndMin === shiftStartMin)) {
+    shiftEndMin += 1440;
+  }
 
   const cutoff = new Date(`${record.date}T00:00:00`);
   cutoff.setMinutes(cutoff.getMinutes() + shiftEndMin + 60);
   if (now < cutoff) return false;
 
   record.checkOutTime = record.shiftEndTime;
-  record.workDuration = calculateDuration(record.shiftStartTime, record.shiftEndTime);
+  record.workDuration = getWorkDurationText(
+    record.shiftCode,
+    record.shiftStartTime,
+    record.shiftEndTime,
+    record.workDuration
+  );
   record.actualWorkDuration = calculateActualDuration(record.checkInTime, record.shiftEndTime);
   record.isOT = false;
   record.otHours = 0;
@@ -409,7 +428,9 @@ const markDailyAttendance = async (req, res) => {
       recordToUpdate.checkOutTime = currentTime;
       const shiftStartMin = parseTimeToMinutes(recordToUpdate.shiftStartTime);
       let shiftEndMin = parseTimeToMinutes(recordToUpdate.shiftEndTime);
-      if (shiftEndMin < shiftStartMin) shiftEndMin += 1440;
+      if (shiftEndMin < shiftStartMin || (isDoubleShiftCode(recordToUpdate.shiftCode) && shiftEndMin === shiftStartMin)) {
+        shiftEndMin += 1440;
+      }
       const scheduledMinutes = shiftEndMin - shiftStartMin;
       const punchInMin = parseTimeToMinutes(recordToUpdate.checkInTime);
       let punchOutMin = parseTimeToMinutes(currentTime);
@@ -430,7 +451,12 @@ const markDailyAttendance = async (req, res) => {
         recordToUpdate.otHours = 0;
       }
 
-      recordToUpdate.workDuration = calculateDuration(recordToUpdate.shiftStartTime, recordToUpdate.shiftEndTime);
+      recordToUpdate.workDuration = getWorkDurationText(
+        recordToUpdate.shiftCode,
+        recordToUpdate.shiftStartTime,
+        recordToUpdate.shiftEndTime,
+        recordToUpdate.workDuration
+      );
       const h = Math.floor(actualMinutes / 60);
       const m = actualMinutes % 60;
       recordToUpdate.actualWorkDuration = `${h}h ${m}m`;
@@ -461,12 +487,13 @@ const markDailyAttendance = async (req, res) => {
       const gapShiftCode = shiftMgmt.shifts[gapDayNum] || shiftMgmt.shifts[gapDayNum.toString()];
         const isOffDay = normalizeShiftCode(gapShiftCode) === "OFF";
 
-        let gapStartTime = "--", gapEndTime = "--";
+        let gapStartTime = "--", gapEndTime = "--", gapWorkDuration = "--";
         if (gapShiftCode && !isOffDay) {
           const timing = await getShiftTimingByCode(gapShiftCode);
           if (timing.ok) {
             gapStartTime = timing.shiftStartTime;
             gapEndTime = timing.shiftEndTime;
+            gapWorkDuration = timing.workDurationText || "--";
           }
         }
 
@@ -493,7 +520,7 @@ const markDailyAttendance = async (req, res) => {
           shiftCode: gapShiftCode || "--",
           shiftStartTime: gapStartTime,
           shiftEndTime: gapEndTime,
-          workDuration: calculateDuration(gapStartTime, gapEndTime),
+          workDuration: gapWorkDuration,
           actualWorkDuration: "--"
         });
       }
@@ -514,9 +541,14 @@ const markDailyAttendance = async (req, res) => {
     const shiftEndTime = assignedTiming.shiftEndTime;
 
     const startMin = parseTimeToMinutes(shiftStartTime);
-    const endMin = parseTimeToMinutes(shiftEndTime);
     const currentMin = (now.getHours() * 60) + now.getMinutes();
-    let adjustedEndMin = endMin < startMin ? endMin + 1440 : endMin;
+    const adjustedEndMin =
+      typeof assignedTiming.shiftWindowEndMin === "number"
+        ? assignedTiming.shiftWindowEndMin
+        : (() => {
+            const endMin = parseTimeToMinutes(shiftEndTime);
+            return endMin < startMin ? endMin + 1440 : endMin;
+          })();
 
     if (currentMin < (startMin - 15)) {
       return res.status(400).json({ message: `Too early! Shift starts at ${shiftStartTime}.` });
@@ -531,7 +563,9 @@ const markDailyAttendance = async (req, res) => {
       status: "Present",
       checkInTime: currentTime,
       checkOutTime: "",
-      workDuration: calculateDuration(shiftStartTime, shiftEndTime),
+      workDuration:
+        assignedTiming.workDurationText ||
+        getWorkDurationText(assignedTiming.normalizedCode, shiftStartTime, shiftEndTime),
       actualWorkDuration: "--",
       shiftCode: assignedTiming.normalizedCode,
       shiftStartTime: shiftStartTime, 
@@ -582,6 +616,20 @@ const updateAttendanceRecord = async (req, res) => {
     if (status === "A") finalStatus = "Absent";
 
     const target = attendanceDoc.records[recordIndex];
+    const previousRecord = {
+      date: target.date,
+      status: target.status,
+      isLate: target.isLate,
+      checkInTime: target.checkInTime,
+      checkOutTime: target.checkOutTime,
+      workDuration: target.workDuration,
+      actualWorkDuration: target.actualWorkDuration,
+      shiftCode: target.shiftCode,
+      shiftStartTime: target.shiftStartTime,
+      shiftEndTime: target.shiftEndTime,
+      isOT: target.isOT,
+      otHours: target.otHours,
+    };
     target.status = finalStatus;
     target.isLate = finalStatus === "Present" ? !!isLate : false;
 
@@ -597,6 +645,33 @@ const updateAttendanceRecord = async (req, res) => {
     // Update Paid Days on manual edit
     attendanceDoc.totalPaidDays = calculateTotalPaidDays(attendanceDoc.records);
     await attendanceDoc.save();
+
+    await createAuditLog({
+      req,
+      action: "UPDATE",
+      module: "Employee Attendance History",
+      details: `Updated attendance for ${employeeUserId} on ${targetDate}.`,
+      target: {
+        employeeUserId,
+        employeeID: attendanceDoc.employeeId || "",
+        name: attendanceDoc.employeeName || "",
+      },
+      previous: previousRecord,
+      current: {
+        date: target.date,
+        status: target.status,
+        isLate: target.isLate,
+        checkInTime: target.checkInTime,
+        checkOutTime: target.checkOutTime,
+        workDuration: target.workDuration,
+        actualWorkDuration: target.actualWorkDuration,
+        shiftCode: target.shiftCode,
+        shiftStartTime: target.shiftStartTime,
+        shiftEndTime: target.shiftEndTime,
+        isOT: target.isOT,
+        otHours: target.otHours,
+      },
+    });
 
     res.status(200).json({ message: "Attendance updated successfully" });
   } catch (err) {

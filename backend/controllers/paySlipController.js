@@ -1,5 +1,32 @@
 import PaySlip from "../models/PaySlip.js";
 import Employee from "../models/Employee.js";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
+
+const summarizeBatch = (batch) => {
+  if (!batch) return null;
+  return cleanObject({
+    month: batch.month,
+    year: batch.year,
+    filterDept: batch.filterDept,
+    status: batch.status,
+    employeeCount: Array.isArray(batch.employeePayslips) ? batch.employeePayslips.length : 0,
+    employees: Array.isArray(batch.employeePayslips)
+      ? batch.employeePayslips.map((slip) => ({
+          employeeId: slip.employeeId,
+          employeeUserId: slip.employeeUserId,
+          employeeName: slip.employeeName,
+          departmentName: slip.departmentName,
+          designationName: slip.designationName,
+          grossSalary: slip.grossSalary,
+          netSalary: slip.netSalary,
+          inHandSalary: slip.inHandSalary,
+        }))
+      : [],
+  });
+};
 
 // 1. Create or Update Payslip Batch + Direct Master Sync
 export const createPaySlip = async (req, res) => {
@@ -74,6 +101,22 @@ export const createPaySlip = async (req, res) => {
 
     await Promise.all(masterSyncPromises);
 
+    await createAuditLog({
+      req,
+      action: existingBatch ? "UPDATE" : "CREATE",
+      module: "Generate All Employee Payslip",
+      details: `${existingBatch ? "Updated" : "Generated"} payslip batch for ${filterDept} (${month} ${year}).`,
+      previous: summarizeBatch(existingBatch),
+      current: summarizeBatch(updatedBatch),
+      metadata: {
+        month,
+        year,
+        filterDept,
+        status,
+        employeeCount: finalDataToSave.length,
+      },
+    });
+
     // --- 6. SUCCESS RESPONSE ---
     res.status(201).json({ 
       success: true, 
@@ -89,7 +132,18 @@ export const createPaySlip = async (req, res) => {
 export const clearMonthData = async (req, res) => {
   try {
     const { month, year, filterDept } = req.query;
-    await PaySlip.findOneAndDelete({ month, year, filterDept });
+    const deletedBatch = await PaySlip.findOneAndDelete({ month, year, filterDept });
+    if (deletedBatch) {
+      await createAuditLog({
+        req,
+        action: "DELETE",
+        module: "Generate All Employee Payslip",
+        details: `Cleared payslip history for ${filterDept} (${month} ${year}).`,
+        previous: summarizeBatch(deletedBatch),
+        current: null,
+        metadata: { month, year, filterDept },
+      });
+    }
     res.json({ success: true, message: `${filterDept} history cleared.` });
   } catch (err) { res.status(500).json({ error: "Clear failed" }); }
 };
@@ -136,6 +190,17 @@ export const deletePaySlip = async (req, res) => {
   try {
     const deletedSlip = await PaySlip.findByIdAndDelete(id);
     if (!deletedSlip) return res.status(404).json({ error: "Not found" });
+    await createAuditLog({
+      req,
+      action: "DELETE",
+      module: "Generate All Employee Payslip",
+      details: `Deleted payslip batch for ${deletedSlip.filterDept} (${deletedSlip.month} ${deletedSlip.year}).`,
+      previous: summarizeBatch(deletedSlip),
+      current: null,
+      metadata: {
+        batchId: String(deletedSlip._id),
+      },
+    });
     res.json({ success: true, message: "Deleted successfully" });
   } catch (err) { res.status(500).json({ error: "Failed to delete" }); }
 };

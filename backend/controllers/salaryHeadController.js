@@ -1,5 +1,9 @@
 // controllers/salaryHeadController.js
 import SalaryHead from "../models/SalaryHead.js";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 /**
  * Helper: generate next ID for the given headType
@@ -49,6 +53,15 @@ export const createSalaryHead = async (req, res) => {
       headName: headName.toUpperCase(),
     });
 
+    await createAuditLog({
+      req,
+      action: "CREATE",
+      module: "Salary Head",
+      details: `Created salary head ${doc.headName} (${doc.headId}).`,
+      target: { name: doc.headName },
+      current: cleanObject(doc.toObject ? doc.toObject() : doc),
+    });
+
     return res.status(201).json({ success: true, data: doc });
   } catch (err) {
     // handle duplicate headId just in case
@@ -92,8 +105,18 @@ export const updateSalaryHead = async (req, res) => {
     if (req.body.headName) updates.headName = req.body.headName.toUpperCase();
     if (req.body.headType) updates.headType = req.body.headType.toUpperCase();
 
+    const previous = await SalaryHead.findById(id).lean();
     const updated = await SalaryHead.findByIdAndUpdate(id, updates, { new: true });
     if (!updated) return res.status(404).json({ success: false, message: "Not found" });
+    await createAuditLog({
+      req,
+      action: "UPDATE",
+      module: "Salary Head",
+      details: `Updated salary head ${updated.headName} (${updated.headId}).`,
+      target: { name: updated.headName },
+      previous,
+      current: cleanObject(updated.toObject ? updated.toObject() : updated),
+    });
     return res.json({ success: true, data: updated });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
@@ -118,6 +141,15 @@ export const deleteSalaryHead = async (req, res) => {
     const { id } = req.params; // Mongo _id
     const deleted = await SalaryHead.findByIdAndDelete(id);
     if (!deleted) return res.status(404).json({ success: false, message: "Salary head not found" });
+    await createAuditLog({
+      req,
+      action: "DELETE",
+      module: "Salary Head",
+      details: `Deleted salary head ${deleted.headName} (${deleted.headId}).`,
+      target: { name: deleted.headName },
+      previous: cleanObject(deleted.toObject ? deleted.toObject() : deleted),
+      current: null,
+    });
     return res.json({ success: true, message: "Salary head deleted successfully" });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
