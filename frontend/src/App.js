@@ -62,6 +62,7 @@ import QualificationList from "./Master/QualificationList";
 import ProtectedRoute from "./component/ProtectedRoute";
 import EmployeeShiftTime from "./EmployeeCorner/EmployeeShiftTime";
 import DepartmrentHead from "./Master/DepartmrentHead";
+import ActivityHistory from "./Master/ActivityHistory";
 
 const getToastMessageText = (message) => {
   if (typeof message === "string") return message.trim();
@@ -149,6 +150,7 @@ export default function App(){
         <Route path="/QualificationList" element={<QualificationList/>} />
         <Route path="/EmployeeShiftTime" element={<EmployeeShiftTime/>} />
         <Route path="/DepartmrentHead" element={<DepartmrentHead/>} />
+        <Route path="/ActivityHistory" element={<ActivityHistory/>} />
       </Route>
 
      </Routes>

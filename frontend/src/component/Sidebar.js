@@ -129,6 +129,7 @@ const Sidebar = () => {
       submenus: [
         { name: "Admin Management", path: "/AdminManagement" },
         { name: "Employee Management", path: "/EmployeeUserIdCreated" },
+        // { name: "Activity History", path: "/ActivityHistory" },
       ],
     },
   ];

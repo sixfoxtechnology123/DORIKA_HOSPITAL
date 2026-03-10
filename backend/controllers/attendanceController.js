@@ -5,8 +5,11 @@ const ShiftManagement = require("../models/ShiftManagement");
 const Employee = require("../models/Employee");
 const { createAuditLog } = require("../utils/auditLogger");
 
+//dorika location---
 // const OFFICE_LAT = 26.652061;
 // const OFFICE_LNG = 92.790961;
+
+//our ofice location---
 const OFFICE_LAT = 22.965561;
 const OFFICE_LNG = 88.457227;
 const ALLOWED_DISTANCE = 300;
