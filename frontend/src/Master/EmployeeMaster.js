@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import Sidebar from "../component/Sidebar";
 import BackButton from "../component/BackButton";
@@ -152,21 +152,27 @@ useEffect(() => {
   const [designations, setDesignations] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [qualificationsMaster, setQualificationsMaster] = useState([]);
-  const [educationDetails, setEducationDetails] = useState([
-    {
-      qualification: "",
-      discipline: "",
-      institute: "",
-      board: "",
-      year: "",
-      percentage: "",
-      grade: "",
-    },
-  ]);
+  const createEducationRow = () => ({
+    qualification: "",
+    discipline: "",
+    institute: "",
+    board: "",
+    year: "",
+    percentage: "",
+    grade: "",
+  });
+  const createNomineeRow = () => ({
+    name: "",
+    relation: "",
+    share: "",
+    age: "",
+    address: "",
+    dob: "",
+  });
+
+  const [educationDetails, setEducationDetails] = useState([createEducationRow()]);
     // Step 3 States
-const [nomineeDetails, setNomineeDetails] = useState([
-    { name: "", relation: "", share: "", age: "", address: "" },
-  ]);
+const [nomineeDetails, setNomineeDetails] = useState([createNomineeRow()]);
 const [bloodGroup, setBloodGroup] = useState("");
 const [eyeSightLeft, setEyeSightLeft] = useState("");
 const [eyeSightRight, setEyeSightRight] = useState("");
@@ -399,16 +405,25 @@ useEffect(() => {
     setProfileImage(loadedEmployee.profileImage || null);
 
     // 5. Education & Nominees
-    setEducationDetails(loadedEmployee.educationDetails || []);
+    const loadedEducation = Array.isArray(loadedEmployee.educationDetails)
+      ? loadedEmployee.educationDetails
+      : [];
+    setEducationDetails(loadedEducation.length > 0 ? loadedEducation : [createEducationRow()]);
+
+    const loadedNominees = Array.isArray(loadedEmployee.nominees)
+      ? loadedEmployee.nominees
+      : [];
     setNomineeDetails(
-      (loadedEmployee.nominees || []).map((n) => ({
-        name: n.name || "",
-        relation: n.relationship || "",
-        share: n.share || "",
-        age: n.age || "",
-        address: n.address || "",
-        dob: n.dob || "",
-      }))
+      loadedNominees.length > 0
+        ? loadedNominees.map((n) => ({
+            name: n.name || "",
+            relation: n.relationship || "",
+            share: n.share || "",
+            age: n.age || "",
+            address: n.address || "",
+            dob: n.dob || "",
+          }))
+        : [createNomineeRow()]
     );
 
     // 6. Medical Details
@@ -620,18 +635,7 @@ useEffect(() => {
   const handleFileChange = (e) => setProfileImage(e.target.files[0]);
 
   const handleAddRow = () =>
-    setEducationDetails([
-      ...educationDetails,
-      {
-        qualification: "",
-        discipline: "",
-        institute: "",
-        board: "",
-        year: "",
-        percentage: "",
-        grade: "",
-      },
-    ]);
+    setEducationDetails([...educationDetails, createEducationRow()]);
 
   const handleRemoveRow = (index) => {
     const updated = [...educationDetails];
@@ -1057,39 +1061,51 @@ const handleSubmit = async (e) => {
                     className="w-full text-sm border border-gray-300 rounded p-1"
                   />
                 </div> */}
-              <Select
-                  label="Reporting Manager"
-                  value={reportingManagerEmpID} // Bind to ID
-                  onChange={(val) => {
-                    setReportingManagerEmpID(val);
-                    const emp = employees.find((e) => e.employeeID === val);
-                    if (emp) {
-                      setReportingManager(`${emp.firstName} ${emp.lastName}`.trim());
-                      setReportingManagerEmployeeUserId(emp.employeeUserId);
-                    }
-                  }}
-                  options={employees.map((e) => ({
+              <SearchableSelect
+                label="Reporting Manager"
+                value={reportingManagerEmpID} // Bind to ID
+                onChange={(val) => {
+                  setReportingManagerEmpID(val);
+                  const emp = employees.find((e) => e.employeeID === val);
+                  if (emp) {
+                    setReportingManager(`${emp.firstName} ${emp.lastName}`.trim());
+                    setReportingManagerEmployeeUserId(emp.employeeUserId);
+                  }
+                }}
+                options={employees.map((e) => {
+                  const fullName = `${e.firstName || ""} ${e.middleName || ""} ${e.lastName || ""}`
+                    .replace(/\s+/g, " ")
+                    .trim();
+                  return {
                     value: e.employeeID,
-                    label: `${e.firstName} ${e.lastName} (${e.employeeID})`,
-                  }))}
-                />
+                    label: `${fullName} (${e.employeeID})`,
+                    searchText: fullName,
+                  };
+                })}
+              />
 
-                <Select
-                  label="Department Head"
-                  value={departmentHeadEmpID} // Bind to ID
-                  onChange={(val) => {
-                    setDepartmentHeadEmpID(val);
-                    const emp = employees.find((e) => e.employeeID === val);
-                    if (emp) {
-                      setdepartmentHead(`${emp.firstName} ${emp.lastName}`.trim());
-                      setDepartmentHeadEmployeeUserId(emp.employeeUserId);
-                    }
-                  }}
-                  options={employees.map((e) => ({
+              <SearchableSelect
+                label="Department Head"
+                value={departmentHeadEmpID} // Bind to ID
+                onChange={(val) => {
+                  setDepartmentHeadEmpID(val);
+                  const emp = employees.find((e) => e.employeeID === val);
+                  if (emp) {
+                    setdepartmentHead(`${emp.firstName} ${emp.lastName}`.trim());
+                    setDepartmentHeadEmployeeUserId(emp.employeeUserId);
+                  }
+                }}
+                options={employees.map((e) => {
+                  const fullName = `${e.firstName || ""} ${e.middleName || ""} ${e.lastName || ""}`
+                    .replace(/\s+/g, " ")
+                    .trim();
+                  return {
                     value: e.employeeID,
-                    label: `${e.firstName} ${e.lastName} (${e.employeeID})`,
-                  }))}
-                />
+                    label: `${fullName} (${e.employeeID})`,
+                    searchText: fullName,
+                  };
+                })}
+              />
              <div className="col-span-full flex flex-row justify-between items-center gap-3 mt-6 border-t pt-4">
                 {/* Left Side */}
                 <div className="flex-shrink-0">
@@ -1393,7 +1409,7 @@ const handleSubmit = async (e) => {
                           onClick={() =>
                             setNomineeDetails([
                               ...nomineeDetails,
-                              { name: "", relation: "", dob: "", share: "", address: "" },
+                              createNomineeRow(),
                             ])
                           }
                           className="bg-green-500 hover:bg-green-600 text-white px-2 rounded mr-1"
@@ -2276,8 +2292,78 @@ const Select = ({ label, value, onChange, options }) => (
   </div>
 );
 
+const SearchableSelect = ({ label, value, onChange, options }) => {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const wrapperRef = useRef(null);
+
+  const selected = options.find((opt) => opt.value === value);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredOptions = options.filter((opt) => {
+    const text = (opt.searchText || opt.label || "").toLowerCase();
+    return text.includes(normalizedQuery);
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setOpen(false);
+        setQuery("");
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <label className="block text-sm">{label}</label>
+      <button
+        type="button"
+        className="w-full pl-2 pr-1 border border-gray-300 font-medium rounded text-sm text-left focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all duration-150 bg-white"
+        onClick={() => setOpen((prev) => !prev)}
+      >
+        {selected ? selected.label : "-- Select --"}
+      </button>
+      {open && (
+        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded shadow">
+          <div className="p-2 border-b border-gray-200">
+            <input
+              type="text"
+              placeholder="Search by name..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400"
+              autoFocus
+            />
+          </div>
+          <div className="max-h-56 overflow-auto">
+            {filteredOptions.length === 0 ? (
+              <div className="p-2 text-sm text-gray-500">No results</div>
+            ) : (
+              filteredOptions.map((opt) => (
+                <div
+                  key={opt.value}
+                  onMouseDown={() => {
+                    onChange(opt.value);
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                  className="px-3 py-2 text-sm cursor-pointer hover:bg-sky-50"
+                >
+                  {opt.label}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 export default EmployeeMaster;
-
 
 
