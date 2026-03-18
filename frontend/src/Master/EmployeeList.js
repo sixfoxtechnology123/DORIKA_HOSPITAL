@@ -26,6 +26,7 @@ const EmployeeList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(getStoredPerPage); 
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("P");
 
 
   const fetchAll = async () => {
@@ -99,6 +100,17 @@ const handleSearchChange = (e) => {
     return m;
   }, [designations]);
 
+  const employmentStatusOptions = useMemo(() => {
+    const statusSet = new Set(
+      employees
+        .map((employee) => (employee?.employmentStatus || "").toString().trim().toUpperCase())
+        .filter(Boolean)
+    );
+
+    statusSet.add("P");
+    return Array.from(statusSet).sort((a, b) => a.localeCompare(b));
+  }, [employees]);
+
   const deleteEmployee = async (id) => {
     if (!window.confirm("Are you sure you want to delete this employee?")) return;
     try {
@@ -111,18 +123,17 @@ const handleSearchChange = (e) => {
   };
 
   const filteredEmployees = useMemo(() => {
-  if (!searchTerm) return employees;
-
   return employees.filter((e) => {
     const fullName = `${e.firstName || ""} ${e.middleName || ""} ${e.lastName || ""}`.toUpperCase();
     const empId = (e.employeeID || "").toUpperCase();
+    const employeeStatus = (e?.employmentStatus || "").toString().trim().toUpperCase();
+    const matchesSearch =
+      !searchTerm || fullName.startsWith(searchTerm) || empId.startsWith(searchTerm);
+    const matchesStatus = !selectedStatus || employeeStatus === selectedStatus;
 
-    return (
-      fullName.startsWith(searchTerm) ||
-      empId.startsWith(searchTerm)
-    );
+    return matchesSearch && matchesStatus;
   });
-}, [employees, searchTerm]);
+}, [employees, searchTerm, selectedStatus]);
 
 const indexOfLast = currentPage * perPage;
 const indexOfFirst = indexOfLast - perPage;
@@ -167,7 +178,27 @@ const paginatedEmployees = perPage === "all"
       />
 
       {/* Dropdown + Button Row */}
-      <div className="flex justify-between sm:justify-end items-center gap-2 w-full sm:w-auto">
+      <div className="flex justify-between sm:justify-end items-center gap-2 w-full sm:w-auto flex-wrap">
+
+        <div className="flex items-center gap-1">
+          <label className="text-[10px] sm:text-xs font-bold text-dorika-blue uppercase">
+            Status
+          </label>
+          <select
+            value={selectedStatus}
+            onChange={(e) => {
+              setSelectedStatus(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="border border-dorika-blue rounded px-2 py-2 text-sm outline-none bg-white font-semibold text-dorika-blue uppercase"
+          >
+            {employmentStatusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="flex items-center gap-1">
           <label className="text-[10px] sm:text-xs font-bold text-dorika-blue uppercase">
@@ -223,7 +254,7 @@ const paginatedEmployees = perPage === "all"
           </tr>
         </thead>
         <tbody className="text-xs sm:text-sm text-center">
-          {employees.length ? (
+          {filteredEmployees.length ? (
            paginatedEmployees.filter(Boolean).map((e,index) => (
               <tr key={e?._id || index} className="hover:bg-dorika-blueLight transition">
                 <td className="border border-dorika-blue px-2 py-1">{perPage === "all" ? index + 1 : (currentPage - 1) * perPage + index + 1}</td>

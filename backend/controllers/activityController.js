@@ -1,24 +1,31 @@
 const Activity = require("../models/Activity");
 
-// Get activities with optional filtering
 exports.getActivities = async (req, res) => {
   try {
     const { employeeUserId, startDate, endDate } = req.query;
     let query = {};
 
-    // Filter by Date Range if provided
+    // 1. FIX DATE RANGE (Include the full end day)
     if (startDate && endDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0); // Start of day
+
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // End of day
+
       query.createdAt = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
+        $gte: start,
+        $lte: end,
       };
     }
 
     if (employeeUserId) query["changedBy.loginUserId"] = employeeUserId;
 
+    // 2. REMOVE OR INCREASE LIMIT
     const activities = await Activity.find(query)
-      .sort({ createdAt: -1 }) // Newest first
-      .limit(100);             // Increased limit for better visibility
+      .sort({ createdAt: -1 }) 
+      // Change this to a higher number like 2000 or remove it to see everything
+      .limit(2000); 
 
     const normalized = activities.map((activity) => {
       const row = activity.toObject();
@@ -37,6 +44,7 @@ exports.getActivities = async (req, res) => {
 
     res.json(normalized);
   } catch (err) {
+    console.error("Activity Fetch Error:", err);
     res.status(500).json({ error: "Failed to fetch activities" });
   }
 };
