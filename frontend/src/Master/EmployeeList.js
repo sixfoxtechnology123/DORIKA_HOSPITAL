@@ -72,22 +72,18 @@ const EmployeeList = () => {
   }, [perPage]);
 
 const handleSearchChange = (e) => {
-  let value = e.target.value.toUpperCase();
+  let value = e.target.value.toUpperCase().replace(/\s+/g, "");
 
-  // If user types only number → add P- before it (no zero padding)
   if (/^\d+$/.test(value)) {
-    value = `P-${value}`;
+    const defaultPrefix = (selectedStatus || "P").toUpperCase();
+    value = `${defaultPrefix}-${value}`;
   }
 
-  // If user types P followed by number (no dash) → add dash only
-  if (/^P\d/.test(value)) {
-    value = value.replace(/^P/, "P-");
-  }
+  value = value.replace(/^([A-Z]+)(\d+)$/, "$1-$2");
 
   setSearchTerm(value);
   setCurrentPage(1);
 };
-
   const deptMap = useMemo(() => {
     const m = {};
     departments.forEach((d) => (m[d.id] = d.name)); // code -> name

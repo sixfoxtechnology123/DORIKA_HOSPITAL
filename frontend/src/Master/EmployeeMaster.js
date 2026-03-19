@@ -61,6 +61,19 @@ const parseDisplayDateToInput = (dateString) => {
 
   return null;
 };
+
+const formatDateTypingValue = (dateString) => {
+  if (!dateString || typeof dateString !== "string") return "";
+
+  const digitsOnly = dateString.replace(/\D/g, "").slice(0, 8);
+  const day = digitsOnly.slice(0, 2);
+  const month = digitsOnly.slice(2, 4);
+  const year = digitsOnly.slice(4, 8);
+
+  if (digitsOnly.length <= 2) return day;
+  if (digitsOnly.length <= 4) return `${day}/${month}`;
+  return `${day}/${month}/${year}`;
+};
 const EmployeeMaster = () => {
   const location = useLocation();
   const { employee, id } = location.state || {};
@@ -2311,7 +2324,7 @@ const DateDisplayInput = ({
       readOnly={readOnly}
       placeholder={placeholder}
       onChange={(e) => {
-        const nextDisplayValue = e.target.value;
+        const nextDisplayValue = formatDateTypingValue(e.target.value);
         setDisplayValue(nextDisplayValue);
 
         if (!nextDisplayValue.trim()) {
