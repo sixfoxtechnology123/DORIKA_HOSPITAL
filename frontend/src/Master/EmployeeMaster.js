@@ -28,6 +28,39 @@ const formatDateForStorage = (dateString) => {
   }
   return dateString;
 };
+
+const formatDateToDisplay = (dateString) => {
+  if (!dateString || typeof dateString !== "string") return "";
+
+  const isoMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+  }
+
+  const storedMatch = dateString.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (storedMatch) {
+    return `${storedMatch[1]}/${storedMatch[2]}/${storedMatch[3]}`;
+  }
+
+  return dateString;
+};
+
+const parseDisplayDateToInput = (dateString) => {
+  if (!dateString || typeof dateString !== "string") return "";
+
+  const trimmedValue = dateString.trim();
+  const displayMatch = trimmedValue.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+  if (displayMatch) {
+    return `${displayMatch[3]}-${displayMatch[2]}-${displayMatch[1]}`;
+  }
+
+  const isoMatch = trimmedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    return trimmedValue;
+  }
+
+  return null;
+};
 const EmployeeMaster = () => {
   const location = useLocation();
   const { employee, id } = location.state || {};
@@ -1001,6 +1034,7 @@ const handleSubmit = async (e) => {
                   label="Date of Birth *"
                   value={dob}
                   onChange={handleDobChange}
+                  dateDisplayFormat="DD/MM/YYYY"
                 />
                 <Input
                   type="date"
@@ -1008,18 +1042,21 @@ const handleSubmit = async (e) => {
                   readOnly
                   value={dor}
                   onChange={setDor}
+                  dateDisplayFormat="DD/MM/YYYY"
                 />
                 <Input
                   type="date"
                   label="Date of Joining *"
                   value={doj}
                   onChange={setDoj}
+                  dateDisplayFormat="DD/MM/YYYY"
                 />
                 <Input
                   type="date"
                   label="Employee Status Change Date"
                   value={statusChangeDate || doj} // default to Date of Joining
                   onChange={setStatusChangeDate}
+                  dateDisplayFormat="DD/MM/YYYY"
                 />
 
                 <Input
@@ -1027,12 +1064,14 @@ const handleSubmit = async (e) => {
                   label="Confirmation Date"
                   value={confirmationDate}
                   onChange={setConfirmationDate}
+                  dateDisplayFormat="DD/MM/YYYY"
                 />
                 <Input
                   type="date"
                   label="Next Increment Date"
                   value={nextIncrementDate}
                   onChange={setNextIncrementDate}
+                  dateDisplayFormat="DD/MM/YYYY"
                 />
                 <Select
                   label="Eligible for Promotion"
@@ -1374,13 +1413,12 @@ const handleSubmit = async (e) => {
                           />
                         </td>
                         <td className="border p-2">
-                        <input
-                          type="date"
+                        <DateDisplayInput
                           value={row.dob}
-                          onChange={(e) =>
+                          onChange={(val) =>
                             setNomineeDetails((prev) => {
                               const updated = [...prev];
-                              updated[index].dob = e.target.value;
+                              updated[index].dob = val;
                               return updated;
                             })
                           }
@@ -1500,10 +1538,9 @@ const handleSubmit = async (e) => {
                     {/* Family Plan Date */}
                     <div>
                       <label className="block text-sm mb-1">Family Plan Date</label>
-                      <input
-                        type="date"
+                      <DateDisplayInput
                         value={familyPlanDate}
-                        onChange={(e) => setFamilyPlanDate(e.target.value)}
+                        onChange={setFamilyPlanDate}
                         className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
                       />
                     </div>
@@ -2253,23 +2290,92 @@ const handleSubmit = async (e) => {
       );
     };
 
+const DateDisplayInput = ({
+  value,
+  onChange,
+  readOnly = false,
+  className = "",
+  placeholder = "DD/MM/YYYY",
+}) => {
+  const [displayValue, setDisplayValue] = useState(formatDateToDisplay(value));
+
+  useEffect(() => {
+    setDisplayValue(formatDateToDisplay(value));
+  }, [value]);
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={displayValue}
+      readOnly={readOnly}
+      placeholder={placeholder}
+      onChange={(e) => {
+        const nextDisplayValue = e.target.value;
+        setDisplayValue(nextDisplayValue);
+
+        if (!nextDisplayValue.trim()) {
+          onChange && onChange("");
+          return;
+        }
+
+        const parsedValue = parseDisplayDateToInput(nextDisplayValue);
+        if (parsedValue) {
+          onChange && onChange(parsedValue);
+        }
+      }}
+      onBlur={() => {
+        if (!displayValue.trim()) {
+          setDisplayValue("");
+          return;
+        }
+
+        const parsedValue = parseDisplayDateToInput(displayValue);
+        if (parsedValue) {
+          setDisplayValue(formatDateToDisplay(parsedValue));
+        } else {
+          setDisplayValue(formatDateToDisplay(value));
+        }
+      }}
+      className={className}
+    />
+  );
+};
+
 // Input
-const Input = ({ label, value, onChange, type = "text", readOnly = false }) => (
+const Input = ({
+  label,
+  value,
+  onChange,
+  type = "text",
+  readOnly = false,
+  dateDisplayFormat,
+}) => (
   <div>
     <label className="block text-sm">{label}</label>
-    <input
-      type={type}
-      value={value}
-      readOnly={readOnly}
-     // Your Input component handles the event internally here:
+    {type === "date" && dateDisplayFormat === "DD/MM/YYYY" ? (
+      <DateDisplayInput
+        value={value}
+        onChange={onChange}
+        readOnly={readOnly}
+        className={`w-full pl-2 pr-1 border border-gray-300 font-medium rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all duration-150 ${
+          readOnly ? "bg-gray-100 cursor-not-allowed" : ""
+        }`}
+      />
+    ) : (
+      <input
+        type={type}
+        value={value}
+        readOnly={readOnly}
         onChange={(e) =>
           onChange &&
           onChange(type === "text" ? e.target.value.toUpperCase() : e.target.value)
         }
-      className={`w-full pl-2 pr-1 border border-gray-300 font-medium rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all duration-150 ${
-        readOnly ? "bg-gray-100 cursor-not-allowed" : ""
-      }`}
-    />
+        className={`w-full pl-2 pr-1 border border-gray-300 font-medium rounded text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-all duration-150 ${
+          readOnly ? "bg-gray-100 cursor-not-allowed" : ""
+        }`}
+      />
+    )}
   </div>
 );
 
