@@ -40,6 +40,14 @@ const parseDDCodes = (value) => {
   return null;
 };
 
+const normalizeEmployeeId = (value) => String(value || "").trim().toUpperCase();
+const isExEmployeeId = (value) => normalizeEmployeeId(value).startsWith("EX-");
+const getEmployeePrefix = (value) => {
+  const normalized = normalizeEmployeeId(value);
+  if (!normalized || isExEmployeeId(normalized)) return "";
+  return normalized.split("-")[0] || "";
+};
+
 const DutyRoasterHistory = () => {
   const PER_PAGE_STORAGE_KEY = "dutyRoasterHistory.perPage";
   const DATE_STORAGE_KEY = "dutyRoasterHistory.selectedDate";
@@ -67,6 +75,7 @@ const DutyRoasterHistory = () => {
   const [designations, setDesignations] = useState(["ALL"]);
   const [selectedDepartment, setSelectedDepartment] = useState("ALL");
   const [selectedDesignation, setSelectedDesignation] = useState("ALL");
+  const [selectedEmployeePrefix, setSelectedEmployeePrefix] = useState("ALL");
   const [selectedShift, setSelectedShift] = useState(getStoredShift);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -124,6 +133,13 @@ const DutyRoasterHistory = () => {
     ]);
   }, [employees, selectedDepartment]);
 
+  const employeePrefixOptions = useMemo(() => {
+    const prefixes = employees
+      .map((emp) => getEmployeePrefix(emp.employeeID))
+      .filter(Boolean);
+    return ["ALL", ...new Set(prefixes)];
+  }, [employees]);
+
   useEffect(() => {
     const fetchDutyRows = async () => {
       if (!selectedDate || !/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
@@ -144,6 +160,8 @@ const DutyRoasterHistory = () => {
       });
 
       const computedRows = (employees || []).map((emp) => {
+        if (isExEmployeeId(emp.employeeID)) return null;
+
         const doc = rosterMap[emp.employeeUserId];
         const rawShiftCode = normalizeCode(
           (doc && doc.shifts && (doc.shifts[day] || doc.shifts[String(day)])) || "-"
@@ -189,7 +207,7 @@ const DutyRoasterHistory = () => {
           shiftStartTime: startTime,
           shiftEndTime: endTime,
         };
-      });
+      }).filter(Boolean);
 
       setRows(computedRows);
     };
@@ -199,7 +217,7 @@ const DutyRoasterHistory = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedDate, selectedDepartment, selectedDesignation, selectedShift, searchTerm, perPage]);
+  }, [selectedDate, selectedDepartment, selectedDesignation, selectedEmployeePrefix, selectedShift, searchTerm, perPage]);
 
   useEffect(() => {
     localStorage.setItem(PER_PAGE_STORAGE_KEY, String(perPage));
@@ -229,6 +247,9 @@ const DutyRoasterHistory = () => {
         selectedDepartment === "ALL" || row.departmentName === selectedDepartment;
       const designationMatch =
         selectedDesignation === "ALL" || row.designationName === selectedDesignation;
+      const prefixMatch =
+        selectedEmployeePrefix === "ALL" ||
+        getEmployeePrefix(row.employeeId) === selectedEmployeePrefix;
       const shiftMatch =
         selectedShiftCode === "ALL"
           ? true
@@ -241,14 +262,14 @@ const DutyRoasterHistory = () => {
           : rowShiftCode === selectedShiftCode ||
             (rowShiftCode.startsWith("DD:") &&
               parseDDCodes(rowShiftCode)?.includes(selectedShiftCode));
-      if (!departmentMatch || !designationMatch || !shiftMatch) return false;
+      if (!departmentMatch || !designationMatch || !prefixMatch || !shiftMatch) return false;
       if (!q) return true;
       const name = String(row.employeeName || "").toUpperCase();
       const userId = String(row.employeeUserId || "").toUpperCase();
       const employeeId = String(row.employeeId || "").toUpperCase();
       return name.includes(q) || userId.includes(q) || employeeId.includes(q);
     });
-  }, [rows, selectedDepartment, selectedDesignation, selectedShift, searchTerm]);
+  }, [rows, selectedDepartment, selectedDesignation, selectedEmployeePrefix, selectedShift, searchTerm]);
 
   const startIndex = perPage === "all" ? 0 : (currentPage - 1) * perPage;
   const paginatedRows =
@@ -288,8 +309,8 @@ const DutyRoasterHistory = () => {
             </div>
           </div>
 
-          <div className="bg-dorika-blueLight p-2 rounded-lg shadow mb-3 border border-dorika-blue">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+          <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 border border-dorika-blue">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
             <div className="flex flex-col">
               <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
                 Date
@@ -337,6 +358,23 @@ const DutyRoasterHistory = () => {
 
             <div className="flex flex-col">
               <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+                Status
+              </label>
+              <select
+                value={selectedEmployeePrefix}
+                onChange={(e) => setSelectedEmployeePrefix(e.target.value)}
+                className="border border-dorika-blue rounded px-3 py-1 text-sm bg-white"
+              >
+                {employeePrefixOptions.map((prefix) => (
+                  <option key={prefix} value={prefix}>
+                    {prefix}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
                 Shift
               </label>
               <select
@@ -352,7 +390,7 @@ const DutyRoasterHistory = () => {
               </select>
             </div>
 
-            <div className="flex flex-col lg:col-span-2">
+             <div className="flex flex-col">
               <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
                 Search
               </label>
@@ -361,7 +399,7 @@ const DutyRoasterHistory = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(normalizeSearchInput(e.target.value))}
                 placeholder="SEARCH NAME / USER ID / EMP ID"
-                className="border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none"
+                className="border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none bg-white shadow-sm"
               />
             </div>
           </div>

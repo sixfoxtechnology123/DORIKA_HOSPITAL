@@ -3,6 +3,9 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import EmployeeCornerSidebar from "./EmployeeCornerSidebar";
 
+const normalizeEmployeeId = (value) => String(value || "").trim().toUpperCase();
+const isExEmployeeId = (value) => normalizeEmployeeId(value).startsWith("EX-");
+
 // Helper to format date for display
 const formatDateDisplay = (dateStr) => {
   if (!dateStr) return "-";
@@ -160,6 +163,10 @@ const EmployeeAttendance = () => {
   setLoading(true);
   try {
     const resolvedEmployeeId = loggedUser.employeeID || loggedUser.employeeId || "";
+    if (isExEmployeeId(resolvedEmployeeId)) {
+      toast.error("Ex-employee attendance is blocked.");
+      return;
+    }
     const storageName = `${loggedUser.firstName || ""} ${loggedUser.lastName || ""}`.trim();
     const nameToStore = employeeFullName || storageName || loggedUser.employeeUserId;
     const loc = await getLocation();

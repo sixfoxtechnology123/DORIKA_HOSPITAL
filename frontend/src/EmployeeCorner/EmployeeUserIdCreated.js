@@ -5,6 +5,14 @@ import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import { Key, RefreshCw, Save, Edit3, XCircle, Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 
+const normalizeEmployeeId = (value) => String(value || "").trim().toUpperCase();
+const isExEmployeeId = (value) => normalizeEmployeeId(value).startsWith("EX-");
+const getEmployeePrefix = (value) => {
+  const normalized = normalizeEmployeeId(value);
+  if (!normalized || isExEmployeeId(normalized)) return "";
+  return normalized.split("-")[0] || "";
+};
+
 const EmployeeUserIdCreated = () => {
   const [dataList, setDataList] = useState([]);
   const [bulkPassword, setBulkPassword] = useState("");
@@ -14,6 +22,7 @@ const EmployeeUserIdCreated = () => {
   const [tempPassword, setTempPassword] = useState("");
   const [visiblePasswords, setVisiblePasswords] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedEmployeePrefix, setSelectedEmployeePrefix] = useState("ALL");
 
   const token = localStorage.getItem("token");
   const API_URL = "/api/employee-ids";
@@ -27,7 +36,7 @@ const EmployeeUserIdCreated = () => {
       const res = await axios.get(API_URL, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setDataList(res.data);
+      setDataList((res.data || []).filter((emp) => !isExEmployeeId(emp.employeeId)));
     } catch (err) {
       toast.error("Error loading employees");
     }
@@ -49,7 +58,12 @@ const EmployeeUserIdCreated = () => {
   };
 
   const filteredDataList = dataList.filter((emp) => {
+    if (isExEmployeeId(emp.employeeId)) return false;
+    const prefixMatch =
+      selectedEmployeePrefix === "ALL" ||
+      getEmployeePrefix(emp.employeeId) === selectedEmployeePrefix;
     const q = String(searchTerm || "").toUpperCase().trim();
+    if (!prefixMatch) return false;
     if (!q) return true;
     return (
       String(emp.name || "").toUpperCase().includes(q) ||
@@ -57,6 +71,9 @@ const EmployeeUserIdCreated = () => {
       String(emp.employeeId || "").toUpperCase().includes(q)
     );
   });
+  const employeePrefixOptions = ["ALL", ...new Set(
+    dataList.map((emp) => getEmployeePrefix(emp.employeeId)).filter(Boolean)
+  )];
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
@@ -74,9 +91,15 @@ const EmployeeUserIdCreated = () => {
 
   const handleBulkGenerate = async () => {
     if (!bulkPassword) return toast.error("Please enter a password first!");
+    const targetEmployeeIds =
+      selectedIds.length > 0 ? selectedIds : filteredDataList.map((emp) => emp.employeeId);
+    if (targetEmployeeIds.length === 0) {
+      toast.error("No active employees found for password generation");
+      return;
+    }
     const message = selectedIds.length > 0 
       ? `Update password for ${selectedIds.length} selected employees?`
-      : "Update password for ALL employees?";
+      : `Update password for ${targetEmployeeIds.length} filtered employees?`;
 
     if (!window.confirm(message)) return;
 
@@ -85,7 +108,7 @@ const EmployeeUserIdCreated = () => {
       await axios.post(`${API_URL}/generate-all-passwords`, 
         { 
           customPassword: bulkPassword,
-          targetEmployeeIds: selectedIds.length > 0 ? selectedIds : null 
+          targetEmployeeIds
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -134,8 +157,8 @@ const EmployeeUserIdCreated = () => {
         <MobileHeaderToggle>
         {/* TOP SECTION */}
         <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border-t-4 border-dorika-orange mb-6">
-          <div className="flex flex-col md:flex-row items-stretch md:items-end gap-4">
-            <div className="flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-end">
+            <div className="flex flex-col">
               <label className="block text-sm font-bold text-gray-700 mb-2 font-mono uppercase">
                 {selectedIds.length > 0 
                   ? `Target: (${selectedIds.length}) Selected` 
@@ -149,7 +172,23 @@ const EmployeeUserIdCreated = () => {
                 className="w-full border-2 border-gray-200 p-2 md:p-2 rounded-xl focus:border-dorika-blue outline-none transition-all"
               />
             </div>
-            <div className="flex-1">
+            <div className="flex flex-col">
+              <label className="block text-sm font-bold text-gray-700 mb-2 font-mono uppercase">
+                Status
+              </label>
+              <select
+                value={selectedEmployeePrefix}
+                onChange={(e) => setSelectedEmployeePrefix(e.target.value)}
+                className="w-full border-2 border-dorika-blue p-2 md:p-2 rounded-xl uppercase focus:border-dorika-orange outline-none transition-all bg-white"
+              >
+                {employeePrefixOptions.map((prefix) => (
+                  <option key={prefix} value={prefix}>
+                    {prefix}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col">
               <label className="block text-sm font-bold text-gray-700 mb-2 font-mono uppercase">
                 Search Employee
               </label>
@@ -164,7 +203,7 @@ const EmployeeUserIdCreated = () => {
             <button
               onClick={handleBulkGenerate}
               disabled={loading}
-              className="bg-dorika-blue hover:bg-black text-white px-6 md:px-8 py-3 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              className="bg-dorika-blue hover:bg-black text-white px-6 md:px-8 py-3 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 h-[46px] mt-auto"
             >
               {loading ? <RefreshCw className="animate-spin" /> : <Key size={20} />}
               <span className="whitespace-nowrap">

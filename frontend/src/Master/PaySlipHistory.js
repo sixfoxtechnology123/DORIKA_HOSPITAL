@@ -6,10 +6,19 @@ import BackButton from "../component/BackButton";
 import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import { FaSearch } from "react-icons/fa";
 
+const normalizeEmployeeId = (value) => String(value || "").trim().toUpperCase();
+const isExEmployeeId = (value) => normalizeEmployeeId(value).startsWith("EX-");
+const getEmployeePrefix = (value) => {
+  const normalized = normalizeEmployeeId(value);
+  if (!normalized || isExEmployeeId(normalized)) return "";
+  return normalized.split("-")[0] || "";
+};
+
 const PaySlipHistory = () => {
   const [paySlips, setPaySlips] = useState([]);
   const [searchID, setSearchID] = useState("");
   const [filterMonthYear, setFilterMonthYear] = useState("");
+  const [selectedEmployeePrefix, setSelectedEmployeePrefix] = useState("ALL");
 
   useEffect(() => {
     const fetchPaySlips = async () => {
@@ -24,7 +33,7 @@ const PaySlipHistory = () => {
               batchId: batch._id  
             }))
           );
-          setPaySlips(allEmployees);
+          setPaySlips(allEmployees.filter((slip) => !isExEmployeeId(slip.employeeId)));
         }
       } catch (err) {
         toast.error("Fetch Error:", err);
@@ -33,11 +42,19 @@ const PaySlipHistory = () => {
     fetchPaySlips();
   }, []);
 
+  const employeePrefixOptions = ["ALL", ...new Set(
+    paySlips.map((slip) => getEmployeePrefix(slip.employeeId)).filter(Boolean)
+  )];
+
 // Filter Logic Fixed
   const filteredSlips = paySlips.filter((slip) => {
+    if (isExEmployeeId(slip.employeeId)) return false;
     // 1. Employee User ID search: match with or without hyphens
     const targetID = (slip.employeeUserId || "").toLowerCase();
     const searchTerm = searchID.toLowerCase();
+    const matchesPrefix =
+      selectedEmployeePrefix === "ALL" ||
+      getEmployeePrefix(slip.employeeId) === selectedEmployeePrefix;
     
     // This checks for a direct match OR a match where hyphens are ignored
     const matchesID = targetID.includes(searchTerm) || 
@@ -53,7 +70,7 @@ const PaySlipHistory = () => {
       matchesMonthYear = slip.month === selectedMonthName && slip.year.toString() === y;
     }
 
-    return matchesID && matchesMonthYear;
+    return matchesID && matchesMonthYear && matchesPrefix;
   });
 
   // Search input formatter
@@ -99,6 +116,21 @@ const PaySlipHistory = () => {
                   onChange={(e) => handleSearchChange(e.target.value)}
                 />
               </div>
+            </div>
+
+            <div className="w-full md:w-48">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Status</label>
+              <select
+                className="w-full p-2 border-2 rounded-md text-sm focus:border-blue-500 outline-none bg-white"
+                value={selectedEmployeePrefix}
+                onChange={(e) => setSelectedEmployeePrefix(e.target.value)}
+              >
+                {employeePrefixOptions.map((prefix) => (
+                  <option key={prefix} value={prefix}>
+                    {prefix}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="w-full md:w-48">

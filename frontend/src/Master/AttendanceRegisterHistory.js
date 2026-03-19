@@ -51,6 +51,13 @@ const getDisplayStatus = (status, isLateEntry) =>
   isLateEntry ? "LATE ENTRY" : status;
 
 const normalizeStatus = (status) => String(status || "").trim().toUpperCase();
+const normalizeEmployeeId = (value) => String(value || "").trim().toUpperCase();
+const isExEmployeeId = (value) => normalizeEmployeeId(value).startsWith("EX-");
+const getEmployeePrefix = (value) => {
+  const normalized = normalizeEmployeeId(value);
+  if (!normalized || isExEmployeeId(normalized)) return "";
+  return normalized.split("-")[0] || "";
+};
 
 const AttendanceRegisterHistory = () => {
   const PER_PAGE_STORAGE_KEY = "attendanceRegisterHistory.perPage";
@@ -77,6 +84,7 @@ const AttendanceRegisterHistory = () => {
   const [selectedDepartment, setSelectedDepartment] = useState("ALL");
   const [selectedDesignation, setSelectedDesignation] = useState("ALL");
   const [selectedStatus, setSelectedStatus] = useState("ALL");
+  const [selectedEmployeePrefix, setSelectedEmployeePrefix] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(getStoredPerPage);
@@ -96,7 +104,7 @@ const AttendanceRegisterHistory = () => {
         axios.get("/api/departments"),
       ]);
       const empList = empRes.data || [];
-      setEmployees(empList);
+      setEmployees(empList.filter((emp) => !isExEmployeeId(emp.employeeID)));
       setDepartments(["ALL", ...(deptRes.data || []).map((d) => d.deptName)]);
     };
 
@@ -116,6 +124,13 @@ const AttendanceRegisterHistory = () => {
     ];
     setDesignations(uniqueDesignations);
   }, [employees, selectedDepartment]);
+
+  const employeePrefixOptions = useMemo(() => {
+    const prefixes = employees
+      .map((emp) => getEmployeePrefix(emp.employeeID))
+      .filter(Boolean);
+    return ["ALL", ...new Set(prefixes)];
+  }, [employees]);
 
   useEffect(() => {
     const fetchAttendance = async () => {
@@ -142,11 +157,14 @@ const AttendanceRegisterHistory = () => {
           employeeMap[doc.employeeUserId] || employeeMap[doc.employeeId] || {};
 
         (doc.records || []).forEach((record) => {
+          const resolvedEmployeeId = doc.employeeId || mappedEmployee.employeeID || "-";
+          if (isExEmployeeId(resolvedEmployeeId)) return;
+
           flattened.push({
             rawDate: record.date || "-",
             rawDateISO: toISODate(record.date),
             date: toDDMMYYYY(record.date || "-"),
-            employeeId: doc.employeeId || mappedEmployee.employeeID || "-",
+            employeeId: resolvedEmployeeId,
             employeeUserId:
               doc.employeeUserId || mappedEmployee.employeeUserId || "-",
             employeeName:
@@ -183,7 +201,7 @@ const AttendanceRegisterHistory = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedDate, selectedDepartment, selectedDesignation, selectedStatus, searchTerm, perPage]);
+  }, [selectedDate, selectedDepartment, selectedDesignation, selectedStatus, selectedEmployeePrefix, searchTerm, perPage]);
 
   useEffect(() => {
     localStorage.setItem(PER_PAGE_STORAGE_KEY, String(perPage));
@@ -201,6 +219,9 @@ const AttendanceRegisterHistory = () => {
         selectedDepartment === "ALL" || row.departmentName === selectedDepartment;
       const designationMatch =
         selectedDesignation === "ALL" || row.designationName === selectedDesignation;
+      const prefixMatch =
+        selectedEmployeePrefix === "ALL" ||
+        getEmployeePrefix(row.employeeId) === selectedEmployeePrefix;
       const statusUpper = normalizeStatus(row.status);
       const statusMatch =
         selectedStatus === "ALL" ||
@@ -212,7 +233,7 @@ const AttendanceRegisterHistory = () => {
         (selectedStatus === "SL" && statusUpper.startsWith("SL")) ||
         (selectedStatus === "LATEENTRY" && row.isLateEntry);
 
-      if (!dateMatch || !departmentMatch || !designationMatch || !statusMatch) return false;
+      if (!dateMatch || !departmentMatch || !designationMatch || !prefixMatch || !statusMatch) return false;
       if (!q) return true;
 
       const name = String(row.employeeName || "").toUpperCase();
@@ -222,7 +243,7 @@ const AttendanceRegisterHistory = () => {
         name.includes(q) || userId.includes(q) || employeeId.includes(q)
       );
     });
-  }, [rows, selectedDate, selectedDepartment, selectedDesignation, selectedStatus, searchTerm]);
+  }, [rows, selectedDate, selectedDepartment, selectedDesignation, selectedStatus, selectedEmployeePrefix, searchTerm]);
 
   const startIndex = perPage === "all" ? 0 : (currentPage - 1) * perPage;
   const paginatedRows =
@@ -268,8 +289,8 @@ const AttendanceRegisterHistory = () => {
             </div>
           </div>
 
-          <div className="bg-dorika-blueLight p-2 rounded-lg shadow mb-3 border border-dorika-blue">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+          <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 border border-dorika-blue">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
             <div className="flex flex-col">
               <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
                 Date
@@ -320,6 +341,23 @@ const AttendanceRegisterHistory = () => {
                 Status
               </label>
               <select
+                value={selectedEmployeePrefix}
+                onChange={(e) => setSelectedEmployeePrefix(e.target.value)}
+                className="border border-dorika-blue rounded px-3 py-1 text-sm bg-white"
+              >
+                {employeePrefixOptions.map((prefix) => (
+                  <option key={prefix} value={prefix}>
+                    {prefix}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+                Attendance
+              </label>
+              <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 className="border border-dorika-blue rounded px-3 py-1 text-sm bg-white"
@@ -334,7 +372,7 @@ const AttendanceRegisterHistory = () => {
               </select>
             </div>
 
-            <div className="flex flex-col lg:col-span-2">
+             <div className="flex flex-col">
               <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
                 Search
               </label>
@@ -343,7 +381,7 @@ const AttendanceRegisterHistory = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(normalizeSearchInput(e.target.value))}
                 placeholder="SEARCH NAME / USER ID / EMP ID"
-                className="border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none"
+                className="border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none bg-white shadow-sm"
               />
             </div>
           </div>

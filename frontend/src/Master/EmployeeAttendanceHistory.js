@@ -6,6 +6,14 @@ import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import Pagination from "./Pagination";
 import toast from "react-hot-toast";
 
+const normalizeEmployeeId = (value) => String(value || "").trim().toUpperCase();
+const isExEmployeeId = (value) => normalizeEmployeeId(value).startsWith("EX-");
+const getEmployeePrefix = (value) => {
+  const normalized = normalizeEmployeeId(value);
+  if (!normalized || isExEmployeeId(normalized)) return "";
+  return normalized.split("-")[0] || "";
+};
+
 const formatOTDisplay = (otValue) => {
   const val = parseFloat(otValue);
   if (!val || val <= 0) return "0h 0m"; // Show 0 for the summary table
@@ -68,6 +76,7 @@ const EmployeeAttendanceHistory = () => {
   const [selectedDesignation, setSelectedDesignation] = useState("ALL");
   const [departments, setDepartments] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState("ALL");
+  const [selectedEmployeePrefix, setSelectedEmployeePrefix] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(getStoredPerPage);
@@ -90,7 +99,7 @@ const EmployeeAttendanceHistory = () => {
   /* ================= FETCH EMPLOYEES ================= */
   useEffect(() => {
     axios.get("/api/employees").then((res) => {
-      setEmployees(res.data);
+      setEmployees((res.data || []).filter((emp) => !isExEmployeeId(emp.employeeID)));
     });
   }, []);
 
@@ -121,9 +130,20 @@ const EmployeeAttendanceHistory = () => {
   });
 }, []);
 
-useEffect(() => {
+  useEffect(() => {
   console.log(employees);
 }, [employees]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedMonth, selectedDepartment, selectedDesignation, selectedEmployeePrefix, searchTerm, perPage]);
+
+  const employeePrefixOptions = useMemo(() => {
+    const prefixes = employees
+      .map((emp) => getEmployeePrefix(emp.employeeID))
+      .filter(Boolean);
+    return ["ALL", ...new Set(prefixes)];
+  }, [employees]);
 
   useEffect(() => {
     localStorage.setItem(PER_PAGE_STORAGE_KEY, String(perPage));
@@ -188,8 +208,11 @@ useEffect(() => {
       const designationMatch =
         selectedDesignation === "ALL" ||
         emp.designationName === selectedDesignation;
+      const prefixMatch =
+        selectedEmployeePrefix === "ALL" ||
+        getEmployeePrefix(emp.employeeID) === selectedEmployeePrefix;
 
-      if (!departmentMatch || !designationMatch) return false;
+      if (!departmentMatch || !designationMatch || !prefixMatch) return false;
       if (!q) return true;
 
       const name = `${emp.firstName || ""} ${emp.middleName || ""} ${emp.lastName || ""}`
@@ -200,7 +223,7 @@ useEffect(() => {
       const employeeUserId = String(emp.employeeUserId || "").toUpperCase();
       return name.includes(q) || employeeId.includes(q) || employeeUserId.includes(q);
     });
-  }, [employees, selectedDepartment, selectedDesignation, searchTerm]);
+  }, [employees, selectedDepartment, selectedDesignation, selectedEmployeePrefix, searchTerm]);
 
     const startIndex = perPage === "all" ? 0 : (currentPage - 1) * perPage;
 
@@ -235,13 +258,13 @@ useEffect(() => {
           </div>
 
 {/* ================= TOP CONTROLS ================= */}
-<div className="bg-dorika-blueLight p-2 rounded-lg shadow mb-3 border border-dorika-blue">
+<div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 border border-dorika-blue">
 
   {/* TOP SECTION */}
   <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
 
     {/* LEFT SIDE CONTROLS */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 w-full">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 w-full items-end">
 
       {/* Month */}
       <div className="flex flex-col">
@@ -252,7 +275,7 @@ useEffect(() => {
           type="month"
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}
-          className="border border-dorika-blue rounded px-3 py-2 bg-white text-sm focus:outline-none"
+          className="border border-dorika-blue rounded px-3 py-1 bg-white text-sm focus:outline-none"
         />
       </div>
 
@@ -267,7 +290,7 @@ useEffect(() => {
             setSelectedDepartment(e.target.value);
             setSelectedDesignation("ALL");
           }}
-          className="border border-dorika-blue rounded px-3 py-2 text-sm"
+          className="border border-dorika-blue rounded px-3 py-1 text-sm"
         >
           {departments.map((d) => (
             <option key={d}>{d}</option>
@@ -283,7 +306,7 @@ useEffect(() => {
         <select
           value={selectedDesignation}
           onChange={(e) => setSelectedDesignation(e.target.value)}
-          className="border border-dorika-blue rounded px-3 py-2 text-sm"
+          className="border border-dorika-blue rounded px-3 py-1 text-sm"
         >
           {designations.map((d) => (
             <option key={d}>{d}</option>
@@ -292,6 +315,21 @@ useEffect(() => {
       </div>
 
       {/* Show */}
+      <div className="flex flex-col">
+        <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+          Status
+        </label>
+        <select
+          value={selectedEmployeePrefix}
+          onChange={(e) => setSelectedEmployeePrefix(e.target.value)}
+          className="border border-dorika-blue rounded px-3 py-1 text-sm"
+        >
+          {employeePrefixOptions.map((prefix) => (
+            <option key={prefix}>{prefix}</option>
+          ))}
+        </select>
+      </div>
+
       <div className="flex flex-col">
         <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
           Show
@@ -303,7 +341,7 @@ useEffect(() => {
             setPerPage(val === "all" ? "all" : parseInt(val));
             setCurrentPage(1);
           }}
-          className="border border-dorika-blue rounded px-3 py-2 text-sm font-semibold bg-white text-dorika-blue"
+          className="border border-dorika-blue rounded px-3 py-1 text-sm font-semibold bg-white text-dorika-blue"
         >
           <option value={8}>8</option>
           <option value={20}>20</option>
@@ -313,7 +351,7 @@ useEffect(() => {
         </select>
       </div>
 
-      <div className="flex flex-col lg:col-span-2">
+      <div className="flex flex-col">
         <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
           Search
         </label>
@@ -322,7 +360,7 @@ useEffect(() => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(normalizeSearchInput(e.target.value))}
           placeholder="SEARCH NAME / USER ID / EMP ID"
-          className="border border-dorika-blue rounded px-3 py-2 text-sm uppercase focus:outline-none"
+          className="border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none bg-white shadow-sm"
         />
       </div>
 

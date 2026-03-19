@@ -7,6 +7,14 @@ import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import Pagination from "./Pagination";
 import toast from "react-hot-toast";
 
+const normalizeEmployeeId = (value) => String(value || "").trim().toUpperCase();
+const isExEmployeeId = (value) => normalizeEmployeeId(value).startsWith("EX-");
+const getEmployeePrefix = (value) => {
+  const normalized = normalizeEmployeeId(value);
+  if (!normalized || isExEmployeeId(normalized)) return "";
+  return normalized.split("-")[0] || "";
+};
+
 const ShiftManagement = () => {
   const PER_PAGE_STORAGE_KEY = "shiftManagement.perPage";
   const getStoredPerPage = () => {
@@ -33,6 +41,7 @@ const ShiftManagement = () => {
   const [perPage, setPerPage] = useState(getStoredPerPage);
   const [departments, setDepartments] = useState([]); // To store all departments
   const [selectedDepartment, setSelectedDepartment] = useState("ALL"); // Current selection
+  const [selectedEmployeePrefix, setSelectedEmployeePrefix] = useState("ALL");
   const [deptWiseDesignations, setDeptWiseDesignations] = useState([]); // Raw data for filtering
   const [isDepartmentHeadScoped, setIsDepartmentHeadScoped] = useState(false);
   const [scopedDepartment, setScopedDepartment] = useState("");
@@ -197,6 +206,13 @@ const visibleDepartments = useMemo(() => {
   return departments;
 }, [departments, isDepartmentHeadScoped, scopedDepartment]);
 
+const employeePrefixOptions = useMemo(() => {
+  const prefixes = employees
+    .map((emp) => getEmployeePrefix(emp.employeeID))
+    .filter(Boolean);
+  return ["ALL", ...new Set(prefixes)];
+}, [employees]);
+
 const nonDDShiftOptions = useMemo(
   () =>
     shiftOptions.filter(
@@ -258,8 +274,15 @@ const nonDDShiftOptions = useMemo(
     return Array.from({ length: totalDays }, (_, i) => i + 1);
   }, [selectedMonth]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedMonth, selectedDepartment, selectedDesignation, selectedEmployeePrefix, searchTerm, perPage]);
+
     const filteredEmployees = useMemo(() => {
       return employees.filter((emp) => {
+        const employeeId = normalizeEmployeeId(emp.employeeID);
+        if (isExEmployeeId(employeeId)) return false;
+
         const scopedDeptMatch =
           !isDepartmentHeadScoped || emp.departmentName === scopedDepartment;
       const scopedDesignationMatch =
@@ -274,26 +297,36 @@ const nonDDShiftOptions = useMemo(
         const designationMatch =
           selectedDesignation === "ALL" ||
           emp.designationName === selectedDesignation;
+        const prefixMatch =
+          selectedEmployeePrefix === "ALL" ||
+          getEmployeePrefix(employeeId) === selectedEmployeePrefix;
 
         const q = String(searchTerm || "").toUpperCase().trim();
         if (!q) {
-          return scopedDeptMatch && scopedDesignationMatch && deptMatch && designationMatch;
+          return (
+            scopedDeptMatch &&
+            scopedDesignationMatch &&
+            deptMatch &&
+            designationMatch &&
+            prefixMatch
+          );
         }
 
         const fullName = `${emp.firstName || ""} ${emp.middleName || ""} ${emp.lastName || ""}`
           .replace(/\s+/g, " ")
           .trim()
           .toUpperCase();
-        const employeeId = String(emp.employeeID || "").toUpperCase();
+        const searchEmployeeId = String(emp.employeeID || "").toUpperCase();
         const employeeUserId = String(emp.employeeUserId || "").toUpperCase();
         const searchMatch =
-          fullName.includes(q) || employeeId.includes(q) || employeeUserId.includes(q);
+          fullName.includes(q) || searchEmployeeId.includes(q) || employeeUserId.includes(q);
 
         return (
           scopedDeptMatch &&
           scopedDesignationMatch &&
           deptMatch &&
           designationMatch &&
+          prefixMatch &&
           searchMatch
         );
       });
@@ -304,6 +337,7 @@ const nonDDShiftOptions = useMemo(
       scopedDesignations,
       selectedDepartment,
       selectedDesignation,
+      selectedEmployeePrefix,
       searchTerm,
     ]);
 
@@ -479,8 +513,8 @@ const scrollTable = (direction) => {
       </div>
   
       {/* ================= TOP SECTION ================= */}
-<div className="bg-dorika-blueLight p-2 rounded-lg shadow mb-3 border border-dorika-blue">
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+<div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 border border-dorika-blue">
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
     <div className="flex flex-col">
       <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
         Month
@@ -532,6 +566,23 @@ const scrollTable = (direction) => {
 
     <div className="flex flex-col">
       <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+        Status
+      </label>
+      <select
+        value={selectedEmployeePrefix}
+        onChange={(e) => setSelectedEmployeePrefix(e.target.value)}
+        className="border border-dorika-blue rounded px-3 py-1 text-sm bg-white"
+      >
+        {employeePrefixOptions.map((prefix) => (
+          <option key={prefix} value={prefix}>
+            {prefix}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div className="flex flex-col">
+      <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
         Show
       </label>
       <select
@@ -553,7 +604,7 @@ const scrollTable = (direction) => {
       </select>
     </div>
 
-    <div className="flex flex-col lg:col-span-2">
+     <div className="flex flex-col">
       <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
         Search
       </label>
@@ -562,7 +613,7 @@ const scrollTable = (direction) => {
         value={searchTerm}
         onChange={(e) => setSearchTerm(normalizeSearchInput(e.target.value))}
         placeholder="SEARCH NAME / USER ID / EMP ID"
-        className="border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none"
+        className="border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none bg-white shadow-sm"
       />
     </div>
   </div>

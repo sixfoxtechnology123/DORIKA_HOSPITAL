@@ -10,6 +10,13 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import EyeLogo from "../assets/dorikaLogo.jpg";
 
+const normalizeEmployeeId = (value) => String(value || "").trim().toUpperCase();
+const isExEmployeeId = (value) => normalizeEmployeeId(value).startsWith("EX-");
+const getEmployeePrefix = (value) => {
+  const normalized = normalizeEmployeeId(value);
+  if (!normalized || isExEmployeeId(normalized)) return "";
+  return normalized.split("-")[0] || "";
+};
 
 const PaySlipGenerateEmployeeList = () => {
   
@@ -49,6 +56,7 @@ const [hasPayslipForMonth, setHasPayslipForMonth] = useState(false);
 // Checkbox states
 const [selectedEmployees, setSelectedEmployees] = useState([]); // array of selected employee IDs
 const [searchTerm, setSearchTerm] = useState("");
+const [selectedEmployeePrefix, setSelectedEmployeePrefix] = useState("ALL");
 const navigate = useNavigate();
 const normalizeSearchInput = (value) => {
   let v = String(value || "").toUpperCase();
@@ -58,13 +66,21 @@ const normalizeSearchInput = (value) => {
   return v;
 };
 const filteredEmployees = employees.filter((emp) => {
+  if (isExEmployeeId(emp.employeeID)) return false;
+  const prefixMatch =
+    selectedEmployeePrefix === "ALL" ||
+    getEmployeePrefix(emp.employeeID) === selectedEmployeePrefix;
   const q = String(searchTerm || "").toUpperCase().trim();
+  if (!prefixMatch) return false;
   if (!q) return true;
   const name = `${emp.salutation || ""} ${emp.firstName || ""} ${emp.lastName || ""}`.toUpperCase();
   const employeeId = String(emp.employeeID || "").toUpperCase();
   const employeeUserId = String(emp.employeeUserId || "").toUpperCase();
   return name.includes(q) || employeeId.includes(q) || employeeUserId.includes(q);
 });
+const employeePrefixOptions = ["ALL", ...new Set(
+  employees.map((emp) => getEmployeePrefix(emp.employeeID)).filter(Boolean)
+)];
 // Select All employees
 const handleSelectAll = (e) => {
   const checked = e.target.checked;
@@ -266,7 +282,7 @@ useEffect(() => {
     const fetchEmployees = async () => {
       try {
         const res = await axios.get("/api/employees");
-        setEmployees(res.data);
+        setEmployees((res.data || []).filter((emp) => !isExEmployeeId(emp.employeeID)));
       } catch (err) {
         console.error("Fetch Employee Error:", err);
         toast.error("Failed to fetch employee list");
@@ -513,14 +529,32 @@ const canPrint = !!selectedMonth && hasPayslipForMonth;
         </div>
         </div>
         <div className="mt-2">
-          <label className="font-semibold text-dorika-blue text-xs uppercase mb-1 block">Search</label>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(normalizeSearchInput(e.target.value))}
-            placeholder="SEARCH NAME / USER ID / EMP ID"
-            className="w-full border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none"
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div>
+              <label className="font-semibold text-dorika-blue text-xs uppercase mb-1 block">Search</label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(normalizeSearchInput(e.target.value))}
+                placeholder="SEARCH NAME / USER ID / EMP ID"
+                className="w-full border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="font-semibold text-dorika-blue text-xs uppercase mb-1 block">Status</label>
+              <select
+                value={selectedEmployeePrefix}
+                onChange={(e) => setSelectedEmployeePrefix(e.target.value)}
+                className="w-full border border-dorika-blue rounded px-3 py-1 text-sm bg-white"
+              >
+                {employeePrefixOptions.map((prefix) => (
+                  <option key={prefix} value={prefix}>
+                    {prefix}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
       </div>
       </MobileHeaderToggle>

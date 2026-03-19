@@ -7,10 +7,19 @@ import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 
+const normalizeEmployeeId = (value) => String(value || "").trim().toUpperCase();
+const isExEmployeeId = (value) => normalizeEmployeeId(value).startsWith("EX-");
+const getEmployeePrefix = (value) => {
+  const normalized = normalizeEmployeeId(value);
+  if (!normalized || isExEmployeeId(normalized)) return "";
+  return normalized.split("-")[0] || "";
+};
+
 const GenerateAllEmployeePayslip = () => {
   const navigate = useNavigate();
   const [selectedMonthYear, setSelectedMonthYear] = useState(localStorage.getItem("payslip_date") || "");
   const [selectedDept, setSelectedDept] = useState(localStorage.getItem("payslip_dept") || "All");
+  const [selectedEmployeePrefix, setSelectedEmployeePrefix] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   
   const [employeesData, setEmployeesData] = useState([]);
@@ -126,7 +135,9 @@ useEffect(() => {
       const allOtRules = otRatesRes.data?.data || otRatesRes.data || [];
 
       // 2. Process everything locally (Synchronous - very fast)
-      const listWithMath = empRes.data.map((emp) => {
+      const listWithMath = (empRes.data || [])
+      .filter((emp) => !isExEmployeeId(emp.employeeID))
+      .map((emp) => {
         const att = attRes.data.find(a => a.employeeUserId === emp.employeeUserId) || {};
         const saved = existingData?.find(s => s.employeeId === emp.employeeID);
         
@@ -196,6 +207,10 @@ useEffect(() => {
   fetchAndCalculate();
 }, [selectedMonthYear, selectedDept]);
 
+const employeePrefixOptions = ["ALL", ...new Set(
+  employeesData.map((emp) => getEmployeePrefix(emp.employeeID)).filter(Boolean)
+)];
+
 const handleUniversalEdit = (employeeID, field, value, headName = null) => {
     if (isLocked || masterLocked) return;
     
@@ -238,7 +253,10 @@ const handleUniversalEdit = (employeeID, field, value, headName = null) => {
 
   const filteredEmployees = employeesData.filter((e) => {
     const deptMatch = selectedDept === "All" || e.departmentName === selectedDept;
-    if (!deptMatch) return false;
+    const prefixMatch =
+      selectedEmployeePrefix === "ALL" ||
+      getEmployeePrefix(e.employeeID) === selectedEmployeePrefix;
+    if (!deptMatch || !prefixMatch || isExEmployeeId(e.employeeID)) return false;
     const q = String(searchTerm || "").toUpperCase().trim();
     if (!q) return true;
     const name = `${e.firstName || ""} ${e.lastName || ""}`.trim().toUpperCase();
@@ -256,7 +274,9 @@ const handleBulkSubmit = async (status = "Draft") => {
         year, 
         status, 
         filterDept: selectedDept,
-        employeePayslips: filteredEmployees.map(emp => ({
+        employeePayslips: filteredEmployees
+        .filter((emp) => !isExEmployeeId(emp.employeeID))
+        .map(emp => ({
           employeeId: emp.employeeID,
           employeeUserId: emp.employeeUserId,
           employeeName: `${emp.firstName} ${emp.lastName}`.trim(),
@@ -431,16 +451,21 @@ const exportExcel = () => {
         </div>
 
     {/* Filters and Buttons Row */}
-    <div className="bg-white p-2 md:p-4 rounded-xl shadow-md border mb-4 flex flex-row flex-wrap gap-2 items-end">
-      
-      {/* Period Field - side by side on mobile */}
-      <div className="flex-1 min-w-[120px] md:min-w-[200px]">
+    <div className="bg-white p-3 md:p-4 rounded-xl shadow-md border mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-end">
+      <div className="min-w-[120px]">
         <label className="block text-[9px] md:text-[10px] font-bold text-slate-500 uppercase">Period</label>
         <input type="month" className="w-full border-2 p-1.5 md:p-2 rounded-lg font-bold text-xs md:text-base" value={selectedMonthYear} onChange={(e) => setSelectedMonthYear(e.target.value)} />
       </div>
 
-      {/* Filter Dept Field - side by side on mobile */}
-      <div className="flex-1 min-w-[120px] md:min-w-[200px]">
+      <div className="min-w-[120px]">
+        <label className="block text-[9px] md:text-[10px] font-bold text-slate-500 uppercase">Status</label>
+        <select className="w-full border-2 p-1.5 md:p-2 rounded-lg font-bold text-xs md:text-base" value={selectedEmployeePrefix} onChange={(e) => setSelectedEmployeePrefix(e.target.value)}>
+          {employeePrefixOptions.map((prefix) => <option key={prefix} value={prefix}>{prefix}</option>)}
+        </select>
+      </div>
+
+      <div className="min-w-[120px]">
         <label className="block text-[9px] md:text-[10px] font-bold text-slate-500 uppercase">Filter Dept</label>
         <select className="w-full border-2 p-1.5 md:p-2 rounded-lg font-bold text-xs md:text-base" value={selectedDept} onChange={(e) => setSelectedDept(e.target.value)}>
           <option value="All">All Departments</option>
@@ -448,12 +473,12 @@ const exportExcel = () => {
         </select>
       </div>
 
-      {/* Buttons Row - All 4 buttons in one line on mobile */}
-      <div className="flex flex-row gap-1 w-full lg:w-auto overflow-x-auto no-scrollbar">
+      <div className="flex flex-wrap gap-2 xl:justify-end">
         <button onClick={exportExcel} className="flex-1 whitespace-nowrap bg-green-600 text-white px-2 md:px-4 py-2 rounded-lg font-bold text-[10px] md:text-xs uppercase shadow-md active:scale-95">Excel</button>
         <button onClick={() => handleBulkSubmit("Draft")} disabled={masterLocked || isLocked || isProcessing || isGenerated} className="flex-1 whitespace-nowrap bg-blue-600 text-white px-2 md:px-4 py-2 rounded-lg font-bold text-[10px] md:text-xs uppercase disabled:bg-gray-300 shadow-md active:scale-95">Generate</button>
         <button onClick={clearMonth} disabled={masterLocked || isLocked || !isGenerated} className="flex-1 whitespace-nowrap bg-orange-500 text-white px-2 md:px-4 py-2 rounded-lg font-bold text-[10px] md:text-xs uppercase disabled:bg-gray-300 shadow-md active:scale-95">Clear</button>
         <button onClick={() => handleBulkSubmit("Finalized")} disabled={masterLocked || isLocked || !isGenerated || isProcessing} className="flex-1 whitespace-nowrap bg-red-700 text-white px-2 md:px-4 py-2 rounded-lg font-bold text-[10px] md:text-xs uppercase disabled:bg-gray-300 shadow-md active:scale-95">Close</button>
+      </div>
       </div>
     </div>
     </MobileHeaderToggle>
