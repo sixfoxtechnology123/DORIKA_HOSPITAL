@@ -6,6 +6,7 @@ const fs = require("fs");
 const jwt = require("jsonwebtoken");
 const path = require("path");
 const router = express.Router();
+const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 const JWT_SECRET = process.env.JWT_SECRET || "secretkey";
 
@@ -123,6 +124,20 @@ router.put("/change-password", auth, async (req, res) => {
 
     admin.password = await bcrypt.hash(newPassword, 10);
     await admin.save();
+
+    await createAuditLog({
+      req,
+      action: "UPDATE",
+      module: "Admin Password",
+      details: `Changed admin password for ${admin.userId}.`,
+      target: {
+        employeeUserId: admin.userId || "",
+        employeeID: admin.employeeID || "",
+        name: admin.name || "",
+      },
+      current: cleanObject({ passwordChanged: true }),
+    });
+
     res.json({ success: true, message: "Password changed successfully" });
   } catch (err) {
     console.error(err);

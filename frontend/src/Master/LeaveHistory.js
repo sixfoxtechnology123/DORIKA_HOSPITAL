@@ -5,6 +5,7 @@ import Sidebar from "../component/Sidebar";
 import BackButton from "../component/BackButton";
 import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import toast from "react-hot-toast";
+import Pagination from "./Pagination";
 
 const LeaveHistory = () => {
   const [leaves, setLeaves] = useState([]);
@@ -13,6 +14,9 @@ const LeaveHistory = () => {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [selectedDepartment, setSelectedDepartment] = useState("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(8);
   const adminData = JSON.parse(localStorage.getItem("adminData") || "{}");
   const loggedInUserId = adminData.userId || adminData.employeeUserId || adminData._id || "";
 
@@ -64,6 +68,28 @@ const LeaveHistory = () => {
   const getFinalStatus = (leave) =>
     String(leave.approveRejectedStatus || leave.applyStatus || "PENDING").toUpperCase();
 
+  const getLeaveCode = (leaveType = "") => {
+    const type = String(leaveType || "").toUpperCase();
+    if (type.includes("SICK") || type === "SL") return "SL";
+    if (type.includes("CASUAL") || type === "CL") return "CL";
+    return type || "-";
+  };
+
+  const normalizeSearchInput = (value) => {
+    let v = String(value || "").toUpperCase().replace(/\s+/g, "");
+    if (/^[A-Z]+\d/.test(v)) {
+      v = v.replace(/^([A-Z]+)-?(\d.*)$/, "$1-$2");
+    }
+    return v;
+  };
+
+  const getStatusClass = (status = "") => {
+    const s = String(status || "").toUpperCase();
+    if (s === "APPROVED") return "bg-green-100 text-green-700 border-green-300";
+    if (s === "REJECTED") return "bg-red-100 text-red-700 border-red-300";
+    return "bg-yellow-100 text-yellow-700 border-yellow-300";
+  };
+
   const normalizeRoleToken = (value) =>
     String(value || "").toUpperCase().replace(/[^A-Z]/g, "");
 
@@ -97,8 +123,22 @@ const LeaveHistory = () => {
     const departmentMatch =
       selectedDepartment === "ALL" || (leave.departmentName || "") === selectedDepartment;
 
-    return monthMatch && statusMatch && departmentMatch;
+    const q = String(searchTerm || "").toUpperCase().trim();
+    const name = String(leave.employeeName || "").toUpperCase();
+    const empId = String(leave.employeeId || "").toUpperCase();
+    const empUserId = String(leave.employeeUserId || "").toUpperCase();
+    const matchesSearch = !q || name.includes(q) || empId.includes(q) || empUserId.includes(q);
+
+    return monthMatch && statusMatch && departmentMatch && matchesSearch;
   });
+
+  const paginatedLeaves = perPage === "all"
+    ? filteredLeaves
+    : filteredLeaves.slice((currentPage - 1) * perPage, currentPage * perPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedMonth, selectedStatus, selectedDepartment, perPage]);
 
   const handleExportExcel = () => {
     try {
@@ -111,6 +151,7 @@ const LeaveHistory = () => {
           "Emp Name": String(leave.employeeName || ""),
           "Department": String(leave.departmentName || "-"),
           "Apply Date": String(formatDate(leave.applicationDate)),
+          "Leave Type": String(getLeaveCode(leave.leaveType)),
           "From Date": String(formatDate(leave.fromDate)),
           "To Date": String(formatDate(leave.toDate)),
           "Total Days": String(leave.noOfDays ?? ""),
@@ -175,7 +216,17 @@ const LeaveHistory = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+          <div className="mb-2">
+            <input
+              type="text"
+              placeholder="SEARCH NAME / EMP ID / USER ID"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(normalizeSearchInput(e.target.value))}
+              className="border border-gray-300 rounded px-2 py-1 text-xs sm:text-sm uppercase w-full"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
             <input
               type="month"
               value={selectedMonth}
@@ -206,6 +257,17 @@ const LeaveHistory = () => {
                 </option>
               ))}
             </select>
+            <select
+              value={perPage}
+              onChange={(e) => setPerPage(e.target.value === "all" ? "all" : parseInt(e.target.value, 10))}
+              className="border border-gray-300 rounded px-2 py-1 text-xs sm:text-sm"
+            >
+              <option value={8}>Show 8</option>
+              <option value={15}>Show 15</option>
+              <option value={20}>Show 20</option>
+              <option value={50}>Show 50</option>
+              <option value="all">Show All</option>
+            </select>
           </div>
           </MobileHeaderToggle>
 
@@ -216,8 +278,10 @@ const LeaveHistory = () => {
                   <th className="border px-2 py-1">SL No</th>
                   <th className="border px-2 py-1">Emp ID</th>
                   <th className="border px-2 py-1">Emp Name</th>
+                  <th className="border px-2 py-1">User ID</th>
                   <th className="border px-2 py-1">Department</th>
                   <th className="border px-2 py-1">Apply Date</th>
+                  <th className="border px-2 py-1">Leave Type</th>
                   <th className="border px-2 py-1">From Date</th>
                   <th className="border px-2 py-1">To Date</th>
                   <th className="border px-2 py-1">Total Days</th>
@@ -234,22 +298,27 @@ const LeaveHistory = () => {
               <tbody className="text-center">
                 {loading ? (
                   <tr>
-                    <td colSpan="15" className="py-4">Loading...</td>
+                    <td colSpan="17" className="py-4">Loading...</td>
                   </tr>
-                ) : filteredLeaves.length > 0 ? (
-                  filteredLeaves.map((leave, index) => {
+                ) : paginatedLeaves.length > 0 ? (
+                  paginatedLeaves.map((leave, index) => {
                     const rm = getByRole(leave.history, "Reporting Manager");
                     const dh = getByRole(leave.history, "Department Head");
                     const rmStatus = String(leave.reportingManagerApproval || rm.status || "PENDING").toUpperCase();
                     const dhStatus = String(leave.departmrntHeadApproval || dh.status || "PENDING").toUpperCase();
+                    const finalStatus = getFinalStatus(leave);
 
                     return (
                       <tr key={leave._id} className="hover:bg-dorika-blueLight transition text-xs">
-                        <td className="border px-2 py-1">{index + 1}</td>
+                        <td className="border px-2 py-1">
+                          {perPage === "all" ? index + 1 : (currentPage - 1) * perPage + index + 1}
+                        </td>
                         <td className="border px-2 py-1">{leave.employeeId}</td>
                         <td className="border px-2 py-1">{leave.employeeName}</td>
+                        <td className="border px-2 py-1">{leave.employeeUserId || "-"}</td>
                         <td className="border px-2 py-1">{leave.departmentName || "-"}</td>
                         <td className="border px-2 py-1">{formatDate(leave.applicationDate)}</td>
+                        <td className="border px-2 py-1">{getLeaveCode(leave.leaveType)}</td>
                         <td className="border px-2 py-1">{formatDate(leave.fromDate)}</td>
                         <td className="border px-2 py-1">{formatDate(leave.toDate)}</td>
                         <td className="border px-2 py-1">{leave.noOfDays}</td>
@@ -258,7 +327,7 @@ const LeaveHistory = () => {
                           <select
                             value={rmStatus}
                             onChange={(e) => updateLeaveDecision(leave._id, "RM", e.target.value)}
-                            className="border border-gray-300 rounded px-1 py-0.5 text-[10px] font-semibold uppercase"
+                            className={`border rounded px-1 py-0.5 text-[10px] font-semibold uppercase ${getStatusClass(rmStatus)}`}
                           >
                             <option value="PENDING">PENDING</option>
                             <option value="APPROVED">APPROVED</option>
@@ -271,7 +340,7 @@ const LeaveHistory = () => {
                           <select
                             value={dhStatus}
                             onChange={(e) => updateLeaveDecision(leave._id, "DH", e.target.value)}
-                            className="border border-gray-300 rounded px-1 py-0.5 text-[10px] font-semibold uppercase"
+                            className={`border rounded px-1 py-0.5 text-[10px] font-semibold uppercase ${getStatusClass(dhStatus)}`}
                           >
                             <option value="PENDING">PENDING</option>
                             <option value="APPROVED">APPROVED</option>
@@ -279,13 +348,17 @@ const LeaveHistory = () => {
                           </select>
                         </td>
                         <td className="border px-2 py-1">{formatDateTime(dh.date)}</td>
-                        <td className="border px-2 py-1 font-semibold">{getFinalStatus(leave)}</td>
+                        <td className="border px-2 py-1 font-semibold">
+                          <span className={`inline-block px-2 py-0.5 rounded border text-[10px] uppercase ${getStatusClass(finalStatus)}`}>
+                            {finalStatus}
+                          </span>
+                        </td>
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan="15" className="py-4 text-gray-500">
+                    <td colSpan="17" className="py-4 text-gray-500">
                       No leave history found
                     </td>
                   </tr>
@@ -293,6 +366,16 @@ const LeaveHistory = () => {
               </tbody>
             </table>
           </div>
+          {perPage !== "all" && !loading && filteredLeaves.length > 0 && (
+            <div className="pt-3">
+              <Pagination
+                total={filteredLeaves.length}
+                perPage={perPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

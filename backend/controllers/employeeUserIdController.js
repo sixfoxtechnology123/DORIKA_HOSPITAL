@@ -118,6 +118,7 @@ exports.generateAllPasswords = async (req, res) => {
       details: `Generated or updated login credentials for ${employeesToUpdate.length} employees.`,
       target: auditTarget,
       current: {
+        passwordChanged: true,
         employeeIds: employeesToUpdate.map((emp) => emp.employeeID),
         employeeUserIds: employeesToUpdate.map((emp) => emp.employeeUserId),
       },
@@ -291,6 +292,7 @@ exports.updateEmployeeUserId = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
     const userObj = user.toObject();
     delete userObj.password;
+    const passwordChanged = !!req.body?.password;
     await createAuditLog({
       req,
       action: "UPDATE",
@@ -303,7 +305,7 @@ exports.updateEmployeeUserId = async (req, res) => {
         designation: user.designation || "",
       },
       previous: cleanObject({ ...previous, password: undefined }),
-      current: cleanObject(userObj),
+      current: cleanObject({ ...userObj, ...(passwordChanged ? { passwordChanged: true } : {}) }),
     });
     res.json(userObj);
   } catch (err) {

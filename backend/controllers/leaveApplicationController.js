@@ -1,6 +1,9 @@
 import LeaveApplication from "../models/LeaveApplication.js";
 import LeaveType from "../models/LeaveType.js";
 import Employee from "../models/Employee.js";
+import auditLogger from "../utils/auditLogger.js";
+
+const { createAuditLog, cleanObject } = auditLogger;
 
 // Helper to convert DD-MM-YYYY string to Date Object
 const parseDate = (dateStr) => {
@@ -231,6 +234,12 @@ export const updateLeaveStatus = async (req, res) => {
 
     const leave = await LeaveApplication.findById(id);
     if (!leave) return res.status(404).json({ message: "Leave not found" });
+    const previous = {
+      reportingManagerApproval: leave.reportingManagerApproval,
+      departmrntHeadApproval: leave.departmrntHeadApproval,
+      approveRejectedStatus: leave.approveRejectedStatus,
+      status: leave.status,
+    };
 
     const role = String(req.user?.role || "").toLowerCase();
     const resolvedUserId = loggedInUserId || req.user?.userId || req.user?.employeeUserId || "";
@@ -291,6 +300,27 @@ export const updateLeaveStatus = async (req, res) => {
     }
 
     await leave.save();
+
+    await createAuditLog({
+      req,
+      action: "UPDATE",
+      module: "Leave History",
+      details: `Updated leave status for ${leave.employeeId}.`,
+      target: {
+        employeeUserId: leave.employeeUserId || "",
+        employeeID: leave.employeeId || "",
+        name: leave.employeeName || "",
+        department: leave.departmentName || "",
+      },
+      previous: cleanObject(previous),
+      current: cleanObject({
+        reportingManagerApproval: leave.reportingManagerApproval,
+        departmrntHeadApproval: leave.departmrntHeadApproval,
+        approveRejectedStatus: leave.approveRejectedStatus,
+        status: leave.status,
+      }),
+    });
+
     res.status(200).json({ message: "Decision updated", leave });
   } catch (error) {
     res.status(500).json({ message: error.message });
