@@ -21,11 +21,8 @@ exports.getActivities = async (req, res) => {
 
     if (employeeUserId) query["changedBy.loginUserId"] = employeeUserId;
 
-    // 2. REMOVE OR INCREASE LIMIT
     const activities = await Activity.find(query)
-      .sort({ createdAt: -1 }) 
-      // Change this to a higher number like 2000 or remove it to see everything
-      .limit(2000); 
+      .sort({ createdAt: -1 });
 
     const normalized = activities.map((activity) => {
       const row = activity.toObject();

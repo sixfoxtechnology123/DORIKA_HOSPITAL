@@ -13,6 +13,8 @@ const LeaveHistory = () => {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("ALL");
   const [selectedDepartment, setSelectedDepartment] = useState("ALL");
+  const adminData = JSON.parse(localStorage.getItem("adminData") || "{}");
+  const loggedInUserId = adminData.userId || adminData.employeeUserId || adminData._id || "";
 
   const fetchLeaveHistory = async () => {
     try {
@@ -62,8 +64,26 @@ const LeaveHistory = () => {
   const getFinalStatus = (leave) =>
     String(leave.approveRejectedStatus || leave.applyStatus || "PENDING").toUpperCase();
 
-  const getByRole = (history = [], role) =>
-    history.find((h) => h.role === role) || {};
+  const normalizeRoleToken = (value) =>
+    String(value || "").toUpperCase().replace(/[^A-Z]/g, "");
+
+  const isRMRole = (role) => {
+    const r = normalizeRoleToken(role);
+    return r.includes("REPORTINGMANAGER") || r === "RM" || r.startsWith("RM") || r.includes("RMDH");
+  };
+
+  const isDHRole = (role) => {
+    const r = normalizeRoleToken(role);
+    return r.includes("DEPARTMENTHEAD") || r === "DH" || r.endsWith("DH") || r.includes("RMDH");
+  };
+
+  const getByRole = (history = [], role) => {
+    const list = Array.isArray(history) ? history.slice() : [];
+    list.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    if (role === "Reporting Manager") return list.find((h) => isRMRole(h.role)) || {};
+    if (role === "Department Head") return list.find((h) => isDHRole(h.role)) || {};
+    return list.find((h) => h.role === role) || {};
+  };
 
   const filteredLeaves = leaves.filter((leave) => {
     const finalStatus = getFinalStatus(leave);
@@ -111,6 +131,25 @@ const LeaveHistory = () => {
       toast.success("Excel exported successfully");
     } catch (error) {
       toast.error("Failed to export Excel");
+    }
+  };
+
+  const updateLeaveDecision = async (leaveId, roleKey, status) => {
+    try {
+      const res = await axios.put(`/api/leave-application/${leaveId}/status`, {
+        status,
+        loggedInUserId,
+        decisionRole: roleKey,
+      });
+      const updated = res.data?.leave;
+      if (updated) {
+        setLeaves((prev) => prev.map((l) => (l._id === updated._id ? updated : l)));
+      } else {
+        fetchLeaveHistory();
+      }
+      toast.success(`Status updated`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update status");
     }
   };
 
@@ -201,6 +240,8 @@ const LeaveHistory = () => {
                   filteredLeaves.map((leave, index) => {
                     const rm = getByRole(leave.history, "Reporting Manager");
                     const dh = getByRole(leave.history, "Department Head");
+                    const rmStatus = String(leave.reportingManagerApproval || rm.status || "PENDING").toUpperCase();
+                    const dhStatus = String(leave.departmrntHeadApproval || dh.status || "PENDING").toUpperCase();
 
                     return (
                       <tr key={leave._id} className="hover:bg-dorika-blueLight transition text-xs">
@@ -213,10 +254,30 @@ const LeaveHistory = () => {
                         <td className="border px-2 py-1">{formatDate(leave.toDate)}</td>
                         <td className="border px-2 py-1">{leave.noOfDays}</td>
                         <td className="border px-2 py-1">{leave.reportingManager}</td>
-                        <td className="border px-2 py-1">{rm.status || "-"}</td>
+                        <td className="border px-2 py-1">
+                          <select
+                            value={rmStatus}
+                            onChange={(e) => updateLeaveDecision(leave._id, "RM", e.target.value)}
+                            className="border border-gray-300 rounded px-1 py-0.5 text-[10px] font-semibold uppercase"
+                          >
+                            <option value="PENDING">PENDING</option>
+                            <option value="APPROVED">APPROVED</option>
+                            <option value="REJECTED">REJECTED</option>
+                          </select>
+                        </td>
                         <td className="border px-2 py-1">{formatDateTime(rm.date)}</td>
                         <td className="border px-2 py-1">{leave.departmentHead}</td>
-                        <td className="border px-2 py-1">{dh.status || "-"}</td>
+                        <td className="border px-2 py-1">
+                          <select
+                            value={dhStatus}
+                            onChange={(e) => updateLeaveDecision(leave._id, "DH", e.target.value)}
+                            className="border border-gray-300 rounded px-1 py-0.5 text-[10px] font-semibold uppercase"
+                          >
+                            <option value="PENDING">PENDING</option>
+                            <option value="APPROVED">APPROVED</option>
+                            <option value="REJECTED">REJECTED</option>
+                          </select>
+                        </td>
                         <td className="border px-2 py-1">{formatDateTime(dh.date)}</td>
                         <td className="border px-2 py-1 font-semibold">{getFinalStatus(leave)}</td>
                       </tr>

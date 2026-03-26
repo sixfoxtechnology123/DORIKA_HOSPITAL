@@ -93,11 +93,30 @@ exports.generateAllPasswords = async (req, res) => {
     });
 
     await Promise.all(updatePromises);
+    let auditTarget = {};
+    if (employeesToUpdate.length === 1) {
+      const emp = employeesToUpdate[0];
+      auditTarget = {
+        employeeUserId: emp.employeeUserId || "",
+        employeeID: emp.employeeID || "",
+        name: `${emp.firstName || ""} ${emp.middleName || ""} ${emp.lastName || ""}`.replace(/\s+/g, " ").trim(),
+        designation: emp.designationName || "",
+      };
+    } else if (employeesToUpdate.length > 1) {
+      auditTarget = {
+        employeeUserId: "",
+        employeeID: "",
+        name: `${employeesToUpdate.length} Employees`,
+        designation: "",
+      };
+    }
+
     await createAuditLog({
       req,
       action: "UPDATE",
       module: "Employee User ID",
       details: `Generated or updated login credentials for ${employeesToUpdate.length} employees.`,
+      target: auditTarget,
       current: {
         employeeIds: employeesToUpdate.map((emp) => emp.employeeID),
         employeeUserIds: employeesToUpdate.map((emp) => emp.employeeUserId),

@@ -1,5 +1,6 @@
 // backend/middleware/authMiddleware.js
 const jwt = require('jsonwebtoken');
+const AdminManagement = require("../models/adminManagementModel");
 
 const authMiddleware = (req, res, next) => {
   try {
@@ -23,10 +24,26 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-const adminOnly = (req, res, next) => {
+const normalizePerm = (value) => String(value || "").trim().toUpperCase();
+const hasAdminPermission = (perms = []) => {
+  const list = Array.isArray(perms) ? perms.map(normalizePerm) : [];
+  return list.includes("ALL") || list.includes("ADMIN_MANAGEMENT_VIEW");
+};
+
+const adminOnly = async (req, res, next) => {
   if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
-  if (req.user.role !== 'Admin') return res.status(403).json({ message: 'Admins only' });
-  next();
+  if (req.user.role === 'Admin') return next();
+
+  try {
+    if (req.user.id) {
+      const user = await AdminManagement.findById(req.user.id).select("role permissions").lean();
+      if (user?.role === "Admin" || hasAdminPermission(user?.permissions)) return next();
+    }
+  } catch (err) {
+    console.error("adminOnly check error:", err);
+  }
+
+  return res.status(403).json({ message: 'Admins only' });
 };
 
 const requireNonEmployee = (req, res, next) => {

@@ -17,6 +17,7 @@ import {
   FileText,
   MapPin,
   Wallet,
+  History,
   Activity,
 } from "lucide-react";
 
@@ -103,6 +104,13 @@ const Dashboard = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const resolveDashboardName = () => {
+    const userId = String(admin?.userId || "").trim().toLowerCase();
+    if (userId === "dorika") return "Dorika Hospital";
+    if (userId === "sixfox") return "Sixfox Technology";
+    return admin?.name ?? "Admin";
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("adminData");
     localStorage.removeItem("token");
@@ -124,13 +132,12 @@ const Dashboard = () => {
     { title: "Payslips", value: counts.policies, path: "/GenerateAllEmployeePayslip", color: "bg-indigo-500 text-white", icon: FileText, permission: "Pay_slip_view" },
     { title: "Reminder Section", value: counts.locations, path: "/ReminderPage", color: "bg-teal-500 text-white", icon: MapPin, permission: "Reminder_View" },
     { title: "Controller", value: counts.payrollComponents, path: "/AdminManagement", color: "bg-orange-500 text-white", icon: Wallet, permission: "Admin_Management_view", },
+    { title: "Activity History", value: counts.payrollComponents, path: "/ActivityHistory", color: "bg-sky-500 text-white", icon: History, permission: "Activity_History", },
   ];
 
   // Admin (Admin/mainAdmin/superadmin/root) OR "all" permission -> show all cards
   const roleStr = String(admin?.role || "").toLowerCase();
-  const isSuper =
-    ["admin", "mainadmin", "superadmin", "root"].includes(roleStr) ||
-    userPermissions.includes("all");
+  const isSuper = userPermissions.includes("ALL");
 
   const visibleCards = isSuper
     ? cards
@@ -145,7 +152,7 @@ const Dashboard = () => {
           <h1 className="text-2xl font-semibold">Dashboard</h1>
 
           <div className="relative flex items-center gap-3" ref={dropdownRef}>
-            <span className="font-medium text-gray-700">{admin?.name ?? "Admin"}</span>
+            <span className="font-medium text-gray-700">{resolveDashboardName()}</span>
 
             <img
               onClick={() => setDropdownOpen(!dropdownOpen)}

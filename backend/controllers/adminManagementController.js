@@ -11,14 +11,39 @@ const createDefaultAdmin = async () => {
       const hashedPassword = await bcrypt.hash("dorika123", 10);
       await AdminManagement.create({
         userId: "dorika",
-        employeeID: "MASTER-001",
+        employeeID: "Dorika Hospital",
         employeeUserId: "SYSTEM-001",
-        name: "Main Admin",
+        name: "Dorika Hospital",
         password: hashedPassword,
         role: "Admin",
         permissions: ["ALL"],
         isDefault: true,
       });
+    } else {
+      await AdminManagement.updateOne(
+        { userId: "dorika" },
+        { $set: { name: "Dorika Hospital", employeeID: "Dorika Hospital" } }
+      );
+    }
+
+    const existingSixfox = await AdminManagement.findOne({ userId: "sixfox" });
+    if (!existingSixfox) {
+      const hashedPassword = await bcrypt.hash("sixfox@2026", 10);
+      await AdminManagement.create({
+        userId: "sixfox",
+        employeeID: "Sixfox Technology",
+        employeeUserId: "employeeid-Main Admin",
+        name: "Sixfox Technology",
+        password: hashedPassword,
+        role: "Admin",
+        permissions: ["ALL"],
+        isDefault: true,
+      });
+    } else {
+      await AdminManagement.updateOne(
+        { userId: "sixfox" },
+        { $set: { name: "Sixfox Technology", employeeID: "Sixfox Technology" } }
+      );
     }
   } catch (err) { console.error("Default admin error:", err.message); }
 };
@@ -118,7 +143,10 @@ exports.updateUser = async (req, res) => {
     const { id } = req.params;
     const { userId, employeeID, employeeUserId, name, password, role, permissions } = req.body;
     const user = await AdminManagement.findById(id);
-    if (!user || user.isDefault) return res.status(403).json({ message: "Update not allowed" });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (String(user.userId || "").trim().toLowerCase() === "sixfox") {
+      return res.status(403).json({ message: "Update not allowed" });
+    }
     const previous = user.toObject();
 
     user.userId = userId || user.userId;
@@ -152,7 +180,10 @@ exports.updateUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   try {
     const user = await AdminManagement.findById(req.params.id);
-    if (!user || user.isDefault) return res.status(403).json({ message: "Delete not allowed" });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (String(user.userId || "").trim().toLowerCase() === "sixfox") {
+      return res.status(403).json({ message: "Delete not allowed" });
+    }
     await AdminManagement.findByIdAndDelete(req.params.id);
     await createAuditLog({
       req,

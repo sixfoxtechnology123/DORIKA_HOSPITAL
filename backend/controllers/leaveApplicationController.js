@@ -227,34 +227,57 @@ export const getLeavesForManagerOrDH = async (req, res) => {
 export const updateLeaveStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, loggedInUserId } = req.body;
+    const { status, loggedInUserId, decisionRole } = req.body;
 
     const leave = await LeaveApplication.findById(id);
     if (!leave) return res.status(404).json({ message: "Leave not found" });
 
-    // 1. Identify roles independently (remove else if)
-    const isRM = leave.reportingManagerEmployeeUserId === loggedInUserId;
-    const isDH = leave.departmentHeadEmployeeUserId === loggedInUserId;
+    const role = String(req.user?.role || "").toLowerCase();
+    const resolvedUserId = loggedInUserId || req.user?.userId || req.user?.employeeUserId || "";
 
-    if (!isRM && !isDH) return res.status(403).json({ message: "Unauthorized" });
+    // 1. Identify roles independently (remove else if)
+    const isRM = leave.reportingManagerEmployeeUserId === resolvedUserId;
+    const isDH = leave.departmentHeadEmployeeUserId === resolvedUserId;
+    const isNonEmployee = role !== "employee";
+
+    if (!isRM && !isDH && !isNonEmployee) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    let appliedRoleLabel = "";
 
     // 2. Update status for both roles if the user is both
     if (isRM) {
       leave.reportingManagerApproval = status;
+      appliedRoleLabel = "Reporting Manager";
     }
     if (isDH) {
       leave.departmrntHeadApproval = status;
+      appliedRoleLabel = appliedRoleLabel ? "RM & DH" : "Department Head";
     }
 
-    // 3. Track history
+    // 3. Admin/Non-employee override with explicit decisionRole
+    if (!isRM && !isDH && isNonEmployee) {
+      if (decisionRole === "RM") {
+        leave.reportingManagerApproval = status;
+        appliedRoleLabel = "Reporting Manager";
+      } else if (decisionRole === "DH") {
+        leave.departmrntHeadApproval = status;
+        appliedRoleLabel = "Department Head";
+      } else {
+        return res.status(400).json({ message: "Decision role is required" });
+      }
+    }
+
+    // 4. Track history
     leave.history.push({
-      role: isRM && isDH ? "RM & DH" : isRM ? "Reporting Manager" : "Department Head",
-      userId: loggedInUserId,
+      role: appliedRoleLabel || (isRM && isDH ? "RM & DH" : isRM ? "Reporting Manager" : "Department Head"),
+      userId: resolvedUserId,
       status: status,
       date: new Date()
     });
 
-    // 4. Calculate Final Decision
+    // 5. Calculate Final Decision
     // If RM and DH are the same person, this block will now see both as APPROVED/REJECTED instantly
     if (leave.reportingManagerApproval === "REJECTED" || leave.departmrntHeadApproval === "REJECTED") {
       leave.approveRejectedStatus = "REJECTED";

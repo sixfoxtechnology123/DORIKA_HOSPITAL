@@ -511,7 +511,9 @@ const exportExcel = () => {
               <tr key={emp.employeeID} className={`hover:bg-blue-50 border-b ${(isLocked || masterLocked) ? 'bg-gray-100' : ''}`}>
                 <td className="p-1 border">{idx + 1}</td>
                 <td className="p-1 border font-bold text-slate-600">{emp.employeeID}</td>
-                <td className="p-1 border text-left uppercase text-gray-900 font-semibold">{emp.firstName} {emp.lastName} {emp.lastName}</td>
+                <td className="p-1 border text-left uppercase text-gray-900 font-semibold">
+                  {[emp.firstName, emp.middleName, emp.lastName].filter(Boolean).join(" ")}
+                </td>
                 <td className="p-1 border bg-yellow-50/20 font-semibold">{emp.departmentName}</td>
                 
                 {/* Gross Salary */}

@@ -23,13 +23,12 @@ export default function AdminManagement() {
     permissions: [],
   });
 
-  const permissionsList = ["Dashboard_View", "Master_View", "Reminder_View", "Employee_View", "Leave_Management_View", "Shift_Management_view", "Attendance_history_view", "Pay_slip_view"];
+  const permissionsList = ["Dashboard_View", "Master_View", "Reminder_View", "Employee_View", "Leave_Management_View", "Shift_Management_view", "Attendance_history_view", "Pay_slip_view", "Admin_Management_view"];
   const token = localStorage.getItem("token");
 
   const isMainAdmin = (u) => {
-    const flag = u?.isDefault === true || u?.is_default === true;
-    const idGuess = typeof u?.userId === "string" && ["dorika", "admin"].includes(u.userId.trim().toLowerCase());
-    return Boolean(flag || idGuess);
+    const id = String(u?.userId || "").trim().toLowerCase();
+    return id === "sixfox";
   };
 
   const fetchData = async () => {

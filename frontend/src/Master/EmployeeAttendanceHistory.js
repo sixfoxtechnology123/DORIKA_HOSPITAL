@@ -397,7 +397,7 @@ const EmployeeAttendanceHistory = () => {
         <button 
           type="button"
           onClick={() => scrollTable('left')}
-          className="fixed left-[280px] top-1/2 -translate-y-1/2 z-50 bg-gray-800/40 hover:bg-gray-800/70 text-white p-4 rounded-full shadow-2xl backdrop-blur-md transition-all active:scale-90 hidden md:block"
+          className="fixed left-[280px] top-1/2 -translate-y-1/2 z-50 text-green-500 p-4 rounded-full  transition-all active:scale-90 hidden md:block"
           style={{ marginLeft: '10px' }} // Ensures it doesn't touch the sidebar
         >
           <span className="text-3xl font-bold">❮</span>
@@ -407,7 +407,7 @@ const EmployeeAttendanceHistory = () => {
         <button 
           type="button"
           onClick={() => scrollTable('right')}
-          className="fixed right-6 top-1/2 -translate-y-1/2 z-50 bg-gray-800/40 hover:bg-gray-800/70 text-white p-4 rounded-full shadow-2xl backdrop-blur-md transition-all active:scale-90 hidden md:block"
+          className="fixed right-6 top-1/2 -translate-y-1/2 z-50 text-green-500 p-4 rounded-full  transition-all active:scale-90 hidden md:block"
         >
           <span className="text-3xl font-bold">❯</span>
         </button>

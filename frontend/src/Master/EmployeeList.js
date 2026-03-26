@@ -75,7 +75,7 @@ const handleSearchChange = (e) => {
   let value = e.target.value.toUpperCase().replace(/\s+/g, "");
 
   if (/^\d+$/.test(value)) {
-    const defaultPrefix = (selectedStatus || "P").toUpperCase();
+    const defaultPrefix = (selectedStatus && selectedStatus !== "ALL" ? selectedStatus : "P").toUpperCase();
     value = `${defaultPrefix}-${value}`;
   }
 
@@ -104,7 +104,9 @@ const handleSearchChange = (e) => {
     );
 
     statusSet.add("P");
-    return Array.from(statusSet).sort((a, b) => a.localeCompare(b));
+    statusSet.delete("ALL");
+    const sorted = Array.from(statusSet).sort((a, b) => a.localeCompare(b));
+    return ["ALL", ...sorted];
   }, [employees]);
 
   const deleteEmployee = async (id) => {
@@ -125,7 +127,7 @@ const handleSearchChange = (e) => {
     const employeeStatus = (e?.employmentStatus || "").toString().trim().toUpperCase();
     const matchesSearch =
       !searchTerm || fullName.startsWith(searchTerm) || empId.startsWith(searchTerm);
-    const matchesStatus = !selectedStatus || employeeStatus === selectedStatus;
+    const matchesStatus = !selectedStatus || selectedStatus === "ALL" || employeeStatus === selectedStatus;
 
     return matchesSearch && matchesStatus;
   });

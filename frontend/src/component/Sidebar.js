@@ -15,6 +15,7 @@ import {
   MapPin,
   Wallet,
   Menu,
+  History,
   X,
   ArrowBigRightDash,
   ArrowBigLeftDash,
@@ -129,8 +130,13 @@ const Sidebar = () => {
       submenus: [
         { name: "Admin Management", path: "/AdminManagement" },
         { name: "Employee Management", path: "/EmployeeUserIdCreated" },
-       // { name: "Activity History", path: "/ActivityHistory" },
       ],
+    },
+    {
+      name: "Activity History",
+      path: "/ActivityHistory",
+      icon: History,          // or any icon you prefer
+      permission: "Activity_History",
     },
   ];
 
@@ -271,7 +277,7 @@ const Sidebar = () => {
 
           <ul className="space-y-2 px-2 flex-1 overflow-y-auto">
             {menus
-              .filter(menu => role === "Admin" || permissions.includes(menu.permission))
+              .filter(menu => permissions.includes("ALL") || permissions.includes(menu.permission))
               .map((menu, i) => {
                 const Icon = menu.icon;
                 const active = isMenuActive(menu);

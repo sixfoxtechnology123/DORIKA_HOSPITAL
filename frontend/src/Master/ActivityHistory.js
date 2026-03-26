@@ -22,6 +22,14 @@ const formatText = (text) => {
     .trim() || "-";
 };
 
+const getRoleLabel = (changedBy = {}) => {
+  const name = String(changedBy?.name || "").trim().toLowerCase();
+  const userId = String(changedBy?.loginUserId || changedBy?.employeeUserId || "").trim().toLowerCase();
+  if (name.includes("sixfox") || userId === "sixfox") return "Main Admin";
+  if (name.includes("dorika") || userId === "dorika") return "Dorika Admin";
+  return formatText(changedBy?.role);
+};
+
 const isHiddenField = (key) => key === "_id" || key === "buffer";
 
 const getVisibleEntries = (data) => {
@@ -551,7 +559,7 @@ const ActivityHistory = () => {
                         </td>
                         <td className="p-4 border-r border-slate-50">
                           <div className="font-bold text-slate-900 text-[13px]">{formatName(row.changedBy?.name)}</div>
-                          <div className="text-[10px] text-slate-500">{formatText(row.changedBy?.employeeID)} | {formatText(row.changedBy?.role)}</div>
+                          <div className="text-[10px] text-slate-500">{formatText(row.changedBy?.employeeID)} | {getRoleLabel(row.changedBy)}</div>
                         </td>
                         <td className="p-4 border-r border-slate-50">
                           <div className="font-bold text-slate-700 text-[13px]">{formatName(row.targetUser?.name)}</div>
