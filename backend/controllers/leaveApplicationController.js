@@ -1,9 +1,255 @@
 import LeaveApplication from "../models/LeaveApplication.js";
 import LeaveType from "../models/LeaveType.js";
 import Employee from "../models/Employee.js";
+import Attendance from "../models/Attendance.js";
+import ShiftManagement from "../models/ShiftManagement.js";
+import ShiftMaster from "../models/Shift.js";
 import auditLogger from "../utils/auditLogger.js";
 
 const { createAuditLog, cleanObject } = auditLogger;
+
+const normalizeShiftCode = (value) => String(value || "").trim().toUpperCase();
+
+const calculateTotalPaidDays = (records = []) => {
+  const byDate = new Map();
+  (records || []).forEach((rec) => {
+    if (!rec?.date) return;
+    byDate.set(rec.date, rec);
+  });
+  const uniqueRecords = Array.from(byDate.values());
+
+  const presentCount = uniqueRecords.reduce((total, r) => {
+    if (r.status === "Present") {
+      const shift = normalizeShiftCode(r.shiftCode);
+      const isLegacyDouble = /^[A-Z]{2}$/.test(shift) && !["OFF", "DD"].includes(shift);
+      const isDouble = shift.startsWith("DD:") || isLegacyDouble;
+      return total + (isDouble ? 2 : 1);
+    }
+    return total;
+  }, 0);
+
+  const offCount = uniqueRecords.filter((r) => r.status === "OFF" || String(r.status || "").includes("(OFF)")).length;
+  const leaveCount = uniqueRecords.filter((r) => String(r.status || "").includes("SL") || String(r.status || "").includes("CL")).length;
+
+  return presentCount + offCount + leaveCount;
+};
+
+const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+const getFinancialYear = (dateObj) => {
+  const year = dateObj.getFullYear();
+  const month = dateObj.getMonth() + 1;
+  return month <= 3 ? `${year - 1}-${year}` : `${year}-${year + 1}`;
+};
+
+const deriveLeaveCode = (leaveType) => {
+  const type = String(leaveType || "").toUpperCase();
+  return type.includes("SICK") || type === "SL" ? "SL" : "CL";
+};
+
+const sanitizeRecordForLeave = (record = {}) => ({
+  ...record,
+  checkInTime: "--",
+  checkOutTime: "--",
+  actualWorkDuration: "--",
+  isOT: false,
+  otHours: 0,
+});
+
+const applyRejectedLeaveToAttendance = async (leave) => {
+  if (!leave?.employeeUserId || !leave?.fromDate) return;
+
+  const start = new Date(leave.fromDate);
+  const end = new Date(leave.toDate || leave.fromDate);
+  const attendanceMap = new Map();
+  const shiftMgmtCache = new Map();
+  const shiftCache = new Map();
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toLocaleDateString("en-CA");
+    const month = d.getMonth() + 1;
+    const year = d.getFullYear();
+    const key = `${month}-${year}`;
+
+    let attendanceDoc = attendanceMap.get(key);
+    if (!attendanceDoc) {
+      attendanceDoc = await Attendance.findOne({
+        employeeUserId: leave.employeeUserId,
+        month,
+        year,
+      });
+      if (!attendanceDoc) continue;
+      attendanceMap.set(key, attendanceDoc);
+    }
+
+    const shiftMonthKey = `${monthNames[d.getMonth()]}-${d.getFullYear()}`;
+    let shiftMgmt = shiftMgmtCache.get(shiftMonthKey);
+    if (!shiftMgmt) {
+      shiftMgmt = await ShiftManagement.findOne({
+        employeeUserId: leave.employeeUserId,
+        month: shiftMonthKey,
+      }).lean();
+      shiftMgmtCache.set(shiftMonthKey, shiftMgmt || null);
+    }
+
+    let shiftCode = "--";
+    let shiftStartTime = "--";
+    let shiftEndTime = "--";
+    let workDuration = "--";
+    let finalStatus = "Absent";
+
+    if (shiftMgmt?.shifts) {
+      const dayKey = d.getDate();
+      const rawShift = shiftMgmt.shifts[dayKey] || shiftMgmt.shifts[dayKey.toString()];
+      if (rawShift) shiftCode = rawShift;
+      const normalized = normalizeShiftCode(shiftCode);
+      if (normalized === "OFF") {
+        finalStatus = "OFF";
+      } else if (normalized && normalized !== "--") {
+        let shift = shiftCache.get(normalized);
+        if (shift === undefined) {
+          shift = await ShiftMaster.findOne({ shiftCode: normalized }).lean();
+          shiftCache.set(normalized, shift || null);
+        }
+        if (shift) {
+          shiftStartTime = shift.startTime || "--";
+          shiftEndTime = shift.endTime || "--";
+        }
+      }
+    }
+
+    const recordIndex = attendanceDoc.records.findIndex((r) => r.date === dateStr);
+    if (recordIndex === -1) continue;
+
+    const record = attendanceDoc.records[recordIndex];
+    const statusUpper = String(record.status || "").toUpperCase();
+    if (!["SL", "CL", "SL(OFF)", "CL(OFF)"].includes(statusUpper)) continue;
+
+    attendanceDoc.records[recordIndex] = sanitizeRecordForLeave({
+      ...record,
+      status: finalStatus,
+      shiftCode: record.shiftCode || shiftCode || "--",
+      shiftStartTime: record.shiftStartTime || shiftStartTime,
+      shiftEndTime: record.shiftEndTime || shiftEndTime,
+      workDuration: record.workDuration || workDuration,
+      isLate: false,
+    });
+  }
+
+  for (const attendanceDoc of attendanceMap.values()) {
+    attendanceDoc.totalPaidDays = calculateTotalPaidDays(attendanceDoc.records);
+    await attendanceDoc.save();
+  }
+};
+
+const applyApprovedLeaveToAttendance = async (leave) => {
+  if (!leave?.employeeUserId || !leave?.fromDate) return;
+
+  const leaveCode = deriveLeaveCode(leave.leaveType);
+  const start = new Date(leave.fromDate);
+  const end = new Date(leave.toDate || leave.fromDate);
+  const attendanceMap = new Map();
+  const shiftMgmtCache = new Map();
+  const shiftCache = new Map();
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toLocaleDateString("en-CA");
+    const month = d.getMonth() + 1;
+    const year = d.getFullYear();
+    const key = `${month}-${year}`;
+
+    let attendanceDoc = attendanceMap.get(key);
+    if (!attendanceDoc) {
+      attendanceDoc = await Attendance.findOne({
+        employeeUserId: leave.employeeUserId,
+        month,
+        year,
+      });
+
+      if (!attendanceDoc) {
+        attendanceDoc = new Attendance({
+          employeeId: leave.employeeId,
+          employeeUserId: leave.employeeUserId,
+          employeeName: leave.employeeName || leave.employeeUserId,
+          month,
+          year,
+          financialYear: getFinancialYear(d),
+          records: [],
+        });
+      }
+      attendanceMap.set(key, attendanceDoc);
+    }
+
+    const shiftMonthKey = `${monthNames[d.getMonth()]}-${d.getFullYear()}`;
+    let shiftMgmt = shiftMgmtCache.get(shiftMonthKey);
+    if (!shiftMgmt) {
+      shiftMgmt = await ShiftManagement.findOne({
+        employeeUserId: leave.employeeUserId,
+        month: shiftMonthKey,
+      }).lean();
+      shiftMgmtCache.set(shiftMonthKey, shiftMgmt || null);
+    }
+
+    let shiftCode = "--";
+    let shiftStartTime = "--";
+    let shiftEndTime = "--";
+    let workDuration = "--";
+    let leaveStatus = leaveCode;
+
+    if (shiftMgmt?.shifts) {
+      const dayKey = d.getDate();
+      const rawShift = shiftMgmt.shifts[dayKey] || shiftMgmt.shifts[dayKey.toString()];
+      if (rawShift) shiftCode = rawShift;
+      const normalized = normalizeShiftCode(shiftCode);
+      if (normalized === "OFF") {
+        leaveStatus = `${leaveCode}(OFF)`;
+      } else if (normalized && normalized !== "--") {
+        let shift = shiftCache.get(normalized);
+        if (shift === undefined) {
+          shift = await ShiftMaster.findOne({ shiftCode: normalized }).lean();
+          shiftCache.set(normalized, shift || null);
+        }
+        if (shift) {
+          shiftStartTime = shift.startTime || "--";
+          shiftEndTime = shift.endTime || "--";
+        }
+      }
+    }
+
+    const recordIndex = attendanceDoc.records.findIndex((r) => r.date === dateStr);
+    if (recordIndex === -1) {
+      attendanceDoc.records.push(
+        sanitizeRecordForLeave({
+          date: dateStr,
+          status: leaveStatus,
+          shiftCode: shiftCode || "--",
+          shiftStartTime,
+          shiftEndTime,
+          workDuration,
+        })
+      );
+      continue;
+    }
+
+    const record = attendanceDoc.records[recordIndex];
+    const statusUpper = String(record.status || "").toUpperCase();
+    if (statusUpper === "PRESENT") continue;
+
+    attendanceDoc.records[recordIndex] = sanitizeRecordForLeave({
+      ...record,
+      status: statusUpper.includes("OFF") ? `${leaveCode}(OFF)` : leaveStatus,
+      shiftCode: record.shiftCode || shiftCode || "--",
+      shiftStartTime: record.shiftStartTime || shiftStartTime,
+      shiftEndTime: record.shiftEndTime || shiftEndTime,
+      workDuration: record.workDuration || workDuration,
+    });
+  }
+
+  for (const attendanceDoc of attendanceMap.values()) {
+    attendanceDoc.totalPaidDays = calculateTotalPaidDays(attendanceDoc.records);
+    await attendanceDoc.save();
+  }
+};
 
 // Helper to convert DD-MM-YYYY string to Date Object
 const parseDate = (dateStr) => {
@@ -299,7 +545,15 @@ export const updateLeaveStatus = async (req, res) => {
       leave.status = "PENDING";
     }
 
+    const wasApproved = previous.approveRejectedStatus === "APPROVED";
     await leave.save();
+
+    if (!wasApproved && leave.approveRejectedStatus === "APPROVED") {
+      await applyApprovedLeaveToAttendance(leave);
+    }
+    if (wasApproved && leave.approveRejectedStatus !== "APPROVED") {
+      await applyRejectedLeaveToAttendance(leave);
+    }
 
     await createAuditLog({
       req,

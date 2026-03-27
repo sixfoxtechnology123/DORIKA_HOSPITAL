@@ -9,7 +9,16 @@ const isExEmployeeId = (value) => normalizeEmployeeId(value).startsWith("EX-");
 // Helper to format date for display
 const formatDateDisplay = (dateStr) => {
   if (!dateStr) return "-";
+  if (typeof dateStr !== "string") {
+    const dObj = new Date(dateStr);
+    if (Number.isNaN(dObj.getTime())) return "-";
+    const y = dObj.getFullYear();
+    const m = String(dObj.getMonth() + 1).padStart(2, "0");
+    const d = String(dObj.getDate()).padStart(2, "0");
+    return `${d}-${m}-${y}`;
+  }
   const [y, m, d] = dateStr.split("-");
+  if (!y || !m || !d) return dateStr;
   return `${d}-${m}-${y}`; // Returns DD-MM-YYYY
 };
 const formatOTDisplay = (otValue) => {
@@ -45,7 +54,17 @@ const EmployeeAttendance = () => {
   const [employeeFullName, setEmployeeFullName] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
   
-  const loggedUser = JSON.parse(localStorage.getItem("employeeUser"));
+  const getStoredEmployeeUser = () => {
+    try {
+      const raw = localStorage.getItem("employeeUser");
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (err) {
+      return null;
+    }
+  };
+
+  const loggedUser = getStoredEmployeeUser();
 
   const fetchHistory = async () => {
     try {
@@ -79,7 +98,7 @@ const EmployeeAttendance = () => {
       getMasterData();
       fetchHistory();
     }
-  }, []);
+  }, [loggedUser?.employeeUserId]);
 
 // --- NEW LOGIC FOR NIGHT SHIFT ---
   const todayStr = new Date().toISOString().split('T')[0];
@@ -89,7 +108,21 @@ const EmployeeAttendance = () => {
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
   const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
   
-  const allRecords = history.length > 0 ? history[0].records : [];
+  const getMonthKey = (doc) => {
+    if (!doc) return "";
+    const y = Number(doc.year);
+    const m = Number(doc.month);
+    if (!y || !m) return "";
+    return `${y}-${String(m).padStart(2, "0")}`;
+  };
+
+  const currentMonthKey = todayStr.slice(0, 7);
+  const currentDoc = history.find((h) => getMonthKey(h) === currentMonthKey);
+
+  const allRecords =
+    currentDoc && Array.isArray(currentDoc.records)
+      ? currentDoc.records
+      : [];
   
   // Find records for both days
   const todaysRecord = allRecords.find(rec => rec.date === todayStr);
@@ -197,9 +230,27 @@ const EmployeeAttendance = () => {
   }
 };
 
-  const filteredRecords = history.length > 0 
-    ? history[0].records.filter(rec => rec.date.startsWith(selectedMonth))
-    : [];
+  const selectedDoc = history.find((h) => getMonthKey(h) === selectedMonth);
+  const filteredRecords =
+    selectedDoc && Array.isArray(selectedDoc.records)
+      ? selectedDoc.records
+          .filter((rec) => String(rec?.date || "").startsWith(selectedMonth))
+          .slice()
+          .sort((a, b) => String(b?.date || "").localeCompare(String(a?.date || "")))
+      : [];
+
+  if (!loggedUser) {
+    return (
+      <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+        <EmployeeCornerSidebar />
+        <div className="flex-1 p-4 sm:p-6">
+          <div className="bg-white rounded-xl shadow-md p-6 text-center text-gray-600 font-semibold">
+            Employee session not found. Please login again.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
@@ -278,13 +329,14 @@ const EmployeeAttendance = () => {
         </thead>
           <tbody>
                 {filteredRecords.length > 0 ? (
-                  filteredRecords.slice().reverse().map((rec, index) => {
+                  filteredRecords.map((rec, index) => {
                    
 
+                    const statusText = String(rec?.status || "");
                     return (
                       <tr 
                         key={index} 
-                        className={`border-b ${rec.status.includes('Holiday') ? 'bg-yellow-50' : 'hover:bg-blue-50'}`}
+                        className={`border-b ${statusText.includes('Holiday') ? 'bg-yellow-50' : 'hover:bg-blue-50'}`}
                       >
                         <td className="p-3 border font-medium">{formatDateDisplay(rec.date)}</td>
                         <td className="p-3 border font-bold text-indigo-600">{rec.shiftCode || "--"}</td>
@@ -311,21 +363,21 @@ const EmployeeAttendance = () => {
                             <span className="text-gray-400">--</span>
                           )}
                         </td>
-                       <td className="p-3 border">
+                        <td className="p-3 border">
                         <div className="flex flex-col items-center justify-center gap-1">
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            rec.status === 'Present' ? 'bg-green-100 text-green-700' :
-                            rec.status === 'Absent'  ? 'bg-red-100 text-red-700' :
-                            rec.status === 'OFF'     ? 'bg-gray-100 text-gray-700' :
-                            rec.status.includes('SL') ? 'bg-orange-100 text-orange-700' :
-                            rec.status.includes('CL') ? 'bg-blue-100 text-blue-700' :
+                            statusText === 'Present' ? 'bg-green-100 text-green-700' :
+                            statusText === 'Absent'  ? 'bg-red-100 text-red-700' :
+                            statusText === 'OFF'     ? 'bg-gray-100 text-gray-700' :
+                            statusText.includes('SL') ? 'bg-orange-100 text-orange-700' :
+                            statusText.includes('CL') ? 'bg-blue-100 text-blue-700' :
                             'bg-yellow-100 text-yellow-700' // Default for Holidays or others
                           }`}>
-                            {rec.status}
+                            {statusText || "--"}
                           </span>
                           
                           {/* Late Entry Indicator */}
-                          {(rec.isLateEntry || (rec.status === 'Present' && rec.isLate)) && (
+                          {(rec.isLateEntry || (statusText === 'Present' && rec.isLate)) && (
                             <span className="text-[10px] text-red-500 font-bold uppercase animate-pulse">
                               Late Entry
                             </span>
@@ -338,7 +390,7 @@ const EmployeeAttendance = () => {
                 ) : (
                   <tr>
                     {/* Changed colSpan to 9 to match new columns */}
-                    <td colSpan="9" className="p-10 text-gray-400 italic text-center">No records found.</td>
+                    <td colSpan="10" className="p-10 text-gray-400 italic text-center">No records found.</td>
                   </tr>
                 )}
               </tbody>

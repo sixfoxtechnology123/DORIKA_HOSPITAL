@@ -123,22 +123,47 @@ useEffect(() => {
     try {
       setLoading(true);
 
-      // 1. Fetch all data at once (Added OT rates here to fix speed)
-      const [existingData, empRes, attRes, otRatesRes] = await Promise.all([
+      // 1. Fetch all data at once (tolerate partial failures)
+      const [
+        existingDataRes,
+        empRes,
+        attRes,
+        otRatesRes
+      ] = await Promise.allSettled([
         checkStatus(month, year, selectedDept),
         axios.get("/api/employees"),
-        axios.get(`/api/attendance/history?month=${monthNum}&year=${year}`),
+        axios.get(`/api/attendance/history?month=${monthNum}&year=${year}&summary=1&skipSync=1`),
         axios.get("/api/ot/ot-rate/rule") // Fetch all rules at once
       ]);
 
+      const existingData = existingDataRes.status === "fulfilled" ? existingDataRes.value : null;
+      const employeesPayload = empRes.status === "fulfilled" ? empRes.value : null;
+      const attendancePayload = attRes.status === "fulfilled" ? attRes.value : null;
+      const otRatesPayload = otRatesRes.status === "fulfilled" ? otRatesRes.value : null;
+
+      if (!employeesPayload) {
+        const msg = empRes?.reason?.response?.data?.message || empRes?.reason?.message || "Employee fetch failed";
+        toast.error(`Employee load failed: ${msg}`);
+        setLoading(false);
+        return;
+      }
+      if (!attendancePayload) {
+        const msg = attRes?.reason?.response?.data?.message || attRes?.reason?.message || "Attendance fetch failed";
+        toast.error(`Attendance load failed: ${msg}`);
+      }
+      if (!otRatesPayload) {
+        const msg = otRatesRes?.reason?.response?.data?.message || otRatesRes?.reason?.message || "OT rate fetch failed";
+        toast.error(`OT rate load failed: ${msg}`);
+      }
+
       const mDays = new Date(year, monthNum, 0).getDate();
-      const allOtRules = otRatesRes.data?.data || otRatesRes.data || [];
+      const allOtRules = otRatesPayload?.data?.data || otRatesPayload?.data || [];
 
       // 2. Process everything locally (Synchronous - very fast)
-      const listWithMath = (empRes.data || [])
+      const listWithMath = (employeesPayload.data || [])
       .filter((emp) => !isExEmployeeId(emp.employeeID))
       .map((emp) => {
-        const att = attRes.data.find(a => a.employeeUserId === emp.employeeUserId) || {};
+        const att = attendancePayload?.data?.find(a => a.employeeUserId === emp.employeeUserId) || {};
         const saved = existingData?.find(s => s.employeeId === emp.employeeID);
         
         // Find OT rate from the list we just fetched instead of calling API again

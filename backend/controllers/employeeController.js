@@ -12,6 +12,127 @@ const DepartmentHead = require("../models/DepartmentHead");
 const mongoose = require("mongoose");
 const { createAuditLog, getEmployeeAuditTarget, pick } = require("../utils/auditLogger");
 
+const normalizeForCompare = (value) => {
+  if (Array.isArray(value)) {
+    return value.map(normalizeForCompare);
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([key, v]) => key !== "_id" && key !== "__v" && v !== undefined)
+        .map(([key, v]) => [key, normalizeForCompare(v)])
+    );
+  }
+  return value;
+};
+
+const isEqual = (a, b) =>
+  JSON.stringify(normalizeForCompare(a)) === JSON.stringify(normalizeForCompare(b));
+
+const getByPath = (obj, path) => {
+  if (!obj) return undefined;
+  return path.split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj);
+};
+
+const setByPath = (obj, path, value) => {
+  const keys = path.split(".");
+  let cursor = obj;
+  keys.forEach((key, index) => {
+    if (index === keys.length - 1) {
+      cursor[key] = value;
+      return;
+    }
+    if (!cursor[key] || typeof cursor[key] !== "object") {
+      cursor[key] = {};
+    }
+    cursor = cursor[key];
+  });
+};
+
+const employeeAuditSections = [
+  {
+    name: "Personal & Service details",
+    fields: [
+      "employeeID",
+      "employeeUserId",
+      "employmentStatus",
+      "exEmployeeReason",
+      "governmentRegistrationNumber",
+      "registrationState",
+      "salutation",
+      "firstName",
+      "middleName",
+      "lastName",
+      "fatherName",
+      "spouseName",
+      "caste",
+      "subCaste",
+      "religion",
+      "gender",
+      "maritalStatus",
+      "departmentName",
+      "designationName",
+      "dob",
+      "dor",
+      "doj",
+      "statusChangeDate",
+      "confirmationDate",
+      "nextIncrementDate",
+      "eligiblePromotion",
+      "employmentType",
+      "reportingManager",
+      "reportingManagerEmpID",
+      "reportingManagerEmployeeUserId",
+      "departmentHead",
+      "departmentHeadEmpID",
+      "departmentHeadEmployeeUserId",
+    ],
+  },
+  { name: "Education", fields: ["educationDetails"] },
+  {
+    name: "Nominees/Medical/Address",
+    fields: ["nominees", "medical", "permanentAddress", "presentAddress"],
+  },
+  { name: "Pay Details", fields: ["payDetails"] },
+  { name: "Pay Structure", fields: ["payType", "grossSalary", "earnings", "deductions"] },
+  { name: "Document", fields: ["hardCopyDocuments"] },
+];
+
+const collectEmployeeChanges = (previousEmployee, updatedEmployee) => {
+  const previous = previousEmployee || {};
+  const current = updatedEmployee?.toObject ? updatedEmployee.toObject() : updatedEmployee || {};
+  const previousChanged = {};
+  const currentChanged = {};
+  const updatedSections = [];
+  const updatedFields = new Set();
+
+  employeeAuditSections.forEach((section) => {
+    let sectionChanged = false;
+    section.fields.forEach((field) => {
+      const path = typeof field === "string" ? field : field.path;
+      const label = typeof field === "string" ? field : field.label || field.path;
+      const prevVal = getByPath(previous, path);
+      const currVal = getByPath(current, path);
+      if (!isEqual(prevVal, currVal)) {
+        sectionChanged = true;
+        updatedFields.add(label);
+        setByPath(previousChanged, path, prevVal);
+        setByPath(currentChanged, path, currVal);
+      }
+    });
+    if (sectionChanged) {
+      updatedSections.push(section.name);
+    }
+  });
+
+  return {
+    updatedSections,
+    updatedFields: Array.from(updatedFields),
+    previousChanged,
+    currentChanged,
+  };
+};
+
 
 const generateEmployeeUserId = async () => {
   try {
@@ -313,38 +434,29 @@ exports.updateEmployee = async (req, res) => {
       );
     }
 
+    const {
+      updatedSections,
+      updatedFields,
+      previousChanged,
+      currentChanged,
+    } = collectEmployeeChanges(previousEmployee, updated);
+
+    const sectionNote = updatedSections.length
+      ? ` Sections updated: ${updatedSections.join(", ")}.`
+      : "";
+
     await createAuditLog({
       req,
       action: "UPDATE",
       module: "Employee Management",
-      details: `Updated employee record for ${updated.firstName} ${updated.lastName} (${updated.employeeID})`,
+      details: `Updated employee record for ${updated.firstName} ${updated.lastName} (${updated.employeeID}).${sectionNote}`,
       target: getEmployeeAuditTarget(updated),
-      previous: pick(previousEmployee, [
-        "employeeID",
-        "employeeUserId",
-        "firstName",
-        "middleName",
-        "lastName",
-        "departmentName",
-        "designationName",
-        "employmentStatus",
-        "grossSalary",
-        "reportingManagerEmpID",
-        "departmentHeadEmpID",
-      ]),
-      current: pick(updated.toObject ? updated.toObject() : updated, [
-        "employeeID",
-        "employeeUserId",
-        "firstName",
-        "middleName",
-        "lastName",
-        "departmentName",
-        "designationName",
-        "employmentStatus",
-        "grossSalary",
-        "reportingManagerEmpID",
-        "departmentHeadEmpID",
-      ]),
+      previous: previousChanged,
+      current: currentChanged,
+      metadata: {
+        updatedSections,
+        updatedFields,
+      },
     });
 
     res.json(updated);

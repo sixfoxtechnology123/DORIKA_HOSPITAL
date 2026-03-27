@@ -2001,6 +2001,7 @@ const handleSubmit = async (e) => {
                       "BANK OF MAHARASHTRA",
                       "INDIAN OVERSEAS BANK",
                       "PUNJAB & SIND BANK",
+                      "FINO PAYMENTS BANK",
 
                       // --- PRIVATE SECTOR BANKS ---
                       "HDFC BANK",

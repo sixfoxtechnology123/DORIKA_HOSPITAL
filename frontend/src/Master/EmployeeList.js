@@ -74,11 +74,8 @@ const EmployeeList = () => {
 const handleSearchChange = (e) => {
   let value = e.target.value.toUpperCase().replace(/\s+/g, "");
 
-  if (/^\d+$/.test(value)) {
-    const defaultPrefix = (selectedStatus && selectedStatus !== "ALL" ? selectedStatus : "P").toUpperCase();
-    value = `${defaultPrefix}-${value}`;
-  }
-
+  // Only auto-insert hyphen for prefix+digits (ex: P00398 -> P-00398)
+  // Do NOT auto-add a prefix for numeric-only searches.
   value = value.replace(/^([A-Z]+)(\d+)$/, "$1-$2");
 
   setSearchTerm(value);
@@ -125,8 +122,18 @@ const handleSearchChange = (e) => {
     const fullName = `${e.firstName || ""} ${e.middleName || ""} ${e.lastName || ""}`.toUpperCase();
     const empId = (e.employeeID || "").toUpperCase();
     const employeeStatus = (e?.employmentStatus || "").toString().trim().toUpperCase();
+
+    const q = String(searchTerm || "").toUpperCase().trim();
+    const qDigits = q.replace(/\D/g, "");
+    const qHasLetters = /[A-Z]/.test(q);
+    const empDigits = empId.replace(/\D/g, "");
+
     const matchesSearch =
-      !searchTerm || fullName.startsWith(searchTerm) || empId.startsWith(searchTerm);
+      !q ||
+      fullName.startsWith(q) ||
+      empId.startsWith(q) ||
+      (!qHasLetters && qDigits && empDigits.includes(qDigits));
+
     const matchesStatus = !selectedStatus || selectedStatus === "ALL" || employeeStatus === selectedStatus;
 
     return matchesSearch && matchesStatus;

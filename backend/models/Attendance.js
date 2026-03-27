@@ -118,6 +118,7 @@ attendanceSchema.pre("save", function (next) {
     doc.totalPresent = presentCount;
     doc.totalOff = offCount;
     doc.totalLeave = leaveCount;
+    doc.totalPaidDays = doc.totalPresent + doc.totalOff + doc.totalLeave;
     // Store monthly total with 2 decimal precision for display
     doc.totalOTHours = parseFloat(monthlyOTSum.toFixed(2));
   }

@@ -73,6 +73,9 @@ const EmployeeCornerSidebar = () => {
 
   return (
     <>
+      {/* Desktop Spacer to keep layout when sidebar is fixed */}
+      <div className={`hidden md:block flex-shrink-0 ${isOpen ? "w-56" : "w-16"}`} />
+
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between bg-gray-800 text-white p-3">
         <h2 className="font-bold">Employee Corner</h2>
@@ -85,9 +88,9 @@ const EmployeeCornerSidebar = () => {
       <div
         className={`fixed inset-y-0 left-0 bg-gray-800 text-white transform transition-transform duration-300 ease-in-out z-50
         ${mobileOpen ? "translate-x-0" : "-translate-x-full"} 
-        md:static md:translate-x-0 md:flex md:flex-col
+        md:fixed md:top-0 md:left-0 md:translate-x-0 md:flex md:flex-col
         ${isOpen ? "md:w-56" : "md:w-16"} 
-        md:min-h-screen`}
+        md:h-screen`}
       >
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between mb-1 p-1">

@@ -6,12 +6,12 @@ const Employee = require("../models/Employee");
 const { createAuditLog } = require("../utils/auditLogger");
 
 //dorika location---
-const OFFICE_LAT = 26.652061;
-const OFFICE_LNG = 92.790961;
+// const OFFICE_LAT = 26.652061;
+// const OFFICE_LNG = 92.790961;
 
 // our ofice location--
-// const OFFICE_LAT = 22.965561;
-// const OFFICE_LNG = 88.457227;
+const OFFICE_LAT = 22.965561;
+const OFFICE_LNG = 88.457227;
 const ALLOWED_DISTANCE = 300;
 
 const normalizeShiftCode = (value) => String(value || "").trim().toUpperCase();
@@ -163,8 +163,14 @@ const getDistance = (lat1, lng1, lat2, lng2) => {
 
 
 const calculateTotalPaidDays = (records) => {
-  // 1. Count Present (Check for double-credit shift codes)
-  const presentCount = records.reduce((total, r) => {
+  const byDate = new Map();
+  (records || []).forEach((rec) => {
+    if (!rec?.date) return;
+    byDate.set(rec.date, rec);
+  });
+  const uniqueRecords = Array.from(byDate.values());
+
+  const presentCount = uniqueRecords.reduce((total, r) => {
     if (r.status === "Present") {
       const shift = normalizeShiftCode(r.shiftCode);
       const isLegacyDouble = /^[A-Z]{2}$/.test(shift) && !["OFF", "DD"].includes(shift);
@@ -174,13 +180,194 @@ const calculateTotalPaidDays = (records) => {
     return total;
   }, 0);
 
-  // 2. Count Off
-  const offCount = records.filter(r => r.status === "OFF" || r.status.includes("(OFF)")).length;
-
-  // 3. Count Leaves
-  const leaveCount = records.filter(r => r.status.includes("SL") || r.status.includes("CL")).length;
+  const offCount = uniqueRecords.filter(r => r.status === "OFF" || r.status.includes("(OFF)")).length;
+  const leaveCount = uniqueRecords.filter(r => r.status.includes("SL") || r.status.includes("CL")).length;
 
   return presentCount + offCount + leaveCount;
+};
+
+const deriveLeaveCode = (leaveType) => {
+  const type = String(leaveType || "").toUpperCase();
+  return type.includes("SICK") || type === "SL" ? "SL" : "CL";
+};
+
+const formatDateKey = (dateObj) => dateObj.toLocaleDateString("en-CA");
+
+const getMonthRange = (year, month) => {
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 0);
+  return { start, end };
+};
+
+const parseDateFlexible = (dateStr) => {
+  if (!dateStr || typeof dateStr !== "string") return null;
+  if (dateStr.includes("T")) {
+    const d = new Date(dateStr);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  // ISO YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const d = new Date(`${dateStr}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  // DD-MM-YYYY
+  if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+    const [dd, mm, yyyy] = dateStr.split("-").map(Number);
+    const d = new Date(yyyy, mm - 1, dd);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(dateStr);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+const doesLeaveOverlapRange = (leave, rangeStart, rangeEnd) => {
+  const from = parseDateFlexible(leave?.fromDate);
+  const to = parseDateFlexible(leave?.toDate || leave?.fromDate);
+  if (!from || !to) return false;
+  return from <= rangeEnd && to >= rangeStart;
+};
+
+const applyApprovedLeavesToAttendance = async (attendanceDoc, approvedLeaves = []) => {
+  if (!attendanceDoc || !Array.isArray(attendanceDoc.records)) return false;
+  if (!approvedLeaves.length) return false;
+
+  const recordIndexByDate = new Map(
+    attendanceDoc.records
+      .map((rec, idx) => [rec.date, idx])
+      .filter(([date]) => Boolean(date))
+  );
+
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const shiftMonthStr = `${monthNames[attendanceDoc.month - 1]}-${attendanceDoc.year}`;
+  const shiftMgmt = await ShiftManagement.findOne({
+    employeeUserId: attendanceDoc.employeeUserId,
+    month: shiftMonthStr,
+  }).lean();
+
+  let changed = false;
+
+  const approvedDateKeys = new Set();
+
+  for (const leave of approvedLeaves) {
+    const leaveCode = deriveLeaveCode(leave.leaveType);
+    const start = parseDateFlexible(leave.fromDate);
+    const end = parseDateFlexible(leave.toDate || leave.fromDate);
+    if (!start || !end) continue;
+
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      if (d.getMonth() + 1 !== attendanceDoc.month || d.getFullYear() !== attendanceDoc.year) continue;
+      const dateKey = formatDateKey(d);
+      approvedDateKeys.add(dateKey);
+      const idx = recordIndexByDate.get(dateKey);
+
+      const dayKey = d.getDate();
+      const rawShiftCode = shiftMgmt?.shifts?.[dayKey] || shiftMgmt?.shifts?.[dayKey.toString()] || "--";
+      const normalizedShift = normalizeShiftCode(rawShiftCode);
+      const isOffDay = normalizedShift === "OFF";
+      const finalStatus = isOffDay ? `${leaveCode}(OFF)` : leaveCode;
+
+      if (idx == null) {
+        let shiftStartTime = "--";
+        let shiftEndTime = "--";
+        let workDuration = "--";
+        if (!isOffDay && normalizedShift && normalizedShift !== "--") {
+          const timing = await getShiftTimingByCode(rawShiftCode);
+          if (timing.ok) {
+            shiftStartTime = timing.shiftStartTime;
+            shiftEndTime = timing.shiftEndTime;
+            workDuration = timing.workDurationText || "--";
+          }
+        }
+
+        attendanceDoc.records.push({
+          date: dateKey,
+          status: finalStatus,
+          checkInTime: "--",
+          checkOutTime: "--",
+          workDuration,
+          actualWorkDuration: "--",
+          shiftCode: rawShiftCode || "--",
+          shiftStartTime,
+          shiftEndTime,
+          isLate: false,
+          isOT: false,
+          otHours: 0,
+        });
+        recordIndexByDate.set(dateKey, attendanceDoc.records.length - 1);
+        changed = true;
+        continue;
+      }
+
+      const rec = attendanceDoc.records[idx];
+      const statusText = String(rec.status || "");
+      if (statusText === "Present") continue;
+
+      const shiftCode = normalizeShiftCode(rec.shiftCode);
+      const isOff = statusText === "OFF" || statusText.includes("(OFF)") || shiftCode === "OFF";
+      const updatedStatus = isOff ? `${leaveCode}(OFF)` : leaveCode;
+
+      if (rec.status !== updatedStatus) {
+        rec.status = updatedStatus;
+        rec.checkInTime = "--";
+        rec.checkOutTime = "--";
+        rec.actualWorkDuration = "--";
+        rec.isOT = false;
+        rec.otHours = 0;
+        changed = true;
+      }
+    }
+  }
+
+  // Revert SL/CL dates that are no longer approved
+  for (const rec of attendanceDoc.records) {
+    const statusText = String(rec.status || "");
+    if (!statusText.includes("SL") && !statusText.includes("CL")) continue;
+    if (!rec.date) continue;
+    if (approvedDateKeys.has(rec.date)) continue;
+
+    let finalStatus = "Absent";
+    let shiftCode = rec.shiftCode;
+    let shiftStartTime = rec.shiftStartTime;
+    let shiftEndTime = rec.shiftEndTime;
+    let workDuration = rec.workDuration;
+
+    if (shiftMgmt?.shifts && rec.date) {
+      const d = parseDateFlexible(rec.date);
+      if (d) {
+        const dayKey = d.getDate();
+        const rawShiftCode = shiftMgmt.shifts[dayKey] || shiftMgmt.shifts[dayKey.toString()];
+        if (rawShiftCode) shiftCode = rawShiftCode;
+        const normalizedShift = normalizeShiftCode(rawShiftCode);
+        if (normalizedShift === "OFF") {
+          finalStatus = "OFF";
+        } else if (normalizedShift && normalizedShift !== "--") {
+          const timing = await getShiftTimingByCode(rawShiftCode);
+          if (timing.ok) {
+            shiftStartTime = shiftStartTime || timing.shiftStartTime;
+            shiftEndTime = shiftEndTime || timing.shiftEndTime;
+            workDuration = workDuration || timing.workDurationText || "--";
+          }
+        }
+      }
+    }
+
+    rec.status = finalStatus;
+    rec.checkInTime = "--";
+    rec.checkOutTime = "--";
+    rec.actualWorkDuration = "--";
+    rec.isOT = false;
+    rec.otHours = 0;
+    rec.shiftCode = shiftCode || rec.shiftCode || "--";
+    rec.shiftStartTime = shiftStartTime || rec.shiftStartTime || "--";
+    rec.shiftEndTime = shiftEndTime || rec.shiftEndTime || "--";
+    rec.workDuration = workDuration || rec.workDuration || "--";
+    changed = true;
+  }
+
+  if (changed) {
+    attendanceDoc.totalPaidDays = calculateTotalPaidDays(attendanceDoc.records);
+  }
+  return changed;
 };
 
 const parseTimeToMinutes = (t) => {
@@ -694,8 +881,42 @@ const getMyAttendance = async (req, res) => {
     const now = new Date();
     const sanitized = [];
     for (const doc of history) {
-      if (autoCloseAttendanceRecords(doc, now)) {
-        await doc.save();
+      const { start, end } = getMonthRange(doc.year, doc.month);
+      const approvedLeavesRaw = await Leave.find({
+        employeeUserId,
+        $or: [
+          { approveRejectedStatus: "APPROVED" },
+          { status: "APPROVED" },
+          { reportingManagerApproval: "APPROVED", departmrntHeadApproval: "APPROVED" },
+        ],
+      }).lean();
+      const approvedLeaves = approvedLeavesRaw.filter((leave) =>
+        doesLeaveOverlapRange(leave, start, end)
+      );
+
+      try {
+        if (await applyApprovedLeavesToAttendance(doc, approvedLeaves)) {
+          await doc.save();
+        }
+      } catch (e) {
+        console.error("APPLY_LEAVE_SYNC_ERROR(getMyAttendance):", e);
+      }
+      try {
+        if (autoCloseAttendanceRecords(doc, now)) {
+          await doc.save();
+        }
+      } catch (e) {
+        console.error("AUTO_CLOSE_ERROR(getMyAttendance):", e);
+      }
+      try {
+        const recomputedPaidDays = calculateTotalPaidDays(doc.records || []);
+        if (doc.totalPaidDays !== recomputedPaidDays) {
+          doc.totalPaidDays = recomputedPaidDays;
+          doc.markModified("records");
+          await doc.save();
+        }
+      } catch (e) {
+        console.error("PAID_DAYS_RECALC_ERROR(getMyAttendance):", e);
       }
       const plain = doc.toObject();
       sanitized.push({
@@ -711,13 +932,59 @@ const getMyAttendance = async (req, res) => {
 
 const getAttendanceHistory = async (req, res) => {
   try {
-    const { month, year } = req.query;
-    const data = await Attendance.find({ month: Number(month), year: Number(year) });
+    const { month, year, summary, skipSync } = req.query;
+    const query = { month: Number(month), year: Number(year) };
+
+    // Fast path for summary-only requests (e.g., payslip generation)
+    if (summary === "1" || summary === "true") {
+      const data = await Attendance.find(query)
+        .select("employeeUserId totalPresent totalAbsent totalOff totalLeave totalOTHours totalPaidDays")
+        .lean();
+      return res.json(data || []);
+    }
+
+    const data = await Attendance.find(query);
     const now = new Date();
     const normalizedDocs = [];
     for (const doc of data) {
-      if (autoCloseAttendanceRecords(doc, now)) {
-        await doc.save();
+      if (!(skipSync === "1" || skipSync === "true")) {
+        const { start, end } = getMonthRange(doc.year, doc.month);
+        const approvedLeavesRaw = await Leave.find({
+          employeeUserId: doc.employeeUserId,
+          $or: [
+            { approveRejectedStatus: "APPROVED" },
+            { status: "APPROVED" },
+            { reportingManagerApproval: "APPROVED", departmrntHeadApproval: "APPROVED" },
+          ],
+        }).lean();
+        const approvedLeaves = approvedLeavesRaw.filter((leave) =>
+          doesLeaveOverlapRange(leave, start, end)
+        );
+
+        try {
+          if (await applyApprovedLeavesToAttendance(doc, approvedLeaves)) {
+            await doc.save();
+          }
+        } catch (e) {
+          console.error("APPLY_LEAVE_SYNC_ERROR(getAttendanceHistory):", e);
+        }
+        try {
+          if (autoCloseAttendanceRecords(doc, now)) {
+            await doc.save();
+          }
+        } catch (e) {
+          console.error("AUTO_CLOSE_ERROR(getAttendanceHistory):", e);
+        }
+        try {
+          const recomputedPaidDays = calculateTotalPaidDays(doc.records || []);
+          if (doc.totalPaidDays !== recomputedPaidDays) {
+            doc.totalPaidDays = recomputedPaidDays;
+            doc.markModified("records");
+            await doc.save();
+          }
+        } catch (e) {
+          console.error("PAID_DAYS_RECALC_ERROR(getAttendanceHistory):", e);
+        }
       }
       normalizedDocs.push(doc.toObject());
     }
