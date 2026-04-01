@@ -2,7 +2,7 @@ const Activity = require("../models/Activity");
 
 exports.getActivities = async (req, res) => {
   try {
-    const { employeeUserId, startDate, endDate } = req.query;
+    const { employeeUserId, startDate, endDate, page, limit } = req.query;
     let query = {};
 
     // 1. FIX DATE RANGE (Include the full end day)
@@ -21,8 +21,16 @@ exports.getActivities = async (req, res) => {
 
     if (employeeUserId) query["changedBy.loginUserId"] = employeeUserId;
 
-    const activities = await Activity.find(query)
-      .sort({ createdAt: -1 });
+    const shouldPaginate = Number.isFinite(Number(page)) && Number.isFinite(Number(limit));
+    const safePage = Math.max(1, parseInt(page, 10) || 1);
+    const safeLimit = Math.max(1, parseInt(limit, 10) || 20);
+    const total = shouldPaginate ? await Activity.countDocuments(query) : null;
+
+    let activityQuery = Activity.find(query).sort({ createdAt: -1 });
+    if (shouldPaginate) {
+      activityQuery = activityQuery.skip((safePage - 1) * safeLimit).limit(safeLimit);
+    }
+    const activities = await activityQuery;
 
     const normalized = activities.map((activity) => {
       const row = activity.toObject();
@@ -39,6 +47,10 @@ exports.getActivities = async (req, res) => {
       };
     });
 
+    if (shouldPaginate) {
+      res.json({ rows: normalized, total, page: safePage, limit: safeLimit });
+      return;
+    }
     res.json(normalized);
   } catch (err) {
     console.error("Activity Fetch Error:", err);

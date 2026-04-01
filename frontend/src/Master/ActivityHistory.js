@@ -133,6 +133,7 @@ const ActivityHistory = () => {
   };
 
   const [rows, setRows] = useState([]);
+  const [totalRows, setTotalRows] = useState(0);
   const [loading, setLoading] = useState(true);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -155,10 +156,19 @@ const ActivityHistory = () => {
     const fetchActivities = async () => {
       try {
         setLoading(true);
-        const res = await axios.get("/api/dashboard/activities", {
-          params: { startDate: fromDate, endDate: toDate },
-        });
-        setRows(Array.isArray(res.data) ? res.data : []);
+        const params = { startDate: fromDate, endDate: toDate };
+        if (perPage !== "all") {
+          params.page = currentPage;
+          params.limit = perPage;
+        }
+        const res = await axios.get("/api/dashboard/activities", { params });
+        if (Array.isArray(res.data)) {
+          setRows(res.data);
+          setTotalRows(res.data.length);
+        } else {
+          setRows(Array.isArray(res.data?.rows) ? res.data.rows : []);
+          setTotalRows(Number(res.data?.total) || 0);
+        }
       } catch (err) {
         toast.error("Failed to load history");
       } finally {
@@ -166,7 +176,7 @@ const ActivityHistory = () => {
       }
     };
     fetchActivities();
-  }, [fromDate, toDate]);
+  }, [fromDate, toDate, currentPage, perPage]);
 
   useEffect(() => {
     localStorage.setItem(PER_PAGE_STORAGE_KEY, String(perPage));
@@ -188,11 +198,7 @@ const ActivityHistory = () => {
     return data;
   }, [rows, searchTerm]);
 
-  const paginatedRows = useMemo(() => {
-    if (perPage === "all") return filteredRows;
-    const startIndex = (currentPage - 1) * perPage;
-    return filteredRows.slice(startIndex, startIndex + perPage);
-  }, [filteredRows, currentPage, perPage]);
+  const paginatedRows = useMemo(() => filteredRows, [filteredRows]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -476,7 +482,8 @@ const ActivityHistory = () => {
                 <div className="min-w-0 flex-1">
                   <h1 className="text-base sm:text-xl font-black text-slate-800 uppercase tracking-tighter truncate">Activity History</h1>
                   <p className="text-[10px] sm:text-xs font-bold text-sky-600 uppercase">
-                    Total Logs: {filteredRows.length} {selectedRowIds.length ? `| Selected: ${selectedRowIds.length}` : ""}
+                    Total Logs: {searchTerm ? filteredRows.length : totalRows}{" "}
+                    {selectedRowIds.length ? `| Selected: ${selectedRowIds.length}` : ""}
                   </p>
                 </div>
                 <div className="shrink-0 flex justify-end">
@@ -586,7 +593,12 @@ const ActivityHistory = () => {
 
           {perPage !== "all" && !loading && filteredRows.length > 0 && (
             <div className="pt-3">
-              <Pagination total={filteredRows.length} perPage={perPage} currentPage={currentPage} onPageChange={setCurrentPage} />
+              <Pagination
+                total={searchTerm ? filteredRows.length : totalRows}
+                perPage={perPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+              />
             </div>
           )}
         </div>

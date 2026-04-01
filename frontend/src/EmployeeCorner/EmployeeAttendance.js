@@ -385,7 +385,7 @@ const EmployeeAttendance = () => {
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                             statusText === 'Present' ? 'bg-green-100 text-green-700' :
                             statusText === 'Absent'  ? 'bg-red-100 text-red-700' :
-                            statusText === 'OFF'     ? 'bg-gray-100 text-gray-700' :
+                            statusText === 'OFF' || statusText === 'OFF(EXCH)' ? 'bg-gray-100 text-gray-700' :
                             statusText.includes('SL') ? 'bg-orange-100 text-orange-700' :
                             statusText.includes('CL') ? 'bg-blue-100 text-blue-700' :
                             'bg-yellow-100 text-yellow-700' // Default for Holidays or others

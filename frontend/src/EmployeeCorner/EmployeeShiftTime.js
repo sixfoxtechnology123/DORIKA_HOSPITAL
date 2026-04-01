@@ -108,7 +108,9 @@ const EmployeeShiftTime = () => {
             return {
               date: `${dayNum}-${month}-${year}`,
               shiftCode,
-              shiftName: info?.name || (shiftCode === "OFF" ? "OFF" : "-"),
+              shiftName:
+                info?.name ||
+                (shiftCode === "OFF" || shiftCode === "OFF(EXCH)" ? shiftCode : "-"),
               shiftTime: info?.time || "-",
             };
           });

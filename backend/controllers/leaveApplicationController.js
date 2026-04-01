@@ -9,6 +9,16 @@ import auditLogger from "../utils/auditLogger.js";
 const { createAuditLog, cleanObject } = auditLogger;
 
 const normalizeShiftCode = (value) => String(value || "").trim().toUpperCase();
+const isOffShiftCode = (value) => {
+  const code = normalizeShiftCode(value);
+  return code === "OFF" || code === "OFF(EXCH)";
+};
+const isOffStatus = (value) => {
+  const status = String(value || "").trim().toUpperCase();
+  return status === "OFF" || status === "OFF(EXCH)" || status.includes("(OFF)");
+};
+const getOffStatusFromShift = (value) =>
+  normalizeShiftCode(value) === "OFF(EXCH)" ? "OFF(EXCH)" : "OFF";
 
 const calculateTotalPaidDays = (records = []) => {
   const byDate = new Map();
@@ -21,14 +31,14 @@ const calculateTotalPaidDays = (records = []) => {
   const presentCount = uniqueRecords.reduce((total, r) => {
     if (r.status === "Present") {
       const shift = normalizeShiftCode(r.shiftCode);
-      const isLegacyDouble = /^[A-Z]{2}$/.test(shift) && !["OFF", "DD"].includes(shift);
+      const isLegacyDouble = /^[A-Z]{2}$/.test(shift) && !["OFF", "OFF(EXCH)", "DD"].includes(shift);
       const isDouble = shift.startsWith("DD:") || isLegacyDouble;
       return total + (isDouble ? 2 : 1);
     }
     return total;
   }, 0);
 
-  const offCount = uniqueRecords.filter((r) => r.status === "OFF" || String(r.status || "").includes("(OFF)")).length;
+  const offCount = uniqueRecords.filter((r) => isOffStatus(r.status)).length;
   const leaveCount = uniqueRecords.filter((r) => String(r.status || "").includes("SL") || String(r.status || "").includes("CL")).length;
 
   return presentCount + offCount + leaveCount;
@@ -103,8 +113,8 @@ const applyRejectedLeaveToAttendance = async (leave) => {
       const rawShift = shiftMgmt.shifts[dayKey] || shiftMgmt.shifts[dayKey.toString()];
       if (rawShift) shiftCode = rawShift;
       const normalized = normalizeShiftCode(shiftCode);
-      if (normalized === "OFF") {
-        finalStatus = "OFF";
+      if (isOffShiftCode(normalized)) {
+        finalStatus = getOffStatusFromShift(shiftCode);
       } else if (normalized && normalized !== "--") {
         let shift = shiftCache.get(normalized);
         if (shift === undefined) {
@@ -201,7 +211,7 @@ const applyApprovedLeaveToAttendance = async (leave) => {
       const rawShift = shiftMgmt.shifts[dayKey] || shiftMgmt.shifts[dayKey.toString()];
       if (rawShift) shiftCode = rawShift;
       const normalized = normalizeShiftCode(shiftCode);
-      if (normalized === "OFF") {
+      if (isOffShiftCode(normalized)) {
         leaveStatus = `${leaveCode}(OFF)`;
       } else if (normalized && normalized !== "--") {
         let shift = shiftCache.get(normalized);
@@ -237,7 +247,7 @@ const applyApprovedLeaveToAttendance = async (leave) => {
 
     attendanceDoc.records[recordIndex] = sanitizeRecordForLeave({
       ...record,
-      status: statusUpper.includes("OFF") ? `${leaveCode}(OFF)` : leaveStatus,
+      status: isOffStatus(statusUpper) ? `${leaveCode}(OFF)` : leaveStatus,
       shiftCode: record.shiftCode || shiftCode || "--",
       shiftStartTime: record.shiftStartTime || shiftStartTime,
       shiftEndTime: record.shiftEndTime || shiftEndTime,

@@ -41,7 +41,7 @@ const getStatusClass = (status, isLateEntry) => {
   const s = String(status || "").toUpperCase();
   if (s === "PRESENT") return "bg-green-100 text-green-700";
   if (s === "ABSENT") return "bg-red-100 text-red-700";
-  if (s === "OFF") return "bg-gray-100 text-gray-700";
+  if (s === "OFF" || s === "OFF(EXCH)") return "bg-gray-100 text-gray-700";
   if (s.startsWith("CL")) return "bg-blue-100 text-blue-700";
   if (s.startsWith("SL")) return "bg-purple-100 text-purple-700";
   return "bg-yellow-100 text-yellow-700";
@@ -228,7 +228,7 @@ const AttendanceRegisterHistory = () => {
         (selectedStatus === "PRESENT" &&
           (statusUpper === "PRESENT" || statusUpper === "P" || statusUpper === "P(L)")) ||
         (selectedStatus === "ABSENT" && (statusUpper === "ABSENT" || statusUpper === "A")) ||
-        (selectedStatus === "OFF" && statusUpper === "OFF") ||
+        (selectedStatus === "OFF" && (statusUpper === "OFF" || statusUpper === "OFF(EXCH)")) ||
         (selectedStatus === "CL" && statusUpper.startsWith("CL")) ||
         (selectedStatus === "SL" && statusUpper.startsWith("SL")) ||
         (selectedStatus === "LATEENTRY" && row.isLateEntry);

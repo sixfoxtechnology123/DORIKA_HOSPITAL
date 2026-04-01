@@ -15,6 +15,16 @@ const OFFICE_LNG = 92.790961;
 const ALLOWED_DISTANCE = 300;
 
 const normalizeShiftCode = (value) => String(value || "").trim().toUpperCase();
+const isOffShiftCode = (value) => {
+  const code = normalizeShiftCode(value);
+  return code === "OFF" || code === "OFF(EXCH)";
+};
+const isOffStatus = (value) => {
+  const status = String(value || "").trim().toUpperCase();
+  return status === "OFF" || status === "OFF(EXCH)" || status.includes("(OFF)");
+};
+const getOffStatusFromShift = (value) =>
+  normalizeShiftCode(value) === "OFF(EXCH)" ? "OFF(EXCH)" : "OFF";
 
 const parseDoubleDutyCodes = (value) => {
   const code = normalizeShiftCode(value);
@@ -33,7 +43,7 @@ const parseDoubleDutyCodes = (value) => {
 
 const getShiftTimingByCode = async (rawCode) => {
   const code = normalizeShiftCode(rawCode);
-  if (!code || code === "OFF") {
+  if (!code || isOffShiftCode(code)) {
     return { ok: false, code, reason: "EMPTY_OR_OFF" };
   }
 
@@ -173,14 +183,14 @@ const calculateTotalPaidDays = (records) => {
   const presentCount = uniqueRecords.reduce((total, r) => {
     if (r.status === "Present") {
       const shift = normalizeShiftCode(r.shiftCode);
-      const isLegacyDouble = /^[A-Z]{2}$/.test(shift) && !["OFF", "DD"].includes(shift);
+      const isLegacyDouble = /^[A-Z]{2}$/.test(shift) && !["OFF", "OFF(EXCH)", "DD"].includes(shift);
       const isDouble = shift.startsWith("DD:") || isLegacyDouble;
       return total + (isDouble ? 2 : 1);
     }
     return total;
   }, 0);
 
-  const offCount = uniqueRecords.filter(r => r.status === "OFF" || r.status.includes("(OFF)")).length;
+  const offCount = uniqueRecords.filter(r => isOffStatus(r.status)).length;
   const leaveCount = uniqueRecords.filter(r => r.status.includes("SL") || r.status.includes("CL")).length;
 
   return presentCount + offCount + leaveCount;
@@ -263,7 +273,7 @@ const applyApprovedLeavesToAttendance = async (attendanceDoc, approvedLeaves = [
       const dayKey = d.getDate();
       const rawShiftCode = shiftMgmt?.shifts?.[dayKey] || shiftMgmt?.shifts?.[dayKey.toString()] || "--";
       const normalizedShift = normalizeShiftCode(rawShiftCode);
-      const isOffDay = normalizedShift === "OFF";
+      const isOffDay = isOffShiftCode(normalizedShift);
       const finalStatus = isOffDay ? `${leaveCode}(OFF)` : leaveCode;
 
       if (idx == null) {
@@ -303,7 +313,7 @@ const applyApprovedLeavesToAttendance = async (attendanceDoc, approvedLeaves = [
       if (statusText === "Present") continue;
 
       const shiftCode = normalizeShiftCode(rec.shiftCode);
-      const isOff = statusText === "OFF" || statusText.includes("(OFF)") || shiftCode === "OFF";
+      const isOff = isOffStatus(statusText) || isOffShiftCode(shiftCode);
       const updatedStatus = isOff ? `${leaveCode}(OFF)` : leaveCode;
 
       if (rec.status !== updatedStatus) {
@@ -338,8 +348,8 @@ const applyApprovedLeavesToAttendance = async (attendanceDoc, approvedLeaves = [
         const rawShiftCode = shiftMgmt.shifts[dayKey] || shiftMgmt.shifts[dayKey.toString()];
         if (rawShiftCode) shiftCode = rawShiftCode;
         const normalizedShift = normalizeShiftCode(rawShiftCode);
-        if (normalizedShift === "OFF") {
-          finalStatus = "OFF";
+        if (isOffShiftCode(normalizedShift)) {
+          finalStatus = getOffStatusFromShift(rawShiftCode);
         } else if (normalizedShift && normalizedShift !== "--") {
           const timing = await getShiftTimingByCode(rawShiftCode);
           if (timing.ok) {
@@ -418,7 +428,7 @@ const isOpenPunchRecord = (rec) => {
 
 const isDoubleShiftCode = (value) => {
   const shift = normalizeShiftCode(value);
-  const isLegacyDouble = /^[A-Z]{2}$/.test(shift) && !["OFF", "DD"].includes(shift);
+  const isLegacyDouble = /^[A-Z]{2}$/.test(shift) && !["OFF", "OFF(EXCH)", "DD"].includes(shift);
   return shift.startsWith("DD:") || isLegacyDouble;
 };
 
@@ -429,7 +439,7 @@ const getWorkDurationText = (shiftCode, shiftStartTime, shiftEndTime, existingWo
 
 const sanitizeRecordForStatus = (record = {}) => {
   const status = String(record.status || "").trim().toUpperCase();
-  if (status === "OFF" || status === "ABSENT" || status.startsWith("SL") || status.startsWith("CL")) {
+  if (isOffStatus(status) || status === "ABSENT" || status.startsWith("SL") || status.startsWith("CL")) {
     return {
       ...record,
       checkInTime: "--",
@@ -740,7 +750,7 @@ const markDailyAttendance = async (req, res) => {
         const gapDateStr = gapDate.toLocaleDateString('en-CA');
         const gapDayNum = gapDate.getDate();
       const gapShiftCode = shiftMgmt.shifts[gapDayNum] || shiftMgmt.shifts[gapDayNum.toString()];
-        const isOffDay = normalizeShiftCode(gapShiftCode) === "OFF";
+        const isOffDay = isOffShiftCode(normalizeShiftCode(gapShiftCode));
 
         let gapStartTime = "--", gapEndTime = "--", gapWorkDuration = "--";
         if (gapShiftCode && !isOffDay) {
@@ -764,7 +774,7 @@ const markDailyAttendance = async (req, res) => {
           const leaveCode = approvedLeave.leaveType === "SICK" ? "SL" : "CL";
           finalStatus = isOffDay ? `${leaveCode}(OFF)` : leaveCode;
         } else if (isOffDay) {
-          finalStatus = "OFF";
+          finalStatus = getOffStatusFromShift(gapShiftCode);
         }
 
         attendance.records.push({
@@ -786,8 +796,8 @@ const markDailyAttendance = async (req, res) => {
     // --- 4. TODAY'S CHECK-IN LOGIC ---
     const assignedShiftCodeRaw = shiftMgmt.shifts[dayKey] || shiftMgmt.shifts[dayKey.toString()];
     const assignedShiftCode = normalizeShiftCode(assignedShiftCodeRaw);
-    if (!assignedShiftCode || assignedShiftCode === "OFF") {
-      return res.status(400).json({ message: assignedShiftCode === "OFF" ? "Today is your OFF day." : "No shift assigned for today." });
+    if (!assignedShiftCode || isOffShiftCode(assignedShiftCode)) {
+      return res.status(400).json({ message: isOffShiftCode(assignedShiftCode) ? "Today is your OFF day." : "No shift assigned for today." });
     }
 
     const assignedTiming = await getShiftTimingByCode(assignedShiftCode);
@@ -862,7 +872,7 @@ const updateAttendanceRecord = async (req, res) => {
     if (recordIndex === -1) return res.status(404).json({ message: "Attendance date not found" });
 
     const existingStatus = attendanceDoc.records[recordIndex].status;
-    if (["SL", "CL", "SL(OFF)", "CL(OFF)", "OFF"].includes(existingStatus)) {
+    if (["SL", "CL", "SL(OFF)", "CL(OFF)", "OFF", "OFF(EXCH)"].includes(existingStatus)) {
       return res.status(400).json({ message: "Leave / OFF records cannot be modified" });
     }
 
@@ -889,7 +899,7 @@ const updateAttendanceRecord = async (req, res) => {
     target.isLate = finalStatus === "Present" ? !!isLate : false;
 
     // Keep OFF/ABSENT records time-free to prevent invalid punch-out display.
-    if (finalStatus === "OFF" || finalStatus === "Absent") {
+    if (finalStatus === "OFF" || finalStatus === "OFF(EXCH)" || finalStatus === "Absent") {
       target.checkInTime = "--";
       target.checkOutTime = "--";
       target.actualWorkDuration = "--";

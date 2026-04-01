@@ -82,7 +82,7 @@ const AttendanceSignIn = () => {
           const assignedShiftCodeRaw = mySchedule.shifts[dayKey] || mySchedule.shifts[dayKey.toString()];
           const assignedShiftCode = normalizeCode(assignedShiftCodeRaw);
 
-          if (assignedShiftCode && assignedShiftCode !== "OFF") {
+          if (assignedShiftCode && assignedShiftCode !== "OFF" && assignedShiftCode !== "OFF(EXCH)") {
             const shiftMasterRes = await axios.get("/api/shifts");
             const allShifts = Array.isArray(shiftMasterRes.data) ? shiftMasterRes.data : [];
 
@@ -139,8 +139,8 @@ const AttendanceSignIn = () => {
                 }
               }
             }
-          } else if (assignedShiftCode === "OFF") {
-            setShiftTimes({ code: "OFF", start: "WEEK OFF", end: "WEEK OFF", isEndNextDay: false });
+          } else if (assignedShiftCode === "OFF" || assignedShiftCode === "OFF(EXCH)") {
+            setShiftTimes({ code: assignedShiftCode, start: "WEEK OFF", end: "WEEK OFF", isEndNextDay: false });
           }
         }
 

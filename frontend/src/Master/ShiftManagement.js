@@ -128,6 +128,7 @@ useEffect(() => {
     setShiftOptions([
     ...options,
     { code: "OFF", name: "OFF" },
+    { code: "OFF(EXCH)", name: "OFF(EXCH)" },
     { code: "DD", name: "Double Duty" }
   ]);
 
@@ -213,10 +214,13 @@ const employeePrefixOptions = useMemo(() => {
   return ["ALL", ...new Set(prefixes)];
 }, [employees]);
 
-const nonDDShiftOptions = useMemo(
+  const nonDDShiftOptions = useMemo(
   () =>
     shiftOptions.filter(
-      (o) => normalizeCode(o.code) !== "OFF" && normalizeCode(o.code) !== "DD"
+      (o) =>
+        normalizeCode(o.code) !== "OFF" &&
+        normalizeCode(o.code) !== "OFF(EXCH)" &&
+        normalizeCode(o.code) !== "DD"
     ),
   [shiftOptions]
 );
@@ -446,7 +450,7 @@ const EMP_COLORS = [
 const getRowColor = (index) => EMP_COLORS[index % EMP_COLORS.length];
 
 const getShiftColor = (shift, rowIndex) => {
-  if (shift === "OFF") return "bg-red-200 text-red-800"; 
+  if (shift === "OFF" || shift === "OFF(EXCH)") return "bg-red-200 text-red-800"; 
   return getRowColor(rowIndex);
 };
 

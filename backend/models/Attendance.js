@@ -92,9 +92,9 @@ attendanceSchema.pre("save", function (next) {
       if (!record.date || processedDates.has(record.date)) return;
       processedDates.add(record.date);
 
-    const status = record.status;
+    const status = String(record.status || "");
     const shift = normalizeShiftCode(record.shiftCode);
-    const isLegacyDouble = /^[A-Z]{2}$/.test(shift) && !["OFF", "DD"].includes(shift);
+    const isLegacyDouble = /^[A-Z]{2}$/.test(shift) && !["OFF", "OFF(EXCH)", "DD"].includes(shift);
     const isDoubleShift = shift.startsWith("DD:") || isLegacyDouble;
 
     if (status === "Present") {
@@ -107,7 +107,7 @@ attendanceSchema.pre("save", function (next) {
       }
     }else if (status === "Absent") {
         absentCount += 1;
-      } else if (status === "OFF") {
+      } else if (status === "OFF" || status === "OFF(EXCH)") {
         offCount += 1;
       } else if (["SL", "CL", "SL(OFF)", "CL(OFF)"].includes(status)) {
         leaveCount += 1;

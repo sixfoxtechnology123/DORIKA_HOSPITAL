@@ -49,6 +49,7 @@ const getAttendanceTextColor = (val) => {
     case "CL(OFF)":
       return "text-blue-600";
     case "OFF":
+    case "OFF(EXCH)":
       return "text-black";
     default:
       return "";
