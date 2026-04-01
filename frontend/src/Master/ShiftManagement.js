@@ -273,6 +273,16 @@ const nonDDShiftOptions = useMemo(
     const totalDays = new Date(year, month, 0).getDate();
     return Array.from({ length: totalDays }, (_, i) => i + 1);
   }, [selectedMonth]);
+  const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const monthMeta = useMemo(() => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    return { year, month };
+  }, [selectedMonth]);
+  const getDayLabel = (day) => {
+    if (!monthMeta.year || !monthMeta.month) return "";
+    const idx = new Date(monthMeta.year, monthMeta.month - 1, day).getDay();
+    return dayLabels[idx] || "";
+  };
 
   useEffect(() => {
     setCurrentPage(1);
@@ -676,7 +686,12 @@ const scrollTable = (direction) => {
               <th className="border px-2 py-1 border-dorika-blue">Designation</th>
               {daysInMonth.map((day) => (
                 <th key={day} className="border px-2 py-1 border-dorika-blue text-center">
-                  {day}
+                  <div className="flex flex-col items-center leading-tight">
+                    <span>{day}</span>
+                    <span className="text-[10px] font-semibold text-blue-100">
+                      {getDayLabel(day)}
+                    </span>
+                  </div>
                 </th>
               ))}
             </tr>

@@ -95,6 +95,16 @@ const EmployeeAttendanceHistory = () => {
     const totalDays = new Date(year, month, 0).getDate();
     return Array.from({ length: totalDays }, (_, i) => i + 1);
   }, [selectedMonth]);
+  const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const monthMeta = useMemo(() => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    return { year, month };
+  }, [selectedMonth]);
+  const getDayLabel = (day) => {
+    if (!monthMeta.year || !monthMeta.month) return "";
+    const idx = new Date(monthMeta.year, monthMeta.month - 1, day).getDay();
+    return dayLabels[idx] || "";
+  };
 
   /* ================= FETCH EMPLOYEES ================= */
   useEffect(() => {
@@ -433,7 +443,12 @@ const EmployeeAttendanceHistory = () => {
                       className="border border-dorika-blue text-center whitespace-nowrap"
                       style={{ width: "32px", minWidth: "32px", maxWidth: "32px" }}
                     >
-                      {d}
+                      <div className="flex flex-col items-center leading-tight">
+                        <span>{d}</span>
+                        <span className="text-[9px] font-semibold text-blue-100">
+                          {getDayLabel(d)}
+                        </span>
+                      </div>
                     </th>
                   ))}
                   <th className="border px-2 border-dorika-blue text-center bg-orange-500">TP</th>

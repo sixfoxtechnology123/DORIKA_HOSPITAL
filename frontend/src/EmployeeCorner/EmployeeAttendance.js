@@ -5,6 +5,7 @@ import EmployeeCornerSidebar from "./EmployeeCornerSidebar";
 
 const normalizeEmployeeId = (value) => String(value || "").trim().toUpperCase();
 const isExEmployeeId = (value) => normalizeEmployeeId(value).startsWith("EX-");
+const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 // Helper to format date for display
 const formatDateDisplay = (dateStr) => {
@@ -20,6 +21,15 @@ const formatDateDisplay = (dateStr) => {
   const [y, m, d] = dateStr.split("-");
   if (!y || !m || !d) return dateStr;
   return `${d}-${m}-${y}`; // Returns DD-MM-YYYY
+};
+const formatDayDisplay = (dateStr) => {
+  if (!dateStr) return "";
+  const dObj =
+    typeof dateStr === "string"
+      ? new Date(`${dateStr}T00:00:00`)
+      : new Date(dateStr);
+  if (Number.isNaN(dObj.getTime())) return "";
+  return dayLabels[dObj.getDay()] || "";
 };
 const formatOTDisplay = (otValue) => {
   const val = parseFloat(otValue);
@@ -338,7 +348,14 @@ const EmployeeAttendance = () => {
                         key={index} 
                         className={`border-b ${statusText.includes('Holiday') ? 'bg-yellow-50' : 'hover:bg-blue-50'}`}
                       >
-                        <td className="p-3 border font-medium">{formatDateDisplay(rec.date)}</td>
+                        <td className="p-3 border font-medium">
+                          <div className="flex flex-col items-center leading-tight">
+                            <span>{formatDateDisplay(rec.date)}</span>
+                            <span className="text-[10px] font-semibold text-gray-500">
+                              {formatDayDisplay(rec.date)}
+                            </span>
+                          </div>
+                        </td>
                         <td className="p-3 border font-bold text-indigo-600">{rec.shiftCode || "--"}</td>
                         <td className="p-3 border font-semibold text-green-700">{rec.checkInTime || "--"}</td>
                         <td className="p-3 border text-gray-500 font-semibold italic">{rec.shiftStartTime || "--"}</td>

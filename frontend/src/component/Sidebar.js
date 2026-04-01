@@ -48,7 +48,7 @@ const Sidebar = () => {
         },
         { name: "Manage Leave Type", path: "/LeaveTypeList" },
         { name: "Qualification", path: "/QualificationList" },
-        { name: "Departmrent Head", path: "/DepartmrentHead" },
+        { name: "Department Head", path: "/DepartmrentHead" },
         // {
         //  name:"OT Rate", path:"/OTRateList"
         // },  
@@ -97,7 +97,7 @@ const Sidebar = () => {
           ]
         },
         {
-            name: "Attendace",
+            name: "Attendance",
             icon: ClipboardList,
             permission:"Attendance_history_view",
             submenus: [

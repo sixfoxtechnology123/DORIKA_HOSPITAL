@@ -501,20 +501,45 @@ const markDailyAttendance = async (req, res) => {
     let safeEmployeeId = employeeId || tokenEmpId;
     let safeEmployeeName = (employeeName || "").trim() || safeEmployeeUserId;
 
+    const escapeRegex = (value = "") =>
+      String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const normalizeKey = (value = "") =>
+      String(value || "").replace(/[^a-z0-9]/gi, "").toUpperCase();
+    const normalizeEmployeeCode = (value = "") => {
+      const v = String(value || "").trim().toUpperCase();
+      if (!v) return "";
+      if (v.includes("-")) return v;
+      const match = v.match(/^([A-Z]+)(\d+)$/);
+      if (match) return `${match[1]}-${match[2]}`;
+      return v;
+    };
+
     if (!safeEmployeeUserId) {
       return res.status(400).json({ message: "Employee user ID is required" });
     }
 
     if (role === "employee") {
-      if (!tokenUserId || tokenUserId !== safeEmployeeUserId || (tokenEmpId && safeEmployeeId && tokenEmpId !== safeEmployeeId)) {
+      const tokenUserNorm = normalizeKey(tokenUserId);
+      const safeUserNorm = normalizeKey(safeEmployeeUserId);
+      const tokenEmpNorm = normalizeKey(tokenEmpId);
+      const safeEmpNorm = normalizeKey(safeEmployeeId);
+      if (
+        !tokenUserId ||
+        tokenUserNorm !== safeUserNorm ||
+        (tokenEmpId && safeEmployeeId && tokenEmpNorm !== safeEmpNorm)
+      ) {
         return res.status(403).json({ message: "Forbidden" });
       }
     }
 
+    const normalizedUserId = normalizeEmployeeCode(safeEmployeeUserId);
+    const normalizedEmpId = normalizeEmployeeCode(safeEmployeeId);
+
     const employeeDoc = await Employee.findOne({
       $or: [
-        { employeeUserId: safeEmployeeUserId },
-        ...(safeEmployeeId ? [{ employeeID: safeEmployeeId }] : []),
+        { employeeUserId: new RegExp(`^${escapeRegex(normalizedUserId || safeEmployeeUserId)}$`, "i") },
+        ...(safeEmployeeId ? [{ employeeID: new RegExp(`^${escapeRegex(safeEmployeeId)}$`, "i") }] : []),
+        ...(normalizedEmpId ? [{ employeeID: new RegExp(`^${escapeRegex(normalizedEmpId)}$`, "i") }] : []),
       ],
     })
       .select("employeeID employeeUserId firstName middleName lastName name")
@@ -547,7 +572,47 @@ const markDailyAttendance = async (req, res) => {
     const currentYear = now.getFullYear();
     const fy = currentMonth <= 3 ? `${currentYear - 1}-${currentYear}` : `${currentYear}-${currentYear + 1}`;
 
-    const shiftMgmt = await ShiftManagement.findOne({ employeeUserId: safeEmployeeUserId, month: shiftMonthStr }).lean();
+    const userIdRegex = normalizedUserId
+      ? new RegExp(`^${escapeRegex(String(normalizedUserId).trim())}$`, "i")
+      : safeEmployeeUserId
+      ? new RegExp(`^${escapeRegex(String(safeEmployeeUserId).trim())}$`, "i")
+      : null;
+    const employeeIdRegex = normalizedEmpId
+      ? new RegExp(`^${escapeRegex(String(normalizedEmpId).trim())}$`, "i")
+      : safeEmployeeId
+      ? new RegExp(`^${escapeRegex(String(safeEmployeeId).trim())}$`, "i")
+      : null;
+    let shiftMgmt = await ShiftManagement.findOne({
+      employeeUserId: userIdRegex,
+      month: shiftMonthStr,
+    }).lean();
+    if (!shiftMgmt && employeeIdRegex) {
+      shiftMgmt = await ShiftManagement.findOne({
+        employeeID: employeeIdRegex,
+        month: shiftMonthStr,
+      }).lean();
+    }
+    if (!shiftMgmt && (safeEmployeeUserId || safeEmployeeId)) {
+      const normalizedUserIdKey = normalizeKey(safeEmployeeUserId);
+      const normalizedEmployeeIdKey = normalizeKey(safeEmployeeId);
+      shiftMgmt = await ShiftManagement.findOne({
+        month: shiftMonthStr,
+        $or: [
+          {
+            employeeUserId: {
+              $regex: new RegExp(`^${escapeRegex(normalizedUserIdKey)}$`, "i"),
+            },
+          },
+          normalizedEmployeeIdKey
+            ? {
+                employeeID: {
+                  $regex: new RegExp(`^${escapeRegex(normalizedEmployeeIdKey)}$`, "i"),
+                },
+              }
+            : null,
+        ].filter(Boolean),
+      }).lean();
+    }
     if (!shiftMgmt) {
       return res.status(400).json({ message: "No shift schedule found for this month in Master." });
     }
@@ -873,17 +938,36 @@ const getMyAttendance = async (req, res) => {
   try {
     const { employeeUserId } = req.params;
     const role = String(req.user?.role || "").toLowerCase();
-    if (role === "employee" && req.user?.employeeUserId !== employeeUserId) {
-      return res.status(403).json({ message: "Forbidden" });
+    const escapeRegex = (value = "") =>
+      String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const normalizeKey = (value = "") =>
+      String(value || "").replace(/[^a-z0-9]/gi, "").toUpperCase();
+    const normalizeEmployeeCode = (value = "") => {
+      const v = String(value || "").trim().toUpperCase();
+      if (!v) return "";
+      if (v.includes("-")) return v;
+      const match = v.match(/^([A-Z]+)(\d+)$/);
+      if (match) return `${match[1]}-${match[2]}`;
+      return v;
+    };
+
+    if (role === "employee") {
+      const tokenNorm = normalizeKey(req.user?.employeeUserId);
+      const paramNorm = normalizeKey(employeeUserId);
+      if (!tokenNorm || tokenNorm !== paramNorm) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
     }
 
-    const history = await Attendance.find({ employeeUserId }).sort({ year: -1, month: -1 });
+    const normalizedUserId = normalizeEmployeeCode(employeeUserId);
+    const userRegex = new RegExp(`^${escapeRegex(normalizedUserId || employeeUserId)}$`, "i");
+    const history = await Attendance.find({ employeeUserId: userRegex }).sort({ year: -1, month: -1 });
     const now = new Date();
     const sanitized = [];
     for (const doc of history) {
       const { start, end } = getMonthRange(doc.year, doc.month);
       const approvedLeavesRaw = await Leave.find({
-        employeeUserId,
+        employeeUserId: userRegex,
         $or: [
           { approveRejectedStatus: "APPROVED" },
           { status: "APPROVED" },

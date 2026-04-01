@@ -45,6 +45,24 @@ const AddressSchema = new mongoose.Schema({
   email: { type: String, default: "" },
 });
 
+const EmergencyContactSchema = new mongoose.Schema({
+  name: { type: String, default: "" },
+  relation: { type: String, default: "" },
+  mobile: { type: String, default: "" },
+  address: { type: String, default: "" },
+});
+
+const ExperienceSchema = new mongoose.Schema({
+  organizationName: { type: String, default: "" },
+  organizationType: { type: String, default: "" },
+  designation: { type: String, default: "" },
+  employmentType: { type: String, default: "" },
+  location: { type: String, default: "" },
+  startMonth: { type: String, default: "" },
+  endMonth: { type: String, default: "" },
+  totalDuration: { type: String, default: "" },
+});
+
 const EarningSchema = new mongoose.Schema({
   headName: { type: String, default: "" },
   headType: { type: String, default: "" },
@@ -111,6 +129,8 @@ statusHistory: [
     religion: { type: String, default: "" },
     gender: { type: String, default: "" },
     maritalStatus: { type: String, default: "No" },
+    personalEmail: { type: String, default: "" },
+    personalMobile: { type: String, default: "" },
 
     departmentName: { type: String, default: "" }, 
     designationName: { type: String, default: "" },
@@ -140,8 +160,10 @@ statusHistory: [
 
 
     educationDetails: { type: [EducationSchema], default: [] },
+    experienceDetails: { type: [ExperienceSchema], default: [] },
     nominees: { type: [NomineeSchema], default: [] },
     medical: { type: MedicalSchema, default: {} },
+    emergencyContact: { type: [EmergencyContactSchema], default: [] },
 
     permanentAddress: { type: AddressSchema, default: {} },
     presentAddress: { type: AddressSchema, default: {} },

@@ -96,31 +96,30 @@ exports.saveShift = async (req, res) => {
     );
 
     const shiftDiff = diffKeyedObject(previousDoc?.shifts, data.shifts);
-    await createAuditLog({
-      req,
-      action: previousDoc ? "UPDATE" : "CREATE",
-      module: "Shift Management",
-      details: `${previousDoc ? "Updated" : "Created"} shift roster for ${data.employeeName || data.employeeID} (${month}).`,
-      target: {
-        employeeUserId: data.employeeUserId || "",
-        employeeID: data.employeeID || "",
-        name: data.employeeName || "",
-        department: data.department || "",
-        designation: data.designation || "",
-      },
-      previous: previousDoc
-        ? cleanObject({
-            designation:
-              previousDoc.designation !== data.designation ? previousDoc.designation : undefined,
-            shifts: Object.keys(shiftDiff.previousChanges).length > 0 ? shiftDiff.previousChanges : undefined,
-          })
-        : null,
-      current: cleanObject({
-        designation:
-          previousDoc?.designation !== data.designation || !previousDoc ? data.designation : undefined,
-        shifts: Object.keys(shiftDiff.currentChanges).length > 0 ? shiftDiff.currentChanges : undefined,
-      }),
-    });
+    const hasShiftChanges = Object.keys(shiftDiff.currentChanges).length > 0;
+    if (!previousDoc || hasShiftChanges) {
+      await createAuditLog({
+        req,
+        action: previousDoc ? "UPDATE" : "CREATE",
+        module: "Shift Management",
+        details: `${previousDoc ? "Updated" : "Created"} shift roster for ${data.employeeName || data.employeeID} (${month}).`,
+        target: {
+          employeeUserId: data.employeeUserId || "",
+          employeeID: data.employeeID || "",
+          name: data.employeeName || "",
+          department: data.department || "",
+          designation: data.designation || "",
+        },
+        previous: previousDoc
+          ? cleanObject({
+              shifts: Object.keys(shiftDiff.previousChanges).length > 0 ? shiftDiff.previousChanges : undefined,
+            })
+          : null,
+        current: cleanObject({
+          shifts: Object.keys(shiftDiff.currentChanges).length > 0 ? shiftDiff.currentChanges : undefined,
+        }),
+      });
+    }
 
     res.status(200).json(data);
   } catch (error) {
@@ -213,10 +212,7 @@ exports.saveBulkShifts = async (req, res) => {
         const afterShifts = item.shifts || {};
         const shiftDiff = diffKeyedObject(beforeShifts, afterShifts);
         const fieldChanged =
-          !previous ||
-          previous.designation !== item.designation ||
-          previous.department !== item.department ||
-          Object.keys(shiftDiff.currentChanges).length > 0;
+          !previous || Object.keys(shiftDiff.currentChanges).length > 0;
 
         if (!fieldChanged) return null;
         return {
@@ -228,14 +224,10 @@ exports.saveBulkShifts = async (req, res) => {
           shiftDiff,
           previous: previous
             ? {
-                designation: previous.designation !== item.designation ? previous.designation : undefined,
-                department: previous.department !== item.department ? previous.department : undefined,
                 shifts: Object.keys(shiftDiff.previousChanges).length > 0 ? shiftDiff.previousChanges : undefined,
               }
             : null,
           current: {
-            designation: previous?.designation !== item.designation || !previous ? item.designation : undefined,
-            department: previous?.department !== item.department || !previous ? item.department : undefined,
             shifts: Object.keys(shiftDiff.currentChanges).length > 0 ? shiftDiff.currentChanges : undefined,
           },
         };

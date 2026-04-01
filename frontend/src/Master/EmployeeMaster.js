@@ -181,6 +181,8 @@ useEffect(() => {
   const [gender, setGender] = useState("");
   const [maritalStatus, setMaritalStatus] = useState("");
   const [designationName, setDesignationName] = useState(null);
+  const [personalEmail, setPersonalEmail] = useState("");
+  const [personalMobile, setPersonalMobile] = useState("");
 
   const [dob, setDob] = useState("");
   const [dor, setDor] = useState("");
@@ -207,6 +209,17 @@ useEffect(() => {
     percentage: "",
     grade: "",
   });
+  const createExperienceRow = () => ({
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    organizationName: "",
+    organizationType: "",
+    designation: "",
+    employmentType: "",
+    location: "",
+    startMonth: "",
+    endMonth: "",
+    totalDuration: "",
+  });
   const createNomineeRow = () => ({
     name: "",
     relation: "",
@@ -217,8 +230,16 @@ useEffect(() => {
   });
 
   const [educationDetails, setEducationDetails] = useState([createEducationRow()]);
+  const [experienceDetails, setExperienceDetails] = useState([createExperienceRow()]);
     // Step 3 States
 const [nomineeDetails, setNomineeDetails] = useState([createNomineeRow()]);
+const createEmergencyContactRow = () => ({
+  name: "",
+  relation: "",
+  mobile: "",
+  address: "",
+});
+const [emergencyContact, setEmergencyContact] = useState([createEmergencyContactRow()]);
 const [bloodGroup, setBloodGroup] = useState("");
 const [eyeSightLeft, setEyeSightLeft] = useState("");
 const [eyeSightRight, setEyeSightRight] = useState("");
@@ -396,6 +417,18 @@ useEffect(() => {
     setReligion(loadedEmployee.religion || "");
     setMaritalStatus(loadedEmployee.maritalStatus || "");
     setGender(loadedEmployee.gender || "");
+    setPersonalEmail(
+      loadedEmployee.personalEmail ||
+        loadedEmployee.presentAddress?.email ||
+        loadedEmployee.permanentAddress?.email ||
+        ""
+    );
+    setPersonalMobile(
+      loadedEmployee.personalMobile ||
+        loadedEmployee.presentAddress?.mobile ||
+        loadedEmployee.permanentAddress?.mobile ||
+        ""
+    );
 
     // 2. Department & Designation Prefill (Matching by Name)
     if (departments.length > 0) {
@@ -455,6 +488,20 @@ useEffect(() => {
       ? loadedEmployee.educationDetails
       : [];
     setEducationDetails(loadedEducation.length > 0 ? loadedEducation : [createEducationRow()]);
+    const loadedExperience = Array.isArray(loadedEmployee.experienceDetails)
+      ? loadedEmployee.experienceDetails
+      : [];
+    setExperienceDetails(
+      loadedExperience.length > 0
+        ? loadedExperience.map((row) => ({
+            ...row,
+            id: row.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            totalDuration:
+              row.totalDuration ||
+              calculateDurationLabel(row.startMonth, row.endMonth),
+          }))
+        : [createExperienceRow()]
+    );
 
     const loadedNominees = Array.isArray(loadedEmployee.nominees)
       ? loadedEmployee.nominees
@@ -483,6 +530,14 @@ useEffect(() => {
     setIdentificationMark1(loadedEmployee.medical?.identification1 || "");
     setIdentificationMark2(loadedEmployee.medical?.identification2 || "");
     setPhysicallyChallenged(loadedEmployee.medical?.physicallyChallenged || "");
+    const loadedEmergency = Array.isArray(loadedEmployee.emergencyContact)
+      ? loadedEmployee.emergencyContact
+      : loadedEmployee.emergencyContact
+      ? [loadedEmployee.emergencyContact]
+      : [];
+    setEmergencyContact(
+      loadedEmergency.length > 0 ? loadedEmergency : [createEmergencyContactRow()]
+    );
 
     // 7. Address
     setPermanentAddress(loadedEmployee.permanentAddress || {});
@@ -694,6 +749,61 @@ useEffect(() => {
     updated[index][field] = value;
     setEducationDetails(updated);
   };
+  const calculateDurationLabel = (startMonth, endMonth) => {
+    if (!startMonth || !endMonth) return "";
+    const [sy, sm] = startMonth.split("-").map(Number);
+    const [ey, em] = endMonth.split("-").map(Number);
+    if (!sy || !sm || !ey || !em) return "";
+    const diffMonths = (ey - sy) * 12 + (em - sm);
+    if (diffMonths < 0) return "";
+    const totalMonths = diffMonths + 1;
+    const years = Math.floor(totalMonths / 12);
+    const months = totalMonths % 12;
+    const yearLabel = years > 0 ? `${years} year${years > 1 ? "s" : ""}` : "";
+    const monthLabel = `${months} month${months !== 1 ? "s" : ""}`;
+    return `${yearLabel}${yearLabel ? " " : ""}${monthLabel}`.trim();
+  };
+  const getMonthIndex = (monthStr) => {
+    if (!monthStr) return null;
+    const [y, m] = monthStr.split("-").map(Number);
+    if (!y || !m) return null;
+    return y * 12 + (m - 1);
+  };
+  const getExperienceTotalMonths = (startMonth, endMonth) => {
+    const startIdx = getMonthIndex(startMonth);
+    const endIdx = getMonthIndex(endMonth);
+    if (startIdx == null || endIdx == null) return 0;
+    const diff = endIdx - startIdx;
+    if (diff < 0) return 0;
+    return diff + 1;
+  };
+  const formatTotalMonths = (totalMonths) => {
+    if (!totalMonths || totalMonths <= 0) return "";
+    const years = Math.floor(totalMonths / 12);
+    const months = totalMonths % 12;
+    const yearLabel = years > 0 ? `${years} year${years > 1 ? "s" : ""}` : "";
+    const monthLabel = `${months} month${months !== 1 ? "s" : ""}`;
+    return `${yearLabel}${yearLabel ? " " : ""}${monthLabel}`.trim();
+  };
+  const handleExperienceChange = (id, field, value) => {
+    setExperienceDetails((prev) => {
+      const updated = prev.map((row) =>
+        row.id === id ? { ...row, [field]: value } : row
+      );
+      return updated.map((row) =>
+        row.id === id
+          ? {
+              ...row,
+              totalDuration: calculateDurationLabel(row.startMonth, row.endMonth),
+            }
+          : row
+      );
+    });
+  };
+  const addExperienceRow = () =>
+    setExperienceDetails((prev) => [createExperienceRow(), ...prev]);
+  const removeExperienceRow = (id) =>
+    setExperienceDetails((prev) => prev.filter((row) => row.id !== id));
 const getValue = (obj) => {
   if (!obj) return "";
   if (typeof obj === "object") return obj.value || obj._id || "";
@@ -724,6 +834,8 @@ const payload = {
   religion,
   gender,
   maritalStatus,
+  personalEmail: String(personalEmail || "").toLowerCase(),
+  personalMobile,
   departmentID: departmentID,
   designationID: designationID,
   dob: formatDateForStorage(dob),
@@ -742,6 +854,29 @@ const payload = {
   departmentHeadEmpID: departmentHeadEmpID,
   departmentHeadEmployeeUserId: departmentHeadEmployeeUserId,
   educationDetails,
+  experienceDetails: experienceDetails
+    .map((row) => ({
+      ...row,
+      totalDuration: calculateDurationLabel(row.startMonth, row.endMonth),
+    }))
+    .filter((row) => {
+      const { organizationName, organizationType, designation, employmentType, location, startMonth, endMonth } = row;
+      return (
+        organizationName ||
+        organizationType ||
+        designation ||
+        employmentType ||
+        location ||
+        startMonth ||
+        endMonth
+      );
+    })
+    .sort((a, b) => {
+      const aIdx = getMonthIndex(a.endMonth) ?? getMonthIndex(a.startMonth) ?? -1;
+      const bIdx = getMonthIndex(b.endMonth) ?? getMonthIndex(b.startMonth) ?? -1;
+      return bIdx - aIdx;
+    })
+    .map(({ id, ...rest }) => rest),
   nominees: nomineeDetails.map(n => ({
   name: n.name,
   relationship: n.relation, // map frontend 'relation' to backend 'relationship'
@@ -749,6 +884,10 @@ const payload = {
   share: n.share,
   address: n.address
 })),
+  emergencyContact: emergencyContact.filter((c) => {
+    const { name, relation, mobile, address } = c;
+    return name || relation || mobile || address;
+  }),
 
   medical: {
     bloodGroup,
@@ -762,8 +901,8 @@ const payload = {
     identification2: identificationMark2,
     physicallyChallenged,
   },
-  permanentAddress,
-  presentAddress,
+  permanentAddress: { ...permanentAddress, mobile: "", email: "" },
+  presentAddress: { ...presentAddress, mobile: "", email: "" },
   payDetails: {
     basicPay,
     pfType,
@@ -860,33 +999,34 @@ const handleSubmit = async (e) => {
 
 
   return (
-    <div className="min-h-screen bg-zinc-300 flex flex-col md:flex-row">
+    <div className="h-screen bg-zinc-300 flex flex-col md:flex-row overflow-hidden">
         <Sidebar />
 
-        <div className="flex-1 p-3 overflow-y-auto">
-          <div className="bg-white min-h-screen shadow-lg rounded-lg p-4 w-full">
+        <div className="flex-1 p-3 overflow-hidden flex flex-col min-h-0">
+          <div className="bg-white shadow-lg rounded-lg p-4 w-full flex flex-col min-h-0">
           {/* ===================== STEP 1 ===================== */}
 
 
           <MobileHeaderToggle>
-         <div className="flex items-center font-semibold gap-2 border-b border-gray-300 mb-4 pb-2 overflow-x-auto whitespace-nowrap scrollbar-hide px-1">
-          {["Personal & Service details", "Education", "Nominees/Medical/Address", "Pay Details", "Pay Structure","Doccument"].map((s, i) => (
+         <div className="bg-white flex items-center font-semibold gap-1 border-b border-gray-300 mb-3 pb-2 overflow-x-auto whitespace-nowrap scrollbar-hide px-1 text-xs sm:text-sm text-dorika-blue">
+          {["Personal & Service details", "Work Experience", "Education", "Nominees/Medical/Address", "Pay Details", "Pay Structure","Doccument"].map((s, i) => (
             <React.Fragment key={i}>
               <div
-                className={`cursor-pointer px-3 py-0 rounded ${
-                  step === i + 1 ? "bg-blue-600 font-semibold text-white" : "text-black hover:text-blue-600"
+                className={`cursor-pointer px-2 py-0.5 rounded ${
+                  step === i + 1 ? "bg-dorika-blue font-semibold text-white" : "text-dorika-blue hover:text-blue-600"
                 }`}
                 onClick={() => setStep(i + 1)}
               >
                 {s}
               </div>
-              {i < 5 && (
+              {i < 6 && (
                 <span className="text-gray-400 select-none">→</span>
               )}
             </React.Fragment>
           ))}
         </div>
           </MobileHeaderToggle>
+          <div className="flex-1 overflow-y-auto min-h-0">
           {step === 1 && (
             <>
               <h2 className="text-2xl font-semibold mb-4 text-center text-black">
@@ -981,6 +1121,17 @@ const handleSubmit = async (e) => {
                   label="Spouse Name"
                   value={spouseName}
                   onChange={(val) => setSpouseName(val.toUpperCase())}
+                />
+                <Input
+                  label="Email"
+                  type="email"
+                  value={personalEmail}
+                  onChange={(val) => setPersonalEmail(String(val || "").toLowerCase())}
+                />
+                <Input
+                  label="Mobile No."
+                  value={personalMobile}
+                  onChange={(val) => setPersonalMobile(val)}
                 />
                 <Select
                   label="Caste"
@@ -1181,6 +1332,193 @@ const handleSubmit = async (e) => {
           {/* ===================== STEP 2 ===================== */}
           {step === 2 && (
             <>
+              <div className="flex items-center justify-between flex-wrap gap-2 col-span-full">
+                <h2 className="text-xl font-semibold text-sky-600">
+                  Work Experience
+                </h2>
+                <div className="text-sm font-semibold text-dorika-orange">
+                  Total Experience:{" "}
+                  {formatTotalMonths(
+                    experienceDetails.reduce(
+                      (sum, row) =>
+                        sum + getExperienceTotalMonths(row.startMonth, row.endMonth),
+                      0
+                    )
+                  ) || "--"}
+                </div>
+              </div>
+
+              <div className="overflow-x-auto mb-4">
+                <table className="min-w-[900px] w-full border border-gray-300 text-xs sm:text-sm">
+                  <thead className="bg-sky-100">
+                    <tr>
+                      <th className="border p-2">S.No.</th>
+                      <th className="border p-2">Organization Name</th>
+                      <th className="border p-2">Organization Type</th>
+                      <th className="border p-2">Designation</th>
+                      <th className="border p-2">Employment Type</th>
+                      <th className="border p-2">Location</th>
+                      <th className="border p-2">Start Month</th>
+                      <th className="border p-2">End Month</th>
+                      <th className="border p-2">Total Duration</th>
+                      <th className="border p-2">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...experienceDetails]
+                      .sort((a, b) => {
+                        const aIdx = getMonthIndex(a.endMonth) ?? getMonthIndex(a.startMonth) ?? -1;
+                        const bIdx = getMonthIndex(b.endMonth) ?? getMonthIndex(b.startMonth) ?? -1;
+                        return bIdx - aIdx;
+                      })
+                      .map((row, index) => (
+                      <tr key={row.id}>
+                        <td className="border p-2 text-center">{index + 1}</td>
+                        <td className="border p-2">
+                          <input
+                            type="text"
+                            value={row.organizationName}
+                            onChange={(e) =>
+                              handleExperienceChange(
+                                row.id,
+                                "organizationName",
+                                e.target.value.toUpperCase()
+                              )
+                            }
+                            className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500"
+                          />
+                        </td>
+                        <td className="border p-2">
+                          <select
+                            value={row.organizationType}
+                            onChange={(e) =>
+                              handleExperienceChange(row.id, "organizationType", e.target.value)
+                            }
+                            className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500"
+                          >
+                            <option value="">Select</option>
+                            <option value="Hospital">Hospital</option>
+                            <option value="Clinic">Clinic</option>
+                            <option value="Lab">Lab</option>
+                            <option value="Pharmacy">Pharmacy</option>
+                            <option value="Other Business">Other Business</option>
+                          </select>
+                        </td>
+                        <td className="border p-2">
+                          <input
+                            type="text"
+                            value={row.designation}
+                            onChange={(e) =>
+                              handleExperienceChange(
+                                row.id,
+                                "designation",
+                                e.target.value.toUpperCase()
+                              )
+                            }
+                            className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500"
+                          />
+                        </td>
+                        <td className="border p-2">
+                          <select
+                            value={row.employmentType}
+                            onChange={(e) =>
+                              handleExperienceChange(row.id, "employmentType", e.target.value)
+                            }
+                            className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500"
+                          >
+                            <option value="">Select</option>
+                            <option value="Full-time">Full-time</option>
+                            <option value="Part-time">Part-time</option>
+                            <option value="Contract">Contract</option>
+                            <option value="Internship">Internship</option>
+                          </select>
+                        </td>
+                        <td className="border p-2">
+                          <input
+                            type="text"
+                            value={row.location}
+                            onChange={(e) =>
+                              handleExperienceChange(
+                                row.id,
+                                "location",
+                                e.target.value.toUpperCase()
+                              )
+                            }
+                            className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500"
+                          />
+                        </td>
+                        <td className="border p-2">
+                          <input
+                            type="month"
+                            value={row.startMonth}
+                            onChange={(e) =>
+                              handleExperienceChange(row.id, "startMonth", e.target.value)
+                            }
+                            className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500"
+                          />
+                        </td>
+                        <td className="border p-2">
+                          <input
+                            type="month"
+                            value={row.endMonth}
+                            onChange={(e) =>
+                              handleExperienceChange(row.id, "endMonth", e.target.value)
+                            }
+                            className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500"
+                          />
+                        </td>
+                        <td className="border p-2 text-center font-semibold">
+                          {row.totalDuration || "--"}
+                        </td>
+                        <td className="border p-2">
+                          <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={addExperienceRow}
+                            className="bg-green-500 hover:bg-green-600 text-white px-2 rounded mr-1"
+                          >
+                            +
+                          </button>
+                            {experienceDetails.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeExperienceRow(row.id)}
+                                className="bg-red-500 hover:bg-red-600 text-white px-2 rounded"
+                              >
+                                -
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="col-span-full flex flex-row justify-between items-center mt-8 border-t pt-4">
+        <button
+          onClick={() => setStep(1)}
+          className="bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-800"
+        >
+          ← Back
+        </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveAndNext}
+                  className="flex items-center gap-1 px-3 py-1 rounded text-white bg-sky-600 hover:bg-sky-700"
+                >
+                  <span>Save & Next</span>
+                  
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ===================== STEP 3 ===================== */}
+          {step === 3 && (
+            <>
               <h2 className="text-xl font-semibold text-sky-600 col-span-full">
                 Educational Details
               </h2>
@@ -1350,7 +1688,7 @@ const handleSubmit = async (e) => {
       <div className="col-span-full flex flex-row justify-between items-center mt-8 border-t pt-4">
 
         <button
-          onClick={() => setStep(1)}
+          onClick={() => setStep(2)}
           className="bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-800"
         >
           ← Back
@@ -1370,8 +1708,8 @@ const handleSubmit = async (e) => {
             </>
           )}
 
-       {/* ===================== STEP 3 ===================== */}
-            {step === 3 && (
+       {/* ===================== STEP 4 ===================== */}
+            {step === 4 && (
               <>
                 {/* <h2 className="text-2xl font-bold mb-4 text-center text-black">
                   Nominee, Medical & Address Details
@@ -1622,6 +1960,118 @@ const handleSubmit = async (e) => {
                   </div>
 
 
+                {/* ---------- EMERGENCY CONTACT ---------- */}
+                <h3 className="text-xl font-semibold text-sky-600 col-span-full">
+                  Emergency Contact
+                </h3>
+
+                <div className="overflow-x-auto mb-4 col-span-full">
+                  <table className="min-w-[700px] w-full border border-gray-300 text-xs sm:text-sm">
+                    <thead className="bg-sky-100">
+                      <tr>
+                        <th className="border p-2">S.No.</th>
+                        <th className="border p-2">Contact Name</th>
+                        <th className="border p-2">Relation</th>
+                        <th className="border p-2">Emergency Contact No.</th>
+                        <th className="border p-2">Address</th>
+                        <th className="border p-2">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {emergencyContact.map((row, index) => (
+                        <tr key={index}>
+                          <td className="border p-2 text-center">{index + 1}</td>
+                          <td className="border p-2">
+                            <input
+                              type="text"
+                              value={row.name}
+                              onChange={(e) =>
+                                setEmergencyContact((prev) => {
+                                  const updated = [...prev];
+                                  updated[index].name = e.target.value.toUpperCase();
+                                  return updated;
+                                })
+                              }
+                              className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
+                            />
+                          </td>
+                          <td className="border p-2">
+                            <input
+                              type="text"
+                              value={row.relation}
+                              onChange={(e) =>
+                                setEmergencyContact((prev) => {
+                                  const updated = [...prev];
+                                  updated[index].relation = e.target.value.toUpperCase();
+                                  return updated;
+                                })
+                              }
+                              className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
+                            />
+                          </td>
+                          <td className="border p-2">
+                            <input
+                              type="text"
+                              value={row.mobile}
+                              onChange={(e) =>
+                                setEmergencyContact((prev) => {
+                                  const updated = [...prev];
+                                  updated[index].mobile = e.target.value;
+                                  return updated;
+                                })
+                              }
+                              className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
+                            />
+                          </td>
+                          <td className="border p-2">
+                            <input
+                              type="text"
+                              value={row.address}
+                              onChange={(e) =>
+                                setEmergencyContact((prev) => {
+                                  const updated = [...prev];
+                                  updated[index].address = e.target.value.toUpperCase();
+                                  return updated;
+                                })
+                              }
+                              className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
+                            />
+                          </td>
+                          <td className="border p-2">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setEmergencyContact((prev) => [
+                                    ...prev,
+                                    createEmergencyContactRow(),
+                                  ])
+                                }
+                                className="bg-green-500 hover:bg-green-600 text-white px-2 rounded"
+                              >
+                                +
+                              </button>
+                              {emergencyContact.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEmergencyContact((prev) =>
+                                      prev.filter((_, i) => i !== index)
+                                    )
+                                  }
+                                  className="bg-red-500 hover:bg-red-600 text-white px-2 rounded"
+                                >
+                                  -
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
 
              {/* ---------- ADDRESS DETAILS ---------- */}
                 <h3 className="text-xl font-semibold text-sky-600 col-span-full">
@@ -1827,39 +2277,6 @@ const handleSubmit = async (e) => {
                     />
                   </div>
 
-                  {/* Mobile */}
-                  <div>
-                    <label className="block text-sm mb-1">Mobile No.</label>
-                    <input
-                      type="text"
-                      value={permanentAddress.mobile || ""}
-                      onChange={(e) =>
-                        setPermanentAddress({
-                          ...permanentAddress,
-                          mobile: e.target.value.toUpperCase(),
-                        })
-                      }
-                      className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none 
-                                focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
-                    />
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <label className="block text-sm mb-1">Email</label>
-                    <input
-                      type="email"
-                      value={permanentAddress.email || ""}
-                      onChange={(e) =>
-                        setPermanentAddress({
-                          ...permanentAddress,
-                          email: e.target.value.toLowerCase(), // Keep lowercase for valid email format
-                        })
-                      }
-                      className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none 
-                                focus:ring-2 focus:ring-sky-400 focus:border-sky-500 transition-all duration-150"
-                    />
-                  </div>
                 </div>
 
                 {/* ---------- PRESENT ADDRESS ---------- */}
@@ -1885,8 +2302,6 @@ const handleSubmit = async (e) => {
                             district: "",
                             state: "",
                             country: "INDIA",
-                            mobile: "",
-                            email: "",
                           });
                         }
                       }}
@@ -1906,8 +2321,6 @@ const handleSubmit = async (e) => {
                     "district",
                     "state",
                     "country",
-                    "mobile",
-                    "email",
                   ].map((field, i) => (
                     <div key={i}>
                       <label className="block text-sm mb-1 capitalize">
@@ -1917,22 +2330,15 @@ const handleSubmit = async (e) => {
                           ? "Post Office"
                           : field === "policeStation"
                           ? "Police Station"
-                          : field === "mobile"
-                          ? "Mobile No."
-                          : field === "email"
-                          ? "Email"
                           : field}
                       </label>
                       <input
-                        type={field === "email" ? "email" : "text"}
+                        type="text"
                         value={presentAddress[field] || ""}
                         onChange={(e) =>
                           setPresentAddress({
                             ...presentAddress,
-                            [field]:
-                              field === "email"
-                                ? e.target.value.toLowerCase()
-                                : e.target.value.toUpperCase(),
+                            [field]: e.target.value.toUpperCase(),
                           })
                         }
                         className="w-full pl-2 pr-1 border border-gray-300 rounded text-sm font-medium focus:outline-none 
@@ -1945,7 +2351,7 @@ const handleSubmit = async (e) => {
 
                 <div className="col-span-full flex justify-between mt-4">
                   <button
-                    onClick={() => setStep(2)}
+                    onClick={() => setStep(4)}
                     className="bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-800"
                   >
                     ← Back
@@ -1962,7 +2368,7 @@ const handleSubmit = async (e) => {
               </>
             )}
 
-            {step === 4 && (
+            {step === 5 && (
             <div className="bg-white min-h-screen shadow-lg rounded-lg p-4 w-full">
               <h2 className="text-xl mb-3 font-semibold text-sky-600">
                 Pay Details
@@ -2073,8 +2479,8 @@ const handleSubmit = async (e) => {
             </div>
           )}
 
-          {/* ---------- STEP 5 : PAY STRUCTURE ---------- */}
-          {step === 5 && (
+          {/* ---------- STEP 6 : PAY STRUCTURE ---------- */}
+          {step === 6 && (
             <div className="space-y-6">
               <h3 className="text-xl font-semibold text-sky-600 border-b pb-2">Pay Structure</h3>
 
@@ -2205,7 +2611,7 @@ const handleSubmit = async (e) => {
               <div className="flex justify-between items-center pt-6 border-t">
                 <button
                   type="button"
-                  onClick={() => setStep(4)}
+                  onClick={() => setStep(5)}
                   className="bg-blue-700 text-white px-4 py-1.5 rounded hover:bg-blue-800 transition-colors"
                 >
                   ← Back
@@ -2222,8 +2628,8 @@ const handleSubmit = async (e) => {
           )}
 
 
-          {/* ---------- STEP 6 : DOCUMENT MANAGEMENT ---------- */}
-          {step === 6 && (
+          {/* ---------- STEP 7 : DOCUMENT MANAGEMENT ---------- */}
+          {step === 7 && (
             <div className="bg-white min-h-screen shadow-lg rounded-lg p-4 w-full">
               <h3 className="text-xl font-semibold text-sky-600 mb-4">
                 DOCUMENT MANAGEMENT
@@ -2275,7 +2681,7 @@ const handleSubmit = async (e) => {
 
              <div className="flex justify-between mt-6">
                <button
-                    onClick={() => setStep(4)}
+                    onClick={() => setStep(6)}
                     className="bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-800"
                   >
                     ← Back
@@ -2297,6 +2703,7 @@ const handleSubmit = async (e) => {
               </div>
             </div>
           )}
+          </div>
             </div>
           </div>
         </div>
@@ -2485,5 +2892,6 @@ const SearchableSelect = ({ label, value, onChange, options }) => {
 
 
 export default EmployeeMaster;
+
 
 
