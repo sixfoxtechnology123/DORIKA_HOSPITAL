@@ -4,6 +4,7 @@ const ShiftMaster = require("../models/Shift");
 const ShiftManagement = require("../models/ShiftManagement");
 const Employee = require("../models/Employee");
 const { createAuditLog } = require("../utils/auditLogger");
+const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 //dorika location---
 const OFFICE_LAT = 26.652061;
@@ -203,6 +204,222 @@ const deriveLeaveCode = (leaveType) => {
 
 const formatDateKey = (dateObj) => dateObj.toLocaleDateString("en-CA");
 
+const getFinancialYearForMonth = (month, year) =>
+  month <= 3 ? `${year - 1}-${year}` : `${year}-${year + 1}`;
+
+const sortAttendanceRecords = (records = []) =>
+  records.sort((a, b) => {
+    const aTime = parseDateFlexible(a?.date)?.getTime() || 0;
+    const bTime = parseDateFlexible(b?.date)?.getTime() || 0;
+    return aTime - bTime;
+  });
+
+const buildAttendanceRecordForDate = async ({
+  dateObj,
+  rawShiftCode,
+  approvedLeaves = [],
+}) => {
+  const dateKey = formatDateKey(dateObj);
+  const normalizedShift = normalizeShiftCode(rawShiftCode);
+  const isOffDay = isOffShiftCode(normalizedShift);
+
+  let shiftStartTime = "--";
+  let shiftEndTime = "--";
+  let workDuration = "--";
+
+  if (rawShiftCode && !isOffDay) {
+    const timing = await getShiftTimingByCode(rawShiftCode);
+    if (timing.ok) {
+      shiftStartTime = timing.shiftStartTime;
+      shiftEndTime = timing.shiftEndTime;
+      workDuration = timing.workDurationText || "--";
+      rawShiftCode = timing.normalizedCode || rawShiftCode;
+    }
+  }
+
+  const approvedLeave = approvedLeaves.find((leave) => {
+    const from = parseDateFlexible(leave?.fromDate);
+    const to = parseDateFlexible(leave?.toDate || leave?.fromDate);
+    return from && to && from <= dateObj && to >= dateObj;
+  });
+
+  let finalStatus = "Absent";
+  if (approvedLeave) {
+    const leaveCode = deriveLeaveCode(approvedLeave.leaveType);
+    finalStatus = isOffDay ? `${leaveCode}(OFF)` : leaveCode;
+  } else if (isOffDay) {
+    finalStatus = getOffStatusFromShift(rawShiftCode);
+  }
+
+  return {
+    date: dateKey,
+    status: finalStatus,
+    checkInTime: "--",
+    checkOutTime: "--",
+    workDuration,
+    actualWorkDuration: "--",
+    shiftCode: rawShiftCode || "--",
+    shiftStartTime,
+    shiftEndTime,
+    isLate: false,
+    isOT: false,
+    otHours: 0,
+  };
+};
+
+const backfillAttendanceGaps = async ({
+  employeeId,
+  employeeUserId,
+  employeeName,
+  uptoDate,
+  currentAttendanceDoc = null,
+  userIdRegex = null,
+  employeeIdRegex = null,
+}) => {
+  if (!employeeUserId || !uptoDate) return new Map();
+
+  const docCache = new Map();
+  const changedDocs = new Map();
+  const shiftCache = new Map();
+
+  const allDocs = await Attendance.find({
+    $or: [
+      { employeeUserId: employeeUserId },
+      ...(userIdRegex ? [{ employeeUserId: userIdRegex }] : []),
+      ...(employeeIdRegex ? [{ employeeId: employeeIdRegex }] : []),
+    ],
+  }).sort({ year: 1, month: 1 });
+
+  for (const doc of allDocs) {
+    docCache.set(`${doc.year}-${doc.month}`, doc);
+  }
+
+  if (currentAttendanceDoc) {
+    docCache.set(`${currentAttendanceDoc.year}-${currentAttendanceDoc.month}`, currentAttendanceDoc);
+  }
+
+  const approvedLeaves = await Leave.find({
+    $and: [
+      {
+        $or: [
+          { employeeUserId: employeeUserId },
+          ...(userIdRegex ? [{ employeeUserId: userIdRegex }] : []),
+          ...(employeeIdRegex ? [{ employeeId: employeeIdRegex }] : []),
+        ],
+      },
+      {
+        $or: [
+          { approveRejectedStatus: "APPROVED" },
+          { status: "APPROVED" },
+          { reportingManagerApproval: "APPROVED", departmrntHeadApproval: "APPROVED" },
+        ],
+      },
+    ],
+  }).lean();
+
+  let latestRecordedDate = null;
+  for (const doc of docCache.values()) {
+    for (const rec of doc.records || []) {
+      const recDate = parseDateFlexible(rec?.date);
+      if (!recDate || recDate >= uptoDate) continue;
+      if (!latestRecordedDate || recDate > latestRecordedDate) latestRecordedDate = recDate;
+    }
+  }
+
+  if (!latestRecordedDate) return changedDocs;
+
+  const lastFilledDate = new Date(uptoDate);
+  lastFilledDate.setDate(lastFilledDate.getDate() - 1);
+  if (latestRecordedDate >= lastFilledDate) return changedDocs;
+
+  const getShiftManagementForMonth = async (dateObj) => {
+    const shiftMonthStr = `${monthNames[dateObj.getMonth()]}-${dateObj.getFullYear()}`;
+    if (shiftCache.has(shiftMonthStr)) return shiftCache.get(shiftMonthStr);
+
+    let shiftMgmt = await ShiftManagement.findOne({
+      employeeUserId: employeeUserId,
+      month: shiftMonthStr,
+    }).lean();
+
+    if (!shiftMgmt && userIdRegex) {
+      shiftMgmt = await ShiftManagement.findOne({
+        employeeUserId: userIdRegex,
+        month: shiftMonthStr,
+      }).lean();
+    }
+
+    if (!shiftMgmt && employeeIdRegex) {
+      shiftMgmt = await ShiftManagement.findOne({
+        employeeID: employeeIdRegex,
+        month: shiftMonthStr,
+      }).lean();
+    }
+
+    shiftCache.set(shiftMonthStr, shiftMgmt || null);
+    return shiftMgmt || null;
+  };
+
+  const getAttendanceDocForDate = (dateObj) => {
+    const month = dateObj.getMonth() + 1;
+    const year = dateObj.getFullYear();
+    const key = `${year}-${month}`;
+    let doc = docCache.get(key);
+
+    if (!doc) {
+      doc = new Attendance({
+        employeeId,
+        employeeUserId,
+        employeeName,
+        month,
+        year,
+        financialYear: getFinancialYearForMonth(month, year),
+        records: [],
+      });
+      docCache.set(key, doc);
+    } else {
+      if (!doc.employeeId && employeeId) doc.employeeId = employeeId;
+      if (!doc.employeeName && employeeName) doc.employeeName = employeeName;
+    }
+
+    return doc;
+  };
+
+  for (
+    let gapDate = new Date(latestRecordedDate.getFullYear(), latestRecordedDate.getMonth(), latestRecordedDate.getDate() + 1);
+    gapDate <= lastFilledDate;
+    gapDate.setDate(gapDate.getDate() + 1)
+  ) {
+    const gapDateObj = new Date(gapDate);
+    const gapDateKey = formatDateKey(gapDateObj);
+    const attendanceDoc = getAttendanceDocForDate(gapDateObj);
+
+    if ((attendanceDoc.records || []).some((rec) => rec.date === gapDateKey)) continue;
+
+    const shiftMgmt = await getShiftManagementForMonth(gapDateObj);
+    if (!shiftMgmt) continue;
+
+    const dayKey = gapDateObj.getDate();
+    const rawShiftCode = shiftMgmt?.shifts?.[dayKey] || shiftMgmt?.shifts?.[dayKey.toString()] || "--";
+
+    attendanceDoc.records.push(
+      await buildAttendanceRecordForDate({
+        dateObj: gapDateObj,
+        rawShiftCode,
+        approvedLeaves,
+      })
+    );
+    sortAttendanceRecords(attendanceDoc.records);
+    attendanceDoc.totalPaidDays = calculateTotalPaidDays(attendanceDoc.records);
+    changedDocs.set(`${attendanceDoc.year}-${attendanceDoc.month}`, attendanceDoc);
+  }
+
+  for (const doc of changedDocs.values()) {
+    await doc.save();
+  }
+
+  return changedDocs;
+};
+
 const getMonthRange = (year, month) => {
   const start = new Date(year, month - 1, 1);
   const end = new Date(year, month, 0);
@@ -247,7 +464,6 @@ const applyApprovedLeavesToAttendance = async (attendanceDoc, approvedLeaves = [
       .filter(([date]) => Boolean(date))
   );
 
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const shiftMonthStr = `${monthNames[attendanceDoc.month - 1]}-${attendanceDoc.year}`;
   const shiftMgmt = await ShiftManagement.findOne({
     employeeUserId: attendanceDoc.employeeUserId,
@@ -576,7 +792,6 @@ const markDailyAttendance = async (req, res) => {
     const todayStr = now.toLocaleDateString('en-CA');
     const dayKey = now.getDate();
     const currentTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const shiftMonthStr = `${monthNames[now.getMonth()]}-${now.getFullYear()}`;
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
@@ -738,60 +953,15 @@ const markDailyAttendance = async (req, res) => {
     }
 
     // --- 3. GAP-FILLING LOGIC ---
-    if (attendance.records.length > 0) {
-      const lastRecord = attendance.records[attendance.records.length - 1];
-      const lastDate = new Date(lastRecord.date);
-      const todayDate = new Date(todayStr);
-      const diffDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
-
-      for (let i = 1; i < diffDays; i++) {
-        const gapDate = new Date(lastDate);
-        gapDate.setDate(gapDate.getDate() + i);
-        const gapDateStr = gapDate.toLocaleDateString('en-CA');
-        const gapDayNum = gapDate.getDate();
-      const gapShiftCode = shiftMgmt.shifts[gapDayNum] || shiftMgmt.shifts[gapDayNum.toString()];
-        const isOffDay = isOffShiftCode(normalizeShiftCode(gapShiftCode));
-
-        let gapStartTime = "--", gapEndTime = "--", gapWorkDuration = "--";
-        if (gapShiftCode && !isOffDay) {
-          const timing = await getShiftTimingByCode(gapShiftCode);
-          if (timing.ok) {
-            gapStartTime = timing.shiftStartTime;
-            gapEndTime = timing.shiftEndTime;
-            gapWorkDuration = timing.workDurationText || "--";
-          }
-        }
-
-        const approvedLeave = await Leave.findOne({
-          employeeUserId: safeEmployeeUserId,
-          approveRejectedStatus: "APPROVED",
-          fromDate: { $lte: gapDateStr },
-          toDate: { $gte: gapDateStr }
-        });
-
-        let finalStatus = "Absent";
-        if (approvedLeave) {
-          const leaveCode = approvedLeave.leaveType === "SICK" ? "SL" : "CL";
-          finalStatus = isOffDay ? `${leaveCode}(OFF)` : leaveCode;
-        } else if (isOffDay) {
-          finalStatus = getOffStatusFromShift(gapShiftCode);
-        }
-
-        attendance.records.push({
-          date: gapDateStr,
-          status: finalStatus,
-          checkInTime: "--",
-          checkOutTime: "--",
-          shiftCode: gapShiftCode || "--",
-          shiftStartTime: gapStartTime,
-          shiftEndTime: gapEndTime,
-          workDuration: gapWorkDuration,
-          actualWorkDuration: "--"
-        });
-      }
-      // Update total paid days after the gap-filling loop
-      attendance.totalPaidDays = calculateTotalPaidDays(attendance.records);
-    }
+    await backfillAttendanceGaps({
+      employeeId: safeEmployeeId,
+      employeeUserId: safeEmployeeUserId,
+      employeeName: safeEmployeeName,
+      uptoDate: now,
+      currentAttendanceDoc: attendance,
+      userIdRegex,
+      employeeIdRegex,
+    });
 
     // --- 4. TODAY'S CHECK-IN LOGIC ---
     const assignedShiftCodeRaw = shiftMgmt.shifts[dayKey] || shiftMgmt.shifts[dayKey.toString()];
