@@ -2,11 +2,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import Sidebar from "../component/Sidebar";
-import BackButton from "../component/BackButton";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import MobileHeaderToggle from "../component/MobileHeaderToggle";
+import { useNavigate } from "react-router-dom";
 
 const DepartmrentHead = () => {
+  const navigate = useNavigate();
+  const goBack = () => navigate(-1);
   const [departmentHeadId, setDepartmentHeadId] = useState("");
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -194,18 +196,29 @@ const DepartmrentHead = () => {
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-2 sm:p-3 md:p-4">
         <div className="bg-white shadow-md rounded-md p-3">
           <MobileHeaderToggle>
-            <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
-              <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
+            <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-dorika-blue">
                 Department Head
               </h2>
-              <div className="flex shrink-0 gap-2">
-                <button
-                  onClick={openAddModal}
-                  className="bg-dorika-blue hover:bg-dorika-orange text-white px-3 py-1 rounded text-sm font-semibold"
-                >
-                  Add
-                </button>
-                <BackButton />
+              <button
+                type="button"
+                onClick={goBack}
+                className="h-8 px-3 rounded bg-dorika-blue text-white font-semibold text-sm hover:bg-dorika-orange"
+              >
+                Back
+              </button>
+            </div>
+            <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 border border-dorika-blue">
+              <div className="grid grid-cols-1 gap-3 items-end">
+                <div className="flex flex-col">
+              
+                  <button
+                    onClick={openAddModal}
+                    className="h-8 bg-dorika-orange hover:bg-dorika-blue text-white px-3 rounded text-sm font-semibold w-full"
+                  >
+                    Add Department Head
+                  </button>
+                </div>
               </div>
             </div>
           </MobileHeaderToggle>

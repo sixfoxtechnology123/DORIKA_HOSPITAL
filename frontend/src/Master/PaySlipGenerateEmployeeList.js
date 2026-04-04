@@ -450,30 +450,23 @@ const canPrint = !!selectedMonth && hasPayslipForMonth;
     <div className="bg-white shadow-md rounded-md p-3 md:p-4 flex-1 flex flex-col min-h-0">
 
       <MobileHeaderToggle>
-      {/* Header with Month Picker */}
-      <div className="bg-blue-50 border w-full border-blue-300 rounded-lg shadow-md p-3 mb-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-
-        {/* Title */}
+      <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
         <h2 className="text-lg sm:text-xl font-bold text-blue-800 whitespace-nowrap">
-          Generate Pay Slip – Employee List
+          Generate Pay Slip
         </h2>
+          <div className="flex gap-2">
+            <BackButton />
+          </div>
+      </div>
 
-        {/* Right Side Controls */}
-        <div className="
-          flex flex-wrap items-center gap-2 
-          w-full md:w-auto 
-          justify-start md:justify-end
-        ">
+      <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 border border-dorika-blue">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
 
-          {/* Month Picker */}
-          <input
+          <div className="flex flex-col">
+            <label className="font-semibold text-dorika-blue text-xs uppercase mb-1 block">Month</label>
+            <input
             type="month"
-            className="
-              border border-gray-600 
-              py-1 px-2 rounded text-sm
-              w-full sm:w-auto
-            "
+            className="w-full border border-dorika-blue py-1 px-3 rounded text-sm bg-white"
             value={selectedMonth}
             onChange={(e) => {
               const value = e.target.value;
@@ -486,61 +479,41 @@ const canPrint = !!selectedMonth && hasPayslipForMonth;
               }
             }}
           />
+          </div>
 
-          {/* Print All */}
-          <button
-            className="
-              bg-blue-600 text-white 
-              px-3 py-1.5 rounded 
-              hover:bg-blue-700
-              disabled:bg-gray-300 disabled:cursor-not-allowed
-              flex items-center justify-center gap-1
-              text-xs sm:text-sm
-              flex-1 sm:flex-none
-            "
+          <div className="flex flex-col">
+            <label className="font-semibold text-dorika-blue text-xs uppercase mb-1 block">Print All</label>
+            <button
+            className="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-1 text-sm w-full"
             onClick={handlePrintAllOnePDF}
             disabled={!canPrint}
           >
             <FaPrint /> Print All
           </button>
+          </div>
 
-          {/* Print Separate */}
-          <button
-            className="
-              bg-purple-600 text-white 
-              px-3 py-1.5 rounded 
-              hover:bg-purple-700
-              disabled:bg-gray-300 disabled:cursor-not-allowed
-              flex items-center justify-center gap-1
-              text-xs sm:text-sm
-              flex-1 sm:flex-none
-            "
+          <div className="flex flex-col">
+            <label className="font-semibold text-dorika-blue text-xs uppercase mb-1 block">Print Separate</label>
+            <button
+            className="bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-1 text-sm w-full"
             onClick={handlePrintAllSeparateFiles}
             disabled={!canPrint}
           >
             <FaPrint /> Print Separate
           </button>
-
-          {/* Back Button */}
-          <div className="flex-1 sm:flex-none flex justify-end">
-            <BackButton />
           </div>
 
-        </div>
-        </div>
-        <div className="mt-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div>
+          <div className="flex flex-col">
               <label className="font-semibold text-dorika-blue text-xs uppercase mb-1 block">Search</label>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(normalizeSearchInput(e.target.value))}
                 placeholder="SEARCH NAME / USER ID / EMP ID"
-                className="w-full border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none"
+                className="w-full border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none bg-white"
               />
-            </div>
-            <div>
+          </div>
+          <div className="flex flex-col">
               <label className="font-semibold text-dorika-blue text-xs uppercase mb-1 block">Status</label>
               <select
                 value={selectedEmployeePrefix}
@@ -553,7 +526,6 @@ const canPrint = !!selectedMonth && hasPayslipForMonth;
                   </option>
                 ))}
               </select>
-            </div>
           </div>
         </div>
       </div>
@@ -871,8 +843,6 @@ const canPrint = !!selectedMonth && hasPayslipForMonth;
 </div>
 )}
 </>
-
-
   );
 };
 

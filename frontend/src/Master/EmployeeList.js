@@ -156,11 +156,9 @@ const paginatedEmployees = perPage === "all"
     <div className="flex-1 flex flex-col min-h-0 p-2 sm:p-3 md:p-2 overflow-hidden">
     <div className="flex-1 flex flex-col min-h-0 p-3 bg-white shadow-md rounded-md">
     <MobileHeaderToggle>
-    <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-3 mb-4">
-
-    <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-3 sm:mb-4 flex flex-row justify-between items-center gap-2">
+    <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
           {/* whitespace-nowrap ensures the text doesn't wrap and overlap */}
-          <h2 className="text-sm sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
+          <h2 className="text-xl font-bold text-dorika-blue whitespace-nowrap">
             Employee List
           </h2>
           <div className="flex shrink-0">
@@ -168,25 +166,23 @@ const paginatedEmployees = perPage === "all"
           </div>
     </div>
 
-    {/* BOTTOM SECTION */}
-    <div className="flex flex-col sm:flex-row justify-between gap-2 mt-3">
+    <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 border border-dorika-blue">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+        <div className="flex flex-col">
+          <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+            Search
+          </label>
+          <input
+            type="text"
+            placeholder="Search Name or Emp ID"
+            value={searchTerm}
+            onChange={handleSearchChange}
+            className="border border-dorika-blue rounded px-3 py-1 text-sm uppercase w-full focus:outline-none bg-white"
+          />
+        </div>
 
-      {/* Search Bar - Full width on mobile */}
-      <input
-        type="text"
-        placeholder="Search Name or Emp ID"
-        value={searchTerm}
-        onChange={handleSearchChange}
-        className="border border-dorika-blue rounded 
-                  px-3 py-2 text-sm uppercase
-                  w-full sm:flex-1 focus:outline-none"
-      />
-
-      {/* Dropdown + Button Row */}
-      <div className="flex justify-between sm:justify-end items-center gap-2 w-full sm:w-auto flex-wrap">
-
-        <div className="flex items-center gap-1">
-          <label className="text-[10px] sm:text-xs font-bold text-dorika-blue uppercase">
+        <div className="flex flex-col">
+          <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
             Status
           </label>
           <select
@@ -195,7 +191,7 @@ const paginatedEmployees = perPage === "all"
               setSelectedStatus(e.target.value);
               setCurrentPage(1);
             }}
-            className="border border-dorika-blue rounded px-2 py-2 text-sm outline-none bg-white font-semibold text-dorika-blue uppercase"
+            className="border border-dorika-blue rounded px-3 py-1 text-sm outline-none bg-white font-semibold text-dorika-blue uppercase"
           >
             {employmentStatusOptions.map((status) => (
               <option key={status} value={status}>
@@ -205,8 +201,8 @@ const paginatedEmployees = perPage === "all"
           </select>
         </div>
 
-        <div className="flex items-center gap-1">
-          <label className="text-[10px] sm:text-xs font-bold text-dorika-blue uppercase">
+        <div className="flex flex-col">
+          <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
             Show
           </label>
           <select
@@ -216,10 +212,9 @@ const paginatedEmployees = perPage === "all"
               setPerPage(val === "all" ? "all" : parseInt(val));
               setCurrentPage(1);
             }}
-            className="border border-dorika-blue rounded px-2 py-2 text-sm outline-none bg-white font-semibold text-dorika-blue"
+            className="border border-dorika-blue rounded px-3 py-1 text-sm outline-none bg-white font-semibold text-dorika-blue"
           >
             <option value={20}>20</option>
-            {/* <option value={30}>30</option> */}
             <option value={50}>50</option>
             <option value={100}>100</option>
             <option value={200}>200</option>
@@ -227,18 +222,19 @@ const paginatedEmployees = perPage === "all"
           </select>
         </div>
 
-        <button
-          onClick={() => navigate("/EmployeeMaster")}
-          className="bg-dorika-orange hover:bg-dorika-blue text-white 
-                    px-4 py-2 rounded font-semibold 
-                    text-sm whitespace-nowrap"
-        >
-          Add Employee
-        </button>
-
+        <div className="flex flex-col">
+          <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+            Action
+          </label>
+          <button
+            onClick={() => navigate("/EmployeeMaster")}
+            className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold text-sm whitespace-nowrap w-full"
+          >
+            Add Employee
+          </button>
+        </div>
       </div>
     </div>
-  </div>
     </MobileHeaderToggle>
      <div className="w-full flex-1 min-h-0 overflow-y-auto overflow-x-auto">
         <table className="min-w-[700px] w-full table-auto border border-dorika-blue">

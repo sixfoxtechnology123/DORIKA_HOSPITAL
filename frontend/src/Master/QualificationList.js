@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FaTrash, FaEdit } from 'react-icons/fa';
-import BackButton from '../component/BackButton';
 import Sidebar from '../component/Sidebar';
 import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import Pagination from "../Master/Pagination";
@@ -12,6 +11,7 @@ const QualificationList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = 20;
   const navigate = useNavigate();
+  const goBack = () => navigate(-1);
 
   const fetchQualifications = async () => {
     try {
@@ -54,16 +54,27 @@ const QualificationList = () => {
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-2 sm:p-3">
         <div className="p-3 bg-white shadow-md rounded-md flex-1 flex flex-col min-h-0">
           <MobileHeaderToggle>
-            <div className="flex justify-between items-center gap-2">
-              <h2 className="text-lg sm:text-xl font-bold text-dorika-blue whitespace-nowrap">Qualification</h2>
-              <div className="flex gap-2">
-                <BackButton />
-                <button
-                  onClick={() => navigate('/QualificationMaster')}
-                  className="bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 rounded font-semibold text-sm sm:text-base whitespace-nowrap"
-                >
-                  Add Qualification
-                </button>
+            <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-dorika-blue">Qualification</h2>
+              <button
+                type="button"
+                onClick={goBack}
+                className="h-8 px-3 rounded bg-dorika-blue text-white font-semibold text-sm hover:bg-dorika-orange"
+              >
+                Back
+              </button>
+            </div>
+            <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 border border-dorika-blue">
+              <div className="grid grid-cols-1 gap-3 items-end">
+                <div className="flex flex-col">
+                
+                  <button
+                    onClick={() => navigate('/QualificationMaster')}
+                    className="h-8 bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 rounded font-semibold text-sm sm:text-base whitespace-nowrap w-full"
+                  >
+                    Add Qualification
+                  </button>
+                </div>
               </div>
             </div>
           </MobileHeaderToggle>

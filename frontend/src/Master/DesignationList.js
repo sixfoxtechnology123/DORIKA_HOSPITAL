@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FaTrash, FaEdit } from 'react-icons/fa';
-import BackButton from '../component/BackButton';
 import Sidebar from '../component/Sidebar';
 import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import Pagination from "../Master/Pagination";
@@ -23,6 +22,7 @@ const DesignationList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(getStoredPerPage);
   const navigate = useNavigate();
+  const goBack = () => navigate(-1);
 
   const fetchDesignations = async () => {
     try {
@@ -82,25 +82,24 @@ const currentdesignations =
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
     <div className="flex-1 flex flex-col min-h-0 p-3 bg-white shadow-md rounded-md">
       <MobileHeaderToggle>
-      {/* Header */}
-   <div className="flex flex-wrap justify-between items-center gap-y-3 gap-x-2">
-  
-  {/* TOP ROW: Department Title (Left) and Back Button (Right) */}
-  <div className="flex justify-between items-center w-full sm:w-auto flex-1">
-    <h2 className="text-lg sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
-      Designation
-    </h2>
-    <div className="sm:hidden">
-      <BackButton />
-    </div>
-  </div>
+      <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
+        <h2 className="text-xl font-bold text-dorika-blue whitespace-nowrap">
+          Designation
+        </h2>
+        <button
+          type="button"
+          onClick={goBack}
+          className="h-8 px-3 rounded bg-dorika-blue text-white font-semibold text-sm hover:bg-dorika-orange"
+        >
+          Back
+        </button>
+      </div>
 
-{/* BOTTOM ROW (Mobile) / SAME ROW (Desktop) */}
-<div className="flex flex-col sm:flex-row sm:justify-end sm:items-center gap-3 w-full sm:w-auto">
+<div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 border border-dorika-blue">
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-end">
 
-  {/* Department Filter */}
-  <div className="flex flex-col sm:flex-row sm:items-center gap-1 w-full sm:w-auto">
-    <label className="text-[10px] sm:text-xs font-bold text-dorika-blue uppercase">
+  <div className="flex flex-col w-full">
+    <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
       Department
     </label>
     <select
@@ -109,7 +108,7 @@ const currentdesignations =
         setSelectedDepartment(e.target.value);
         setCurrentPage(1);
       }}
-      className="w-full sm:w-auto border border-dorika-blue rounded px-2 py-1 text-sm bg-white font-semibold text-dorika-blue"
+      className="w-full h-8 border border-dorika-blue rounded px-3 text-sm bg-white font-semibold text-dorika-blue"
     >
       {departments.map((dep, index) => (
         <option key={index} value={dep}>
@@ -120,8 +119,8 @@ const currentdesignations =
   </div>
 
   {/* Show Dropdown */}
-  <div className="flex flex-col sm:flex-row sm:items-center gap-1 w-full sm:w-auto">
-    <label className="text-[10px] sm:text-xs font-bold text-dorika-blue uppercase">
+  <div className="flex flex-col w-full">
+    <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
       Show
     </label>
     <select
@@ -131,7 +130,7 @@ const currentdesignations =
         setPerPage(val === "all" ? "all" : parseInt(val));
         setCurrentPage(1);
       }}
-      className="w-full sm:w-auto border border-dorika-blue rounded px-2 py-1 text-sm bg-white font-semibold text-dorika-blue"
+      className="w-full h-8 border border-dorika-blue rounded px-3 text-sm bg-white font-semibold text-dorika-blue"
     >
       <option value={20}>20</option>
       <option value={30}>30</option>
@@ -141,24 +140,19 @@ const currentdesignations =
     </select>
   </div>
 
-  {/* Add Button + Desktop Back */}
-  <div className="flex gap-2 items-center w-full sm:w-auto justify-between sm:justify-end">
-    
-    {/* Desktop Back */}
-    <div className="hidden sm:block">
-      <BackButton />
-    </div>
-
+  <div className="flex flex-col w-full">
+    <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+      Action
+    </label>
     <button
       onClick={() => navigate('/designationMaster')}
-      className="w-full sm:w-auto bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 py-2 rounded font-semibold text-sm whitespace-nowrap"
+      className="w-full h-8 bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 rounded font-semibold text-sm whitespace-nowrap"
     >
       Add Designation
     </button>
   </div>
 
 </div>
-
 </div>
       </MobileHeaderToggle>
 

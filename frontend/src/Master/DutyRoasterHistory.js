@@ -335,7 +335,7 @@ const DutyRoasterHistory = () => {
           </div>
 
           <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 border border-dorika-blue">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3 items-end">
             <div className="flex flex-col">
               <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
                 Date
@@ -447,31 +447,39 @@ const DutyRoasterHistory = () => {
                 className="border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none bg-white shadow-sm"
               />
             </div>
-          </div>
 
-            <div className="mt-3 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={handleExportExcel}
-              className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold text-sm"
-            >
-              Export Excel
-            </button>
-            <label className="font-semibold text-dorika-blue text-xs uppercase">Show</label>
-            <select
-              value={perPage}
-              onChange={(e) => {
-                const val = e.target.value;
-                setPerPage(val === "all" ? "all" : parseInt(val, 10));
-              }}
-              className="border border-dorika-blue rounded px-3 py-1 text-sm bg-white font-semibold text-dorika-blue"
-            >
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-              <option value="all">ALL</option>
-            </select>
+            <div className="flex flex-col">
+              <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+                Export
+              </label>
+              <button
+                type="button"
+                onClick={handleExportExcel}
+                className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold text-sm w-full"
+              >
+                Export Excel
+              </button>
             </div>
+
+            <div className="flex flex-col">
+              <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+                Show
+              </label>
+              <select
+                value={perPage}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setPerPage(val === "all" ? "all" : parseInt(val, 10));
+                }}
+                className="border border-dorika-blue rounded px-3 py-1 text-sm bg-white font-semibold text-dorika-blue"
+              >
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value="all">ALL</option>
+              </select>
+            </div>
+          </div>
           </div>
         </MobileHeaderToggle>
 

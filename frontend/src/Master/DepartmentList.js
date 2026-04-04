@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { FaTrash, FaEdit } from "react-icons/fa";
-import BackButton from "../component/BackButton";
 import Sidebar from '../component/Sidebar';
 import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import toast from "react-hot-toast";
@@ -22,6 +21,7 @@ const DepartmentList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(getStoredPerPage);
   const navigate = useNavigate();
+  const goBack = () => navigate(-1);
 
   // Fetch all departments
   const fetchDepartments = async () => {
@@ -85,58 +85,53 @@ const currentDepartments =
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
     <div className="flex-1 flex flex-col min-h-0 p-3 bg-white shadow-md rounded-md">
       <MobileHeaderToggle>
-      {/* Header */}
-   <div className="flex flex-wrap justify-between items-center gap-y-3 gap-x-2">
-  
-  {/* TOP ROW: Department Title (Left) and Back Button (Right) */}
-  <div className="flex justify-between items-center w-full sm:w-auto flex-1">
-    <h2 className="text-lg sm:text-xl font-bold text-dorika-blue whitespace-nowrap">
-      Department
-    </h2>
-    <div className="sm:hidden">
-      <BackButton />
-    </div>
-  </div>
-
-  {/* BOTTOM ROW (Mobile) / SAME ROW (Desktop): Show Dropdown (Left) and Add Button (Right) */}
-  <div className="flex justify-between sm:justify-end items-center gap-2 w-full sm:w-auto">
-    
-    {/* Show Dropdown */}
-    <div className="flex items-center gap-1">
-      <label className="text-[20px] sm:text-xs font-bold text-dorika-blue uppercase">Show</label>
-      <select
-        value={perPage}
-        onChange={(e) => {
-          const val = e.target.value;
-          setPerPage(val === "all" ? "all" : parseInt(val));
-          setCurrentPage(1);
-        }}
-        className="border border-dorika-blue rounded px-1 py-1 sm:py-1 text-sm outline-none bg-white font-semibold text-dorika-blue"
-      >
-        <option value={20}>20</option>
-        <option value={30}>30</option>
-        <option value={50}>50</option>
-        <option value={100}>100</option>
-        <option value="all">ALL</option>
-      </select>
-    </div>
-
-    <div className="flex gap-2 items-center">
-      {/* Back button visible here only on Desktop */}
-      <div className="hidden sm:block">
-        <BackButton />
+      <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
+        <h2 className="text-xl font-bold text-dorika-blue">Department</h2>
+        <button
+          type="button"
+          onClick={goBack}
+          className="h-8 px-3 rounded bg-dorika-blue text-white font-semibold text-sm hover:bg-dorika-orange"
+        >
+          Back
+        </button>
       </div>
-      
-      <button
-        onClick={() => navigate("/departmentMaster")}
-       className="bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 rounded font-semibold text-sm sm:text-base whitespace-nowrap"
-      >
-        Add Department
-      </button>
-    </div>
-  </div>
 
-</div>
+      <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 border border-dorika-blue">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+          <div className="flex flex-col">
+            <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+              Show
+            </label>
+            <select
+              value={perPage}
+              onChange={(e) => {
+                const val = e.target.value;
+                setPerPage(val === "all" ? "all" : parseInt(val));
+                setCurrentPage(1);
+              }}
+              className="h-8 border border-dorika-blue rounded px-3 text-sm outline-none bg-white font-semibold text-dorika-blue"
+            >
+              <option value={20}>20</option>
+              <option value={30}>30</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+              <option value="all">ALL</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col">
+            <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+              Action
+            </label>
+            <button
+              onClick={() => navigate("/departmentMaster")}
+              className="h-8 bg-dorika-orange hover:bg-dorika-blue text-white px-3 sm:px-4 rounded font-semibold text-sm sm:text-base whitespace-nowrap w-full"
+            >
+              Add Department
+            </button>
+          </div>
+        </div>
+      </div>
       </MobileHeaderToggle>
 
 <div className="w-full flex-1 min-h-0 overflow-auto mt-2">

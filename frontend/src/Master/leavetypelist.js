@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { FaTrash, FaEdit } from "react-icons/fa";
-import BackButton from "../component/BackButton";
 import Sidebar from '../component/Sidebar';
 import MobileHeaderToggle from "../component/MobileHeaderToggle";
 import toast from "react-hot-toast";
@@ -11,6 +10,7 @@ import toast from "react-hot-toast";
 const LeaveTypeList = () => {
   const [leaveTypes, setLeaveTypes] = useState([]);
   const navigate = useNavigate();
+  const goBack = () => navigate(-1);
 
   const fetchLeaveTypes = async () => {
     try {
@@ -43,27 +43,30 @@ const LeaveTypeList = () => {
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
     <div className="p-3 bg-white shadow-md rounded-md flex-1 flex flex-col min-h-0">
       <MobileHeaderToggle>
-      <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-  
-        {/* Desktop and mobile: title left, back button right */}
+      <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
         <div className="flex justify-between items-center w-full">
           <h2 className="text-xl font-bold text-dorika-blue">Leave Type</h2>
-          <div className="sm:hidden">
-            <BackButton />
-          </div>
-          <div className="hidden sm:flex gap-2">
-            <BackButton />
-          </div>
+          <button
+            type="button"
+            onClick={goBack}
+            className="h-8 px-3 rounded bg-dorika-blue text-white font-semibold text-sm hover:bg-dorika-orange"
+          >
+            Back
+          </button>
         </div>
+      </div>
 
-        {/* Manage button always at bottom on mobile */}
-        <div className="mt-2 sm:mt-0">
+      <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 border border-dorika-blue">
+        <div className="grid grid-cols-1 gap-3 items-end">
+          <div className="flex flex-col">
+           
           <button
             onClick={() => navigate("/leavetypeMaster")}
-            className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold whitespace-nowrap w-full sm:w-auto"
+            className="h-8 bg-dorika-orange hover:bg-dorika-blue text-white px-4 rounded font-semibold whitespace-nowrap w-full"
           >
             Manage New Leave Type
           </button>
+          </div>
         </div>
       </div>
       </MobileHeaderToggle>

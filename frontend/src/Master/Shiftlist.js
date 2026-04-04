@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { FaTrash, FaEdit } from "react-icons/fa";
-import BackButton from "../component/BackButton";
 import Sidebar from '../component/Sidebar';
 import MobileHeaderToggle from "../component/MobileHeaderToggle";
 
 const ShiftList = () => {
   const [shifts, setShifts] = useState([]);
   const navigate = useNavigate();
+  const goBack = () => navigate(-1);
 
   const fetchShifts = async () => {
     try {
@@ -39,16 +39,27 @@ const ShiftList = () => {
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
     <div className="p-3 bg-white shadow-md rounded-md flex-1 flex flex-col min-h-0">
       <MobileHeaderToggle>
-      <div className="bg-dorika-blueLight border border-green-300 rounded-lg shadow-md p-2 mb-4 flex flex-row justify-between items-center gap-2">
+      <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
         <h2 className="text-xl font-bold text-dorika-blue">Shift</h2>
-        <div className="flex gap-2">
-          <BackButton />
-          <button
-            onClick={() => navigate("/shiftMaster")}
-            className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
-          >
-            Add Shift
-          </button>
+        <button
+          type="button"
+          onClick={goBack}
+          className="h-8 px-3 rounded bg-dorika-blue text-white font-semibold text-sm hover:bg-dorika-orange"
+        >
+          Back
+        </button>
+      </div>
+      <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 border border-dorika-blue">
+        <div className="grid grid-cols-1 gap-3 items-end">
+          <div className="flex flex-col">
+           
+            <button
+              onClick={() => navigate("/shiftMaster")}
+              className="h-8 bg-dorika-orange hover:bg-dorika-blue text-white px-4 rounded font-semibold whitespace-nowrap w-full"
+            >
+              Add Shift
+            </button>
+          </div>
         </div>
       </div>
       </MobileHeaderToggle>

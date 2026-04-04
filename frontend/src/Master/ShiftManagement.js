@@ -509,26 +509,13 @@ const scrollTable = (direction) => {
       <div className="bg-dorika-blueLight border border-blue-300 rounded-lg shadow-md p-2 mb-1 flex justify-between items-center">
         <h2 className="text-xl font-bold text-dorika-blue">Shift Management</h2>
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={handleExportExcel}
-            className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold text-sm whitespace-nowrap"
-          >
-            Export Excel
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="bg-dorika-blue hover:bg-dorika-orange text-white px-4 py-1 rounded font-semibold whitespace-nowrap"
-          >
-            Submit
-          </button>
           <BackButton />
         </div>
       </div>
   
       {/* ================= TOP SECTION ================= */}
 <div className="bg-dorika-blueLight p-3 rounded-lg shadow mb-3 border border-dorika-blue">
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-end">
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3 items-end">
     <div className="flex flex-col">
       <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
         Month
@@ -629,6 +616,31 @@ const scrollTable = (direction) => {
         placeholder="SEARCH NAME / USER ID / EMP ID"
         className="border border-dorika-blue rounded px-3 py-1 text-sm uppercase focus:outline-none bg-white shadow-sm"
       />
+    </div>
+
+    <div className="flex flex-col">
+      <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+        Export
+      </label>
+      <button
+        type="button"
+        onClick={handleExportExcel}
+        className="bg-dorika-orange hover:bg-dorika-blue text-white px-4 py-1 rounded font-semibold text-sm whitespace-nowrap w-full"
+      >
+        Export Excel
+      </button>
+    </div>
+
+    <div className="flex flex-col">
+      <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
+        Submit
+      </label>
+      <button
+        onClick={handleSubmit}
+        className="bg-dorika-blue hover:bg-dorika-orange text-white px-4 py-1 rounded font-semibold whitespace-nowrap w-full"
+      >
+        Submit
+      </button>
     </div>
   </div>
 </div>
