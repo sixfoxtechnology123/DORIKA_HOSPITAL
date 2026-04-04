@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
+import { CalendarDays } from "lucide-react";
 import Sidebar from "../component/Sidebar";
 import BackButton from "../component/BackButton";
 import MobileHeaderToggle from "../component/MobileHeaderToggle";
@@ -16,6 +17,18 @@ const toDDMMYYYY = (value) => {
   const d = new Date(raw);
   if (!Number.isNaN(d.getTime())) {
     return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
+  }
+  return raw;
+};
+
+const toDDMMYYYYSlash = (value) => {
+  if (!value) return "";
+  const raw = String(value).trim();
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+  const d = new Date(raw);
+  if (!Number.isNaN(d.getTime())) {
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
   }
   return raw;
 };
@@ -82,6 +95,7 @@ const DutyRoasterHistory = () => {
   const [perPage, setPerPage] = useState(getStoredPerPage);
   const [rows, setRows] = useState([]);
   const [shiftMap, setShiftMap] = useState({});
+  const dateInputRef = useRef(null);
 
   const normalizeSearchInput = (value) => {
     let v = String(value || "").toUpperCase();
@@ -231,6 +245,17 @@ const DutyRoasterHistory = () => {
     localStorage.setItem(SHIFT_STORAGE_KEY, selectedShift);
   }, [selectedShift]);
 
+  const openDatePicker = () => {
+    const input = dateInputRef.current;
+    if (!input) return;
+    if (typeof input.showPicker === "function") {
+      input.showPicker();
+      return;
+    }
+    input.focus();
+    input.click();
+  };
+
   const shiftOptions = useMemo(() => {
     const codes = Object.keys(shiftMap)
       .filter((c) => c && c !== "OFF")
@@ -315,12 +340,32 @@ const DutyRoasterHistory = () => {
               <label className="font-semibold text-dorika-blue text-xs uppercase mb-1">
                 Date
               </label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="border border-dorika-blue rounded px-3 py-1 bg-white text-sm focus:outline-none"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={toDDMMYYYYSlash(selectedDate)}
+                  readOnly
+                  placeholder="dd/mm/yyyy"
+                  className="w-full border border-dorika-blue rounded px-3 py-1 pr-10 bg-white text-sm focus:outline-none"
+                  onClick={openDatePicker}
+                />
+                <button
+                  type="button"
+                  onClick={openDatePicker}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-dorika-blue"
+                  aria-label="Open calendar"
+                >
+                  <CalendarDays size={16} />
+                </button>
+                <input
+                  ref={dateInputRef}
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  tabIndex={-1}
+                  className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+                />
+              </div>
             </div>
 
             <div className="flex flex-col">

@@ -23,6 +23,7 @@ import {
 
 // Default avatar
 import defaultAvatar from "../assets/avatar.jpg";
+import dorikaLogo1 from "../assets/dorikaLogo1.jpg";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5002";
 
@@ -147,22 +148,25 @@ const Dashboard = () => {
     <div className="flex min-h-screen flex-col md:flex-row">
       <Sidebar />
 
-      <main className="flex-1 bg-green-100 min-h-screen p-4 w-full">
-        <header className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
+      <main
+        className="flex-1 min-h-screen p-4 w-full bg-center bg-cover bg-no-repeat"
+        style={{ backgroundImage: `url(${dorikaLogo1})` }}
+      >
+        <header className="mb-6 flex items-center justify-between gap-3 rounded-xl bg-white/90 px-3 py-3 shadow-md backdrop-blur-sm sm:px-5 sm:py-4">
+          <h1 className="text-lg font-semibold sm:text-2xl">Dashboard</h1>
 
-          <div className="relative flex items-center gap-3" ref={dropdownRef}>
-            <span className="font-medium text-gray-700">{resolveDashboardName()}</span>
+          <div className="relative flex min-w-0 items-center justify-end gap-2 sm:gap-3" ref={dropdownRef}>
+            <span className="truncate text-sm font-medium text-gray-700 sm:text-base">{resolveDashboardName()}</span>
 
             <img
               onClick={() => setDropdownOpen(!dropdownOpen)}
               src={admin?.profileImage ? `${API_BASE_URL}/${admin.profileImage}?t=${Date.now()}` : defaultAvatar}
               alt="profile"
-              className="w-10 h-10 rounded-full object-cover cursor-pointer"
+              className="h-10 w-10 shrink-0 rounded-full object-cover cursor-pointer"
             />
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-12 w-48 bg-white border rounded shadow-lg z-50">
+              <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded border bg-white shadow-lg">
                 <ul className="flex flex-col">
                   {/* <li>
                     <Link to="/EditProfile" className="block px-4 py-2 hover:bg-gray-100" onClick={() => setDropdownOpen(false)}>Edit Profile</Link>
@@ -192,7 +196,7 @@ const Dashboard = () => {
                 const Icon = c.icon;
                 return (
                   <Link key={i} to={c.path} className="flex justify-center">
-                   <div className={`w-full max-w-sm rounded-lg p-6 text-center shadow-md hover:shadow-xl transition cursor-pointer ${c.color}`}>
+                   <div className={`w-full max-w-sm rounded-lg p-6 text-center shadow-md transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl cursor-pointer ${c.color}`}>
                       <div className="flex justify-center mb-3"><Icon size={32} /></div>
                       <h2 className="text-lg font-medium">{c.title}</h2>
                       {/* <p className="text-3xl font-bold mt-2">{c.value ?? 0}</p> */}

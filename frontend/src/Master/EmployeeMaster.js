@@ -74,6 +74,56 @@ const formatDateTypingValue = (dateString) => {
   if (digitsOnly.length <= 4) return `${day}/${month}`;
   return `${day}/${month}/${year}`;
 };
+
+const BANK_OPTIONS = [
+  "STATE BANK OF INDIA",
+  "PUNJAB NATIONAL BANK",
+  "BANK OF BARODA",
+  "CANARA BANK",
+  "UNION BANK OF INDIA",
+  "BANK OF INDIA",
+  "INDIAN BANK",
+  "CENTRAL BANK OF INDIA",
+  "UCO BANK",
+  "BANK OF MAHARASHTRA",
+  "INDIAN OVERSEAS BANK",
+  "PUNJAB & SIND BANK",
+  "FINO PAYMENTS BANK",
+  "HDFC BANK",
+  "ICICI BANK",
+  "AXIS BANK",
+  "KOTAK MAHINDRA BANK",
+  "INDUSIND BANK",
+  "YES BANK",
+  "IDFC FIRST BANK",
+  "RBL BANK",
+  "FEDERAL BANK",
+  "CSB BANK",
+  "KARUR VYSYA BANK",
+  "SOUTH INDIAN BANK",
+  "CITY UNION BANK",
+  "DCB BANK",
+  "TAMILNAD MERCANTILE BANK",
+  "BANDHAN BANK",
+  "AU SMALL FINANCE BANK",
+  "EQUITAS SMALL FINANCE BANK",
+  "UTKARSH SMALL FINANCE BANK",
+  "UJJIVAN SMALL FINANCE BANK",
+  "SURYODAY SMALL FINANCE BANK",
+  "ESAF SMALL FINANCE BANK",
+  "NORTH EAST SMALL FINANCE BANK",
+  "JANASEVA SMALL FINANCE BANK",
+];
+
+const BANK_SELECT_OPTIONS = [
+  ...BANK_OPTIONS.map((bank) => ({
+    label: bank,
+    value: bank,
+    searchText: bank,
+  })),
+  { label: "OTHERS", value: "OTHERS", searchText: "OTHERS OTHER" },
+];
+
 const EmployeeMaster = () => {
   const location = useLocation();
   const { employee, id } = location.state || {};
@@ -287,6 +337,7 @@ const [pfNo, setPfNo] = useState("");
 const [uanNo, setUanNo] = useState("");
 const [panNo, setPanNo] = useState("");
 const [bankName, setBankName] = useState("");
+const [customBankName, setCustomBankName] = useState("");
 const [branch, setBranch] = useState("");
 const [ifscCode, setIfscCode] = useState("");
 const [accountNo, setAccountNo] = useState("");
@@ -550,7 +601,14 @@ useEffect(() => {
     setPfNo(loadedEmployee.payDetails?.pfNo || "");
     setUanNo(loadedEmployee.payDetails?.uanNo || "");
     setPanNo(loadedEmployee.payDetails?.panNo || "");
-    setBankName(loadedEmployee.payDetails?.bankName || "");
+    const loadedBankName = String(loadedEmployee.payDetails?.bankName || "").trim().toUpperCase();
+    if (loadedBankName && !BANK_OPTIONS.includes(loadedBankName)) {
+      setBankName("OTHERS");
+      setCustomBankName(loadedBankName);
+    } else {
+      setBankName(loadedBankName);
+      setCustomBankName("");
+    }
     setBranch(loadedEmployee.payDetails?.branch || "");
     setIfscCode(loadedEmployee.payDetails?.ifscCode || "");
     setAccountNo(loadedEmployee.payDetails?.accountNo || "");
@@ -910,7 +968,7 @@ const payload = {
     pfNo,
     uanNo,
     panNo,
-    bankName,
+    bankName: bankName === "OTHERS" ? customBankName : bankName,
     branch,
     ifscCode,
     accountNo,
@@ -2389,55 +2447,23 @@ const handleSubmit = async (e) => {
                 <Input label="UAN No." value={uanNo} onChange={setUanNo} />
                 <Input label="Pan No." value={panNo} onChange={setPanNo} />
 
-                <Select
+                <SearchableSelect
                   label="Bank Name (*)"
                   value={bankName}
-                  onChange={setBankName}
-              options={[
-                      // --- PUBLIC SECTOR BANKS ---
-                      "STATE BANK OF INDIA",
-                      "PUNJAB NATIONAL BANK",
-                      "BANK OF BARODA",
-                      "CANARA BANK",
-                      "UNION BANK OF INDIA",
-                      "BANK OF INDIA",
-                      "INDIAN BANK",
-                      "CENTRAL BANK OF INDIA",
-                      "UCO BANK",
-                      "BANK OF MAHARASHTRA",
-                      "INDIAN OVERSEAS BANK",
-                      "PUNJAB & SIND BANK",
-                      "FINO PAYMENTS BANK",
-
-                      // --- PRIVATE SECTOR BANKS ---
-                      "HDFC BANK",
-                      "ICICI BANK",
-                      "AXIS BANK",
-                      "KOTAK MAHINDRA BANK",
-                      "INDUSIND BANK",
-                      "YES BANK",
-                      "IDFC FIRST BANK",
-                      "RBL BANK",
-                      "FEDERAL BANK",
-                      "CSB BANK",
-                      "KARUR VYSYA BANK",
-                      "SOUTH INDIAN BANK",
-                      "CITY UNION BANK",
-                      "DCB BANK",
-                      "TAMILNAD MERCANTILE BANK",
-                      "BANDHAN BANK",
-
-                      // --- SMALL FINANCE BANKS ---
-                      "AU SMALL FINANCE BANK",
-                      "EQUITAS SMALL FINANCE BANK",
-                      "UTKARSH SMALL FINANCE BANK",
-                      "UJJIVAN SMALL FINANCE BANK",
-                      "SURYODAY SMALL FINANCE BANK",
-                      "ESAF SMALL FINANCE BANK",
-                      "NORTH EAST SMALL FINANCE BANK",
-                      "JANASEVA SMALL FINANCE BANK",
-                    ]}
+                  onChange={(value) => {
+                    setBankName(value);
+                    if (value !== "OTHERS") setCustomBankName("");
+                  }}
+                  options={BANK_SELECT_OPTIONS}
                 />
+                {bankName === "OTHERS" && (
+                  <Input
+                    label="Other Bank Name (*)"
+                    placeholder="Enter Bank Name"
+                    value={customBankName}
+                    onChange={setCustomBankName}
+                  />
+                )}
 
              <Input 
                 label="Branch (*)" 

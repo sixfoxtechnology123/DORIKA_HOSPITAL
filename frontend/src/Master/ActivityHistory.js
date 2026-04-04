@@ -504,7 +504,7 @@ const ActivityHistory = () => {
                 </select>
                 <div className="flex gap-2">
                   <button onClick={handleExportPdf} className="flex-1 bg-red-600 text-white font-bold py-2 rounded text-[10px] sm:text-xs hover:bg-red-700 uppercase">Export PDF</button>
-                  <button onClick={handleExportExcel} className="flex-1 bg-emerald-600 text-white font-bold py-2 rounded text-[10px] sm:text-xs hover:bg-emerald-700 uppercase">Export Excel</button>
+                  {/* <button onClick={handleExportExcel} className="flex-1 bg-emerald-600 text-white font-bold py-2 rounded text-[10px] sm:text-xs hover:bg-emerald-700 uppercase">Export Excel</button> */}
                 </div>
               </div>
             </div>
