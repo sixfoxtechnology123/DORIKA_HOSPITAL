@@ -56,6 +56,14 @@ const getAttendanceTextColor = (val) => {
   }
 };
 
+const formatMonthForApi = (value) => {
+  const [year, month] = String(value || "").split("-");
+  if (!year || !month) return "";
+  return new Date(Number(year), Number(month) - 1).toLocaleString("en-US", {
+    month: "short",
+  }) + `-${year}`;
+};
+
 const EmployeeAttendanceHistory = () => {
   const PER_PAGE_STORAGE_KEY = "employeeAttendanceHistory.perPage";
   const getStoredPerPage = () => {
@@ -73,6 +81,7 @@ const EmployeeAttendanceHistory = () => {
 
   const [employees, setEmployees] = useState([]);
   const [attendanceMap, setAttendanceMap] = useState({});
+  const [shiftMap, setShiftMap] = useState({});
   const [designations, setDesignations] = useState([]);
   const [selectedDesignation, setSelectedDesignation] = useState("ALL");
   const [departments, setDepartments] = useState([]);
@@ -206,6 +215,34 @@ const EmployeeAttendanceHistory = () => {
 
         setAttendanceMap(map);
       });
+  }, [selectedMonth]);
+
+  useEffect(() => {
+    const fetchShiftMap = async () => {
+      try {
+        const monthParam = formatMonthForApi(selectedMonth);
+        if (!monthParam) {
+          setShiftMap({});
+          return;
+        }
+
+        const res = await axios.get(`/api/shift-management/${monthParam}`);
+        const nextMap = {};
+        (res.data || []).forEach((item) => {
+          const userId = String(item?.employeeUserId || "").trim();
+          if (!userId) return;
+          nextMap[userId] = {};
+          Object.entries(item?.shifts || {}).forEach(([day, code]) => {
+            nextMap[userId][Number(day)] = String(code || "").trim().toUpperCase();
+          });
+        });
+        setShiftMap(nextMap);
+      } catch (err) {
+        setShiftMap({});
+      }
+    };
+
+    fetchShiftMap();
   }, [selectedMonth]);
 
   /* ================= FILTER ================= */
@@ -475,10 +512,16 @@ const EmployeeAttendanceHistory = () => {
 
                     {daysInMonth.map((day) => {
                       const valObj = attendanceMap?.[emp.employeeUserId]?.days?.[day];
+                      const assignedShiftCode = shiftMap?.[emp.employeeUserId]?.[day] || "";
                       const currentStatus = valObj?.status || "";
 
                       const editableStatuses = ["P", "P(L)", "A"];
-                      const isEditable = editableStatuses.includes(currentStatus);
+                      const isEditable = Boolean(valObj) && editableStatuses.includes(currentStatus);
+                      const cellTitle = valObj
+                        ? `Shift: ${valObj.shiftCode}\nStart: ${valObj.shiftStartTime}\nEnd: ${valObj.shiftEndTime}`
+                        : assignedShiftCode
+                        ? `Shift: ${assignedShiftCode}\nAttendance not marked`
+                        : "";
 
                       return (
                         <td
@@ -492,11 +535,7 @@ const EmployeeAttendanceHistory = () => {
                             maxWidth: "32px",
                             cursor: isEditable ? "pointer" : "not-allowed",
                           }}
-                          title={
-                            valObj
-                              ? `Shift: ${valObj.shiftCode}\nStart: ${valObj.shiftStartTime}\nEnd: ${valObj.shiftEndTime}`
-                              : ""
-                          }
+                          title={cellTitle}
                         >
                           {isEditable ? (
                             <select

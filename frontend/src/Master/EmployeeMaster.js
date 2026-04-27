@@ -230,6 +230,7 @@ useEffect(() => {
   const [religion, setReligion] = useState("");
   const [gender, setGender] = useState("");
   const [maritalStatus, setMaritalStatus] = useState("");
+  const [skillCategory, setSkillCategory] = useState("");
   const [designationName, setDesignationName] = useState(null);
   const [personalEmail, setPersonalEmail] = useState("");
   const [personalMobile, setPersonalMobile] = useState("");
@@ -467,6 +468,7 @@ useEffect(() => {
     setSubCaste(loadedEmployee.subCaste || "");
     setReligion(loadedEmployee.religion || "");
     setMaritalStatus(loadedEmployee.maritalStatus || "");
+    setSkillCategory(loadedEmployee.skillCategory || "");
     setGender(loadedEmployee.gender || "");
     setPersonalEmail(
       loadedEmployee.personalEmail ||
@@ -892,6 +894,7 @@ const payload = {
   religion,
   gender,
   maritalStatus,
+  skillCategory,
   personalEmail: String(personalEmail || "").toLowerCase(),
   personalMobile,
   departmentID: departmentID,
@@ -1221,6 +1224,12 @@ const handleSubmit = async (e) => {
                   value={maritalStatus}
                   onChange={setMaritalStatus}
                   options={["Yes", "No"]}
+                />
+                <Select
+                  label="Skill Category"
+                  value={skillCategory}
+                  onChange={setSkillCategory}
+                  options={["Skilled", "Semi Skilled", "Unskilled"]}
                 />
 
                 <h3 className="text-xl font-semibold text-sky-600 col-span-full">

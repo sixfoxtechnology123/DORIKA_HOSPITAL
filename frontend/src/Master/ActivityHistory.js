@@ -537,7 +537,7 @@ const ActivityHistory = () => {
                     <th className="p-4 w-[350px] sticky top-0 bg-slate-900 text-green-300">New Data</th>
                   </tr>
                 </thead>
-                <tbody className="text-[12px] divide-y divide-slate-100">
+                <tbody className="text-[12px] divide-y divide-slate-500">
                   {loading ? (
                     <tr><td colSpan="8" className="p-20 text-center font-bold text-slate-300 animate-pulse uppercase">Syncing...</td></tr>
                   ) : paginatedRows.length ? (

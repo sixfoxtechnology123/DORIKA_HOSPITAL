@@ -129,6 +129,7 @@ statusHistory: [
     religion: { type: String, default: "" },
     gender: { type: String, default: "" },
     maritalStatus: { type: String, default: "No" },
+    skillCategory: { type: String, default: "" },
     personalEmail: { type: String, default: "" },
     personalMobile: { type: String, default: "" },
 

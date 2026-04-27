@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 // Default avatar
-import defaultAvatar from "../assets/avatar.jpg";
+import defaultAvatar from "../assets/dorikaLogo.jpg";
 import dorikaLogo1 from "../assets/dorikaLogo1.jpg";
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5002";

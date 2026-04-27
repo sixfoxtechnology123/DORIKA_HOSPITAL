@@ -188,6 +188,7 @@ const TwoColRow = ({ label1, value1, label2, value2 }) => {
               <TwoColRow label1="Employee Code" value1={employee?.employeeID} label2="Father's Name" value2={employee?.fatherName} />
               <TwoColRow label1="Spouse Name" value1={employee?.spouseName} label2="Caste" value2={employee?.caste} />
               <TwoColRow label1="Religion" value1={employee?.religion} label2="Marital Status" value2={employee?.maritalStatus} />
+              <TwoColRow label1="Skill Category" value1={employee?.skillCategory} />
               <TwoColRow label1="Date of Birth" value1={formatDate(employee?.dob)} label2="Gender" value2={employee?.gender} />
             </div>
 

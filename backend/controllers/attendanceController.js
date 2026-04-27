@@ -267,6 +267,90 @@ const buildAttendanceRecordForDate = async ({
   };
 };
 
+const ensureAutoAttendanceForDate = async ({
+  attendanceDoc = null,
+  employeeId = "",
+  employeeUserId = "",
+  employeeName = "",
+  dateObj,
+  shiftMgmt = null,
+  approvedLeaves = [],
+  now = new Date(),
+}) => {
+  if (!dateObj || !employeeUserId) return { changed: false, attendanceDoc };
+
+  const dateKey = formatDateKey(dateObj);
+  const month = dateObj.getMonth() + 1;
+  const year = dateObj.getFullYear();
+
+  if (!attendanceDoc) {
+    attendanceDoc = new Attendance({
+      employeeId,
+      employeeUserId,
+      employeeName,
+      month,
+      year,
+      financialYear: getFinancialYearForMonth(month, year),
+      records: [],
+    });
+  } else {
+    if (!attendanceDoc.employeeId && employeeId) attendanceDoc.employeeId = employeeId;
+    if (!attendanceDoc.employeeName && employeeName) attendanceDoc.employeeName = employeeName;
+    if (!Array.isArray(attendanceDoc.records)) attendanceDoc.records = [];
+  }
+
+  if ((attendanceDoc.records || []).some((rec) => rec?.date === dateKey)) {
+    return { changed: false, attendanceDoc };
+  }
+
+  if (!shiftMgmt?.shifts) return { changed: false, attendanceDoc };
+
+  const dayKey = dateObj.getDate();
+  const rawShiftCode = shiftMgmt.shifts[dayKey] || shiftMgmt.shifts[dayKey.toString()] || "--";
+  const normalizedShift = normalizeShiftCode(rawShiftCode);
+  if (!normalizedShift || normalizedShift === "--") {
+    return { changed: false, attendanceDoc };
+  }
+
+  const approvedLeave = approvedLeaves.find((leave) => {
+    const from = parseDateFlexible(leave?.fromDate);
+    const to = parseDateFlexible(leave?.toDate || leave?.fromDate);
+    return from && to && from <= dateObj && to >= dateObj;
+  });
+
+  if (!isOffShiftCode(normalizedShift) && !approvedLeave) {
+    const timing = await getShiftTimingByCode(rawShiftCode);
+    if (!timing.ok) return { changed: false, attendanceDoc };
+
+    const shiftStartMin = parseTimeToMinutes(timing.shiftStartTime);
+    const shiftEndMin =
+      typeof timing.shiftWindowEndMin === "number"
+        ? timing.shiftWindowEndMin
+        : (() => {
+            const parsedEnd = parseTimeToMinutes(timing.shiftEndTime);
+            return parsedEnd < shiftStartMin ? parsedEnd + 1440 : parsedEnd;
+          })();
+
+    const shiftEndDateTime = new Date(dateObj);
+    shiftEndDateTime.setHours(0, 0, 0, 0);
+    shiftEndDateTime.setMinutes(shiftEndMin);
+    if (now < shiftEndDateTime) {
+      return { changed: false, attendanceDoc };
+    }
+  }
+
+  attendanceDoc.records.push(
+    await buildAttendanceRecordForDate({
+      dateObj,
+      rawShiftCode,
+      approvedLeaves,
+    })
+  );
+  sortAttendanceRecords(attendanceDoc.records);
+  attendanceDoc.totalPaidDays = calculateTotalPaidDays(attendanceDoc.records);
+  return { changed: true, attendanceDoc };
+};
+
 const backfillAttendanceGaps = async ({
   employeeId,
   employeeUserId,
@@ -298,66 +382,31 @@ const backfillAttendanceGaps = async ({
     docCache.set(`${currentAttendanceDoc.year}-${currentAttendanceDoc.month}`, currentAttendanceDoc);
   }
 
-  const approvedLeaves = await Leave.find({
-    $and: [
-      {
-        $or: [
-          { employeeUserId: employeeUserId },
-          ...(userIdRegex ? [{ employeeUserId: userIdRegex }] : []),
-          ...(employeeIdRegex ? [{ employeeId: employeeIdRegex }] : []),
-        ],
-      },
-      {
-        $or: [
-          { approveRejectedStatus: "APPROVED" },
-          { status: "APPROVED" },
-          { reportingManagerApproval: "APPROVED", departmrntHeadApproval: "APPROVED" },
-        ],
-      },
-    ],
-  }).lean();
-
-  let latestRecordedDate = null;
-  for (const doc of docCache.values()) {
-    for (const rec of doc.records || []) {
-      const recDate = parseDateFlexible(rec?.date);
-      if (!recDate || recDate >= uptoDate) continue;
-      if (!latestRecordedDate || recDate > latestRecordedDate) latestRecordedDate = recDate;
-    }
-  }
-
-  if (!latestRecordedDate) return changedDocs;
+  const approvedLeaves = await findApprovedLeavesForEmployee({
+    employeeUserId,
+    userRegex: userIdRegex,
+    employeeIdRegex,
+  });
 
   const lastFilledDate = new Date(uptoDate);
   lastFilledDate.setDate(lastFilledDate.getDate() - 1);
-  if (latestRecordedDate >= lastFilledDate) return changedDocs;
+  if (Number.isNaN(lastFilledDate.getTime())) return changedDocs;
 
-  const getShiftManagementForMonth = async (dateObj) => {
-    const shiftMonthStr = `${monthNames[dateObj.getMonth()]}-${dateObj.getFullYear()}`;
-    if (shiftCache.has(shiftMonthStr)) return shiftCache.get(shiftMonthStr);
+  const shiftDocs = await ShiftManagement.find({
+    month: { $exists: true },
+    $or: [
+      { employeeUserId: employeeUserId },
+      ...(userIdRegex ? [{ employeeUserId: userIdRegex }] : []),
+      ...(employeeIdRegex ? [{ employeeID: employeeIdRegex }] : []),
+    ],
+  }).lean();
 
-    let shiftMgmt = await ShiftManagement.findOne({
-      employeeUserId: employeeUserId,
-      month: shiftMonthStr,
-    }).lean();
+  if (!shiftDocs.length) return changedDocs;
 
-    if (!shiftMgmt && userIdRegex) {
-      shiftMgmt = await ShiftManagement.findOne({
-        employeeUserId: userIdRegex,
-        month: shiftMonthStr,
-      }).lean();
-    }
-
-    if (!shiftMgmt && employeeIdRegex) {
-      shiftMgmt = await ShiftManagement.findOne({
-        employeeID: employeeIdRegex,
-        month: shiftMonthStr,
-      }).lean();
-    }
-
-    shiftCache.set(shiftMonthStr, shiftMgmt || null);
-    return shiftMgmt || null;
-  };
+  for (const shiftDoc of shiftDocs) {
+    if (!shiftDoc?.month) continue;
+    shiftCache.set(String(shiftDoc.month), shiftDoc);
+  }
 
   const getAttendanceDocForDate = (dateObj) => {
     const month = dateObj.getMonth() + 1;
@@ -384,33 +433,44 @@ const backfillAttendanceGaps = async ({
     return doc;
   };
 
-  for (
-    let gapDate = new Date(latestRecordedDate.getFullYear(), latestRecordedDate.getMonth(), latestRecordedDate.getDate() + 1);
-    gapDate <= lastFilledDate;
-    gapDate.setDate(gapDate.getDate() + 1)
-  ) {
-    const gapDateObj = new Date(gapDate);
-    const gapDateKey = formatDateKey(gapDateObj);
-    const attendanceDoc = getAttendanceDocForDate(gapDateObj);
+  for (const shiftDoc of shiftCache.values()) {
+    const [monthName, yearText] = String(shiftDoc.month).split("-");
+    const monthIndex = monthNames.findIndex((name) => name === monthName);
+    const year = Number(yearText);
+    if (monthIndex < 0 || !year) continue;
 
-    if ((attendanceDoc.records || []).some((rec) => rec.date === gapDateKey)) continue;
+    const monthStart = new Date(year, monthIndex, 1);
+    const monthEnd = new Date(year, monthIndex + 1, 0);
+    const effectiveEnd = monthEnd > lastFilledDate ? lastFilledDate : monthEnd;
+    if (monthStart > effectiveEnd) continue;
 
-    const shiftMgmt = await getShiftManagementForMonth(gapDateObj);
-    if (!shiftMgmt) continue;
+    for (
+      let gapDate = new Date(monthStart);
+      gapDate <= effectiveEnd;
+      gapDate.setDate(gapDate.getDate() + 1)
+    ) {
+      const gapDateObj = new Date(gapDate);
+      const gapDateKey = formatDateKey(gapDateObj);
+      const attendanceDoc = getAttendanceDocForDate(gapDateObj);
 
-    const dayKey = gapDateObj.getDate();
-    const rawShiftCode = shiftMgmt?.shifts?.[dayKey] || shiftMgmt?.shifts?.[dayKey.toString()] || "--";
+      if ((attendanceDoc.records || []).some((rec) => rec.date === gapDateKey)) continue;
 
-    attendanceDoc.records.push(
-      await buildAttendanceRecordForDate({
-        dateObj: gapDateObj,
-        rawShiftCode,
-        approvedLeaves,
-      })
-    );
-    sortAttendanceRecords(attendanceDoc.records);
-    attendanceDoc.totalPaidDays = calculateTotalPaidDays(attendanceDoc.records);
-    changedDocs.set(`${attendanceDoc.year}-${attendanceDoc.month}`, attendanceDoc);
+      const dayKey = gapDateObj.getDate();
+      const rawShiftCode = shiftDoc?.shifts?.[dayKey] || shiftDoc?.shifts?.[dayKey.toString()] || "--";
+      const normalizedShift = normalizeShiftCode(rawShiftCode);
+      if (!normalizedShift || normalizedShift === "--") continue;
+
+      attendanceDoc.records.push(
+        await buildAttendanceRecordForDate({
+          dateObj: gapDateObj,
+          rawShiftCode,
+          approvedLeaves,
+        })
+      );
+      sortAttendanceRecords(attendanceDoc.records);
+      attendanceDoc.totalPaidDays = calculateTotalPaidDays(attendanceDoc.records);
+      changedDocs.set(`${attendanceDoc.year}-${attendanceDoc.month}`, attendanceDoc);
+    }
   }
 
   for (const doc of changedDocs.values()) {
@@ -452,6 +512,32 @@ const doesLeaveOverlapRange = (leave, rangeStart, rangeEnd) => {
   const to = parseDateFlexible(leave?.toDate || leave?.fromDate);
   if (!from || !to) return false;
   return from <= rangeEnd && to >= rangeStart;
+};
+
+const findApprovedLeavesForEmployee = async ({
+  employeeUserId = "",
+  userRegex = null,
+  employeeIdRegex = null,
+}) => {
+  if (!employeeUserId && !userRegex && !employeeIdRegex) return [];
+  return Leave.find({
+    $and: [
+      {
+        $or: [
+          ...(employeeUserId ? [{ employeeUserId }] : []),
+          ...(userRegex ? [{ employeeUserId: userRegex }] : []),
+          ...(employeeIdRegex ? [{ employeeId: employeeIdRegex }] : []),
+        ],
+      },
+      {
+        $or: [
+          { approveRejectedStatus: "APPROVED" },
+          { status: "APPROVED" },
+          { reportingManagerApproval: "APPROVED", departmrntHeadApproval: "APPROVED" },
+        ],
+      },
+    ],
+  }).lean();
 };
 
 const applyApprovedLeavesToAttendance = async (attendanceDoc, approvedLeaves = []) => {
@@ -860,11 +946,51 @@ const markDailyAttendance = async (req, res) => {
       await attendance.save();
     }
 
+    const approvedLeaves = await findApprovedLeavesForEmployee({
+      employeeUserId: safeEmployeeUserId,
+      userRegex: userIdRegex,
+      employeeIdRegex,
+    });
+
+    const autoTodaySync = await ensureAutoAttendanceForDate({
+      attendanceDoc: attendance,
+      employeeId: safeEmployeeId,
+      employeeUserId: safeEmployeeUserId,
+      employeeName: safeEmployeeName,
+      dateObj: now,
+      shiftMgmt,
+      approvedLeaves,
+      now,
+    });
+    attendance = autoTodaySync.attendanceDoc || attendance;
+    if (autoTodaySync.changed) {
+      await attendance.save();
+    }
+
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toLocaleDateString('en-CA');
     const yesterdayIndex = attendance.records.findIndex(r => r.date === yesterdayStr);
     const todayIndex = attendance.records.findIndex(r => r.date === todayStr);
+    const hasYesterdayOpenRecord =
+      yesterdayIndex !== -1 && isOpenPunchRecord(attendance.records[yesterdayIndex]);
+    const existingTodayRecord = todayIndex !== -1 ? attendance.records[todayIndex] : null;
+
+    if (existingTodayRecord && !hasYesterdayOpenRecord && !isOpenPunchRecord(existingTodayRecord)) {
+      const todayStatus = String(existingTodayRecord?.status || "").trim().toUpperCase();
+      if (todayStatus === "ABSENT") {
+        return res.status(400).json({ message: "Shift ended and today's attendance was marked Absent automatically." });
+      }
+      if (todayStatus === "OFF" || todayStatus === "OFF(EXCH)") {
+        return res.status(400).json({ message: "Today is your OFF day." });
+      }
+      if (todayStatus.startsWith("SL") || todayStatus.startsWith("CL")) {
+        return res.status(400).json({ message: `Today is already marked as ${existingTodayRecord.status}.` });
+      }
+      if (todayStatus === "PRESENT") {
+        return res.status(400).json({ message: "Attendance already marked for today." });
+      }
+    }
 
     const distance = getDistance(lat, lng, OFFICE_LAT, OFFICE_LNG);
     // Some clients/frontends may not send accuracy. Use a safe default buffer to avoid false rejects.
@@ -1141,8 +1267,25 @@ const getMyAttendance = async (req, res) => {
 
     const normalizedUserId = normalizeEmployeeCode(employeeUserId);
     const userRegex = new RegExp(`^${escapeRegex(normalizedUserId || employeeUserId)}$`, "i");
-    const history = await Attendance.find({ employeeUserId: userRegex }).sort({ year: -1, month: -1 });
     const now = new Date();
+    const employeeDoc = await Employee.findOne({ employeeUserId: userRegex })
+      .select("employeeID employeeUserId firstName middleName lastName name")
+      .lean();
+
+    if (employeeDoc) {
+      await backfillAttendanceGaps({
+        employeeId: employeeDoc.employeeID || "",
+        employeeUserId: employeeDoc.employeeUserId || employeeUserId,
+        employeeName: buildEmployeeDisplayName(employeeDoc) || employeeDoc.employeeUserId || employeeUserId,
+        uptoDate: now,
+        userIdRegex: userRegex,
+        employeeIdRegex: employeeDoc.employeeID
+          ? new RegExp(`^${escapeRegex(employeeDoc.employeeID)}$`, "i")
+          : null,
+      });
+    }
+
+    const history = await Attendance.find({ employeeUserId: userRegex }).sort({ year: -1, month: -1 });
     const sanitized = [];
     for (const doc of history) {
       const { start, end } = getMonthRange(doc.year, doc.month);
@@ -1213,14 +1356,9 @@ const getAttendanceHistory = async (req, res) => {
     for (const doc of data) {
       if (!(skipSync === "1" || skipSync === "true")) {
         const { start, end } = getMonthRange(doc.year, doc.month);
-        const approvedLeavesRaw = await Leave.find({
+        const approvedLeavesRaw = await findApprovedLeavesForEmployee({
           employeeUserId: doc.employeeUserId,
-          $or: [
-            { approveRejectedStatus: "APPROVED" },
-            { status: "APPROVED" },
-            { reportingManagerApproval: "APPROVED", departmrntHeadApproval: "APPROVED" },
-          ],
-        }).lean();
+        });
         const approvedLeaves = approvedLeavesRaw.filter((leave) =>
           doesLeaveOverlapRange(leave, start, end)
         );

@@ -70,6 +70,7 @@ const employeeAuditSections = [
       "religion",
       "gender",
       "maritalStatus",
+      "skillCategory",
       "personalEmail",
       "personalMobile",
       "departmentName",

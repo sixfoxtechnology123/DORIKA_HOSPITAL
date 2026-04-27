@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import EmployeeCornerSidebar from "./EmployeeCornerSidebar";
@@ -6,6 +6,14 @@ import EmployeeCornerSidebar from "./EmployeeCornerSidebar";
 const normalizeEmployeeId = (value) => String(value || "").trim().toUpperCase();
 const isExEmployeeId = (value) => normalizeEmployeeId(value).startsWith("EX-");
 const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const formatMonthForApi = (yearMonth) => {
+  const [year, month] = String(yearMonth || "").split("-");
+  if (!year || !month) return "";
+  const mon = new Date(Number(year), Number(month) - 1).toLocaleString("en-US", {
+    month: "short",
+  });
+  return `${mon}-${year}`;
+};
 
 // Helper to format date for display
 const formatDateDisplay = (dateStr) => {
@@ -56,6 +64,72 @@ const parseTimeToMinutes = (timeStr) => {
   return hours * 60 + minutes;
 };
 
+const getAttendanceActionState = ({ todaysRecord, yesterdaysRecord }) => {
+  const normalizeStatus = (value) => String(value || "").trim().toUpperCase();
+  const hasPunchIn = (record) => {
+    const value = String(record?.checkInTime || "").trim();
+    return Boolean(value && value !== "--");
+  };
+  const hasPunchOut = (record) => {
+    const value = String(record?.checkOutTime || "").trim();
+    return Boolean(value && value !== "--");
+  };
+  const isLockedStatus = (status) =>
+    status === "ABSENT" ||
+    status === "OFF" ||
+    status === "OFF(EXCH)" ||
+    status.startsWith("SL") ||
+    status.startsWith("CL");
+
+  const yesterdayStatus = normalizeStatus(yesterdaysRecord?.status);
+  const yesterdayOpenNightShift =
+    hasPunchIn(yesterdaysRecord) &&
+    !hasPunchOut(yesterdaysRecord) &&
+    !isLockedStatus(yesterdayStatus);
+
+  if (yesterdayOpenNightShift) {
+    return {
+      label: "OUT",
+      disabled: false,
+      tone: "out",
+      openRecord: yesterdaysRecord,
+      isNightShiftPending: true,
+    };
+  }
+
+  const todayStatus = normalizeStatus(todaysRecord?.status);
+  const todayHasIn = hasPunchIn(todaysRecord);
+  const todayHasOut = hasPunchOut(todaysRecord);
+
+  if (isLockedStatus(todayStatus) || (todayHasIn && todayHasOut)) {
+    return {
+      label: "MARKED",
+      disabled: true,
+      tone: "done",
+      openRecord: null,
+      isNightShiftPending: false,
+    };
+  }
+
+  if (todayHasIn) {
+    return {
+      label: "OUT",
+      disabled: false,
+      tone: "out",
+      openRecord: todaysRecord,
+      isNightShiftPending: false,
+    };
+  }
+
+  return {
+    label: "IN",
+    disabled: false,
+    tone: "in",
+    openRecord: null,
+    isNightShiftPending: false,
+  };
+};
+
 const EmployeeAttendance = () => {
   const [history, setHistory] = useState([]);
   const [location, setLocation] = useState(null);
@@ -63,6 +137,7 @@ const EmployeeAttendance = () => {
   const attendanceRequestInFlightRef = useRef(false);
   const [employeeFullName, setEmployeeFullName] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [selectedMonthShifts, setSelectedMonthShifts] = useState({});
   
   const getStoredEmployeeUser = () => {
     try {
@@ -110,6 +185,31 @@ const EmployeeAttendance = () => {
     }
   }, [loggedUser?.employeeUserId]);
 
+  useEffect(() => {
+    const fetchShiftData = async () => {
+      try {
+        if (!loggedUser?.employeeUserId) {
+          setSelectedMonthShifts({});
+          return;
+        }
+        const monthParam = formatMonthForApi(selectedMonth);
+        if (!monthParam) {
+          setSelectedMonthShifts({});
+          return;
+        }
+
+        const res = await axios.get(`/api/shift-management/${monthParam}`);
+        const list = Array.isArray(res.data) ? res.data : [];
+        const record = list.find((item) => item.employeeUserId === loggedUser.employeeUserId);
+        setSelectedMonthShifts(record?.shifts || {});
+      } catch (err) {
+        setSelectedMonthShifts({});
+      }
+    };
+
+    fetchShiftData();
+  }, [loggedUser?.employeeUserId, selectedMonth]);
+
 // --- NEW LOGIC FOR NIGHT SHIFT ---
   const todayStr = new Date().toISOString().split('T')[0];
   
@@ -137,17 +237,12 @@ const EmployeeAttendance = () => {
   // Find records for both days
   const todaysRecord = allRecords.find(rec => rec.date === todayStr);
   const yesterdaysRecord = allRecords.find(rec => rec.date === yesterdayStr);
-
-  // Check if Yesterday's night shift is still waiting for a Punch Out
-  const isNightShiftPending = yesterdaysRecord && 
-                             yesterdaysRecord.checkInTime && 
-                             (!yesterdaysRecord.checkOutTime || yesterdaysRecord.checkOutTime === "--" || yesterdaysRecord.checkOutTime === "");
-
-  // Update button status
-  // If night shift is pending, we use yesterday's status. Otherwise, use today's.
-  const hasIn = isNightShiftPending || (todaysRecord && !!todaysRecord.checkInTime);
-  const hasOut = isNightShiftPending ? false : (todaysRecord && !!todaysRecord.checkOutTime && todaysRecord.checkOutTime !== "--");
-  // ---------------------------------
+  const attendanceActionState = getAttendanceActionState({
+    todaysRecord,
+    yesterdaysRecord,
+  });
+  const { label: actionLabel, disabled: actionDisabled, tone: actionTone, openRecord, isNightShiftPending } =
+    attendanceActionState;
 
   const getLocation = () => {
   return new Promise((resolve, reject) => {
@@ -176,8 +271,9 @@ const EmployeeAttendance = () => {
       return;
     }
 
-    const isPunchOutAction = hasIn && !hasOut;
-    const openRecord = isNightShiftPending ? yesterdaysRecord : todaysRecord;
+    if (actionDisabled) return;
+
+    const isPunchOutAction = actionLabel === "OUT";
 
     if (isPunchOutAction && openRecord?.shiftStartTime && openRecord?.shiftEndTime) {
       const startMin = parseTimeToMinutes(openRecord.shiftStartTime);
@@ -241,13 +337,69 @@ const EmployeeAttendance = () => {
 };
 
   const selectedDoc = history.find((h) => getMonthKey(h) === selectedMonth);
-  const filteredRecords =
-    selectedDoc && Array.isArray(selectedDoc.records)
-      ? selectedDoc.records
-          .filter((rec) => String(rec?.date || "").startsWith(selectedMonth))
-          .slice()
-          .sort((a, b) => String(b?.date || "").localeCompare(String(a?.date || "")))
-      : [];
+  const hasAssignedShiftInSelectedMonth = useMemo(
+    () =>
+      Object.values(selectedMonthShifts || {}).some((value) =>
+        Boolean(String(value || "").trim())
+      ),
+    [selectedMonthShifts]
+  );
+  const hasAttendanceInSelectedMonth = useMemo(
+    () =>
+      Boolean(
+        selectedDoc &&
+          Array.isArray(selectedDoc.records) &&
+          selectedDoc.records.some((rec) => String(rec?.date || "").startsWith(selectedMonth))
+      ),
+    [selectedDoc, selectedMonth]
+  );
+  const filteredRecords = useMemo(() => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    if (!year || !month) return [];
+    if (!hasAssignedShiftInSelectedMonth && !hasAttendanceInSelectedMonth) return [];
+
+    const today = new Date();
+    const isCurrentMonth =
+      year === today.getFullYear() && month === today.getMonth() + 1;
+    const totalDaysInMonth = new Date(year, month, 0).getDate();
+    const totalDays = isCurrentMonth ? Math.min(today.getDate(), totalDaysInMonth) : totalDaysInMonth;
+    const recordMap = new Map(
+      (selectedDoc?.records || [])
+        .filter((rec) => String(rec?.date || "").startsWith(selectedMonth))
+        .map((rec) => [String(rec.date), rec])
+    );
+
+    const rows = [];
+    for (let day = 1; day <= totalDays; day += 1) {
+      const dateKey = `${selectedMonth}-${String(day).padStart(2, "0")}`;
+      const existing = recordMap.get(dateKey);
+      if (existing) {
+        rows.push(existing);
+        continue;
+      }
+
+      const rawShiftCode = selectedMonthShifts?.[day] || selectedMonthShifts?.[String(day)] || "";
+      const normalizedShift = String(rawShiftCode || "").trim().toUpperCase();
+      const isAssigned = Boolean(normalizedShift);
+
+      rows.push({
+        date: dateKey,
+        shiftCode: isAssigned ? normalizedShift : "",
+        checkInTime: "--",
+        shiftStartTime: "--",
+        shiftEndTime: "--",
+        checkOutTime: "--",
+        workDuration: "--",
+        actualWorkDuration: "--",
+        isOT: false,
+        otHours: 0,
+        status: "",
+        isLate: false,
+      });
+    }
+
+    return rows.sort((a, b) => String(b?.date || "").localeCompare(String(a?.date || "")));
+  }, [selectedDoc, selectedMonth, selectedMonthShifts, hasAssignedShiftInSelectedMonth, hasAttendanceInSelectedMonth]);
 
   if (!loggedUser) {
     return (
@@ -297,20 +449,16 @@ const EmployeeAttendance = () => {
           <div className="flex justify-end order-4 md:order-3">
             <button
               onClick={handleAttendanceAction}
-              disabled={loading || (hasIn && hasOut)}
+              disabled={loading || actionDisabled}
               className={`${
-                hasIn ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700"
+                actionTone === "out"
+                  ? "bg-orange-600 hover:bg-orange-700"
+                  : actionTone === "done"
+                  ? "bg-gray-500"
+                  : "bg-green-600 hover:bg-green-700"
               } text-white px-4 md:px-8 py-1 rounded-lg font-bold transition-all shadow-md disabled:bg-gray-400 whitespace-nowrap text-sm md:text-base w-full md:w-auto`}
             >
-              {loading 
-                ? "..." 
-                : isNightShiftPending 
-                  ? "OUT" 
-                  : (hasIn && !hasOut) 
-                    ? "OUT" 
-                    : (hasIn && hasOut) 
-                      ? "MARKED" 
-                      : "IN"}
+              {loading ? "..." : actionLabel}
             </button>
           </div>
         </div>
@@ -388,6 +536,7 @@ const EmployeeAttendance = () => {
                             statusText === 'OFF' || statusText === 'OFF(EXCH)' ? 'bg-gray-100 text-gray-700' :
                             statusText.includes('SL') ? 'bg-orange-100 text-orange-700' :
                             statusText.includes('CL') ? 'bg-blue-100 text-blue-700' :
+                            statusText === '' ? 'bg-white text-slate-400' :
                             'bg-yellow-100 text-yellow-700' // Default for Holidays or others
                           }`}>
                             {statusText || "--"}
@@ -420,5 +569,4 @@ const EmployeeAttendance = () => {
 };
 
 export default EmployeeAttendance;
-
 
