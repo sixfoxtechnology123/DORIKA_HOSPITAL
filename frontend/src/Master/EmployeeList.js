@@ -93,6 +93,19 @@ const handleSearchChange = (e) => {
     return m;
   }, [designations]);
 
+  const getEmployeeMobile = (employee) => {
+    const mobileCandidates = [
+      employee?.personalMobile,
+      employee?.permanentAddress?.mobile,
+      employee?.presentAddress?.mobile,
+      employee?.contactNo,
+    ];
+
+    return mobileCandidates.find(
+      (value) => typeof value === "string" && value.trim()
+    ) || "-";
+  };
+
   const employmentStatusOptions = useMemo(() => {
     const statusSet = new Set(
       employees
@@ -274,7 +287,7 @@ const paginatedEmployees = perPage === "all"
                   {e.designationName}
                 </td>
                 <td className="border border-dorika-blue px-2 py-1">
-                  {e?.permanentAddress?.mobile || e?.presentAddress?.mobile || "-"}
+                  {getEmployeeMobile(e)}
                 </td>
                 {/* <td className="border border-dorika-blue px-2 py-1">{e.employmentType}</td>
                 <td className="border border-dorika-blue px-2 py-1">{e.workLocation}</td>

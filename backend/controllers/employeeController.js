@@ -294,6 +294,7 @@ exports.getAllEmployees = async (req, res) => {
       departmentName: 1,
       designationName: 1,
       employmentStatus: 1,
+      personalMobile: 1,
       exEmployeeReason: 1,
       statusChangeDate: 1,
       reportingManagerEmployeeUserId: 1,
