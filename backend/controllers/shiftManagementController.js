@@ -1,5 +1,6 @@
 const ShiftManagement = require("../models/ShiftManagement");
 const Employee = require("../models/Employee");
+const Attendance = require("../models/Attendance");
 const { createAuditLog, cleanObject } = require("../utils/auditLogger");
 
 const normalizeKey = (value) => String(value || "").trim().toUpperCase();
@@ -30,6 +31,103 @@ const diffKeyedObject = (previous = {}, current = {}) => {
 
   return { previousChanges, currentChanges };
 };
+
+const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+const parseShiftMonth = (value = "") => {
+  const [monthName = "", yearText = ""] = String(value || "").split("-");
+  const month = monthNames.findIndex((item) => item === monthName) + 1;
+  const year = Number(yearText);
+  if (!month || !year) return null;
+  return { month, year };
+};
+
+const getExpiredDaysForMonth = (monthLabel = "", now = new Date()) => {
+  const parsed = parseShiftMonth(monthLabel);
+  if (!parsed) return [];
+
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  if (parsed.year < currentYear || (parsed.year === currentYear && parsed.month < currentMonth)) {
+    const totalDays = new Date(parsed.year, parsed.month, 0).getDate();
+    return Array.from({ length: totalDays }, (_, index) => index + 1);
+  }
+  if (parsed.year === currentYear && parsed.month === currentMonth) {
+    return Array.from({ length: Math.max(0, now.getDate() - 1) }, (_, index) => index + 1);
+  }
+  return [];
+};
+
+const getLockedDaysMapForMonth = async ({ monthLabel = "", employeeUserIds = [], employeeIds = [] }) => {
+  const parsed = parseShiftMonth(monthLabel);
+  if (!parsed) return new Map();
+
+  const safeUserIds = employeeUserIds.map((value) => String(value || "").trim()).filter(Boolean);
+  const safeEmployeeIds = employeeIds.map((value) => String(value || "").trim()).filter(Boolean);
+  if (!safeUserIds.length && !safeEmployeeIds.length) return new Map();
+
+  const attendanceDocs = await Attendance.find({
+    month: parsed.month,
+    year: parsed.year,
+    $or: [
+      ...(safeUserIds.length ? [{ employeeUserId: { $in: safeUserIds } }] : []),
+      ...(safeEmployeeIds.length ? [{ employeeId: { $in: safeEmployeeIds } }] : []),
+    ],
+  })
+    .select("employeeUserId employeeId records.date")
+    .lean();
+
+  const lockedMap = new Map();
+  for (const doc of attendanceDocs) {
+    const lockedDays = Array.from(
+      new Set(
+        (doc.records || [])
+          .map((rec) => String(rec?.date || ""))
+          .filter(Boolean)
+          .map((dateText) => Number(String(dateText).split("-")[2]))
+          .filter((day) => Number.isInteger(day) && day > 0)
+      )
+    ).sort((a, b) => a - b);
+
+    if (lockedDays.length === 0) continue;
+    if (doc.employeeUserId) lockedMap.set(`USR:${normalizeKey(doc.employeeUserId)}`, lockedDays);
+    if (doc.employeeId) lockedMap.set(`EMP:${normalizeKey(doc.employeeId)}`, lockedDays);
+  }
+
+  return lockedMap;
+};
+
+const preserveLockedShiftDays = ({ previousShifts = {}, nextShifts = {}, lockedDays = [] }) => {
+  const prev = mapLikeToObject(previousShifts);
+  const next = mapLikeToObject(nextShifts);
+  const blockedDays = [];
+
+  for (const day of lockedDays || []) {
+    const key = String(day);
+    const before = String(prev?.[key] ?? "");
+    const after = String(next?.[key] ?? "");
+    if (before !== after) {
+      blockedDays.push(Number(day));
+      if (before) next[key] = before;
+      else delete next[key];
+    }
+  }
+
+  return {
+    shifts: next,
+    blockedDays: blockedDays.sort((a, b) => a - b),
+  };
+};
+
+const mergeLockedDays = (...collections) =>
+  Array.from(
+    new Set(
+      collections
+        .flat()
+        .map((day) => Number(day))
+        .filter((day) => Number.isInteger(day) && day > 0)
+    )
+  ).sort((a, b) => a - b);
 
 /* ================= GET SHIFTS BY MONTH ================= */
 exports.getShiftsByMonth = async (req, res) => {
@@ -63,7 +161,26 @@ exports.getShiftsByMonth = async (req, res) => {
       );
     });
 
-    res.status(200).json(safeShifts);
+    const lockedDaysMap = await getLockedDaysMapForMonth({
+      monthLabel: month,
+      employeeUserIds: safeShifts.map((s) => s.employeeUserId),
+      employeeIds: safeShifts.map((s) => s.employeeID),
+    });
+    const expiredDays = getExpiredDaysForMonth(month);
+
+    res.status(200).json(
+      safeShifts.map((item) => {
+        const userKey = `USR:${normalizeKey(item.employeeUserId)}`;
+        const empKey = `EMP:${normalizeKey(item.employeeID)}`;
+        return {
+          ...item,
+          lockedDays: mergeLockedDays(
+            expiredDays,
+            lockedDaysMap.get(userKey) || lockedDaysMap.get(empKey) || []
+          ),
+        };
+      })
+    );
   } catch (error) {
     console.error("Get Shifts Error:", error);
     res.status(500).json({ message: error.message });
@@ -84,13 +201,31 @@ exports.saveShift = async (req, res) => {
       ? { employeeUserId: { $regex: new RegExp(`^${escapeRegex(employeeUserId)}$`, "i") }, month }
       : { employeeID, month };
     const previousDoc = await ShiftManagement.findOne(singleFilter).lean();
+    const lockedDaysMap = await getLockedDaysMapForMonth({
+      monthLabel: month,
+      employeeUserIds: [employeeUserId || previousDoc?.employeeUserId].filter(Boolean),
+      employeeIds: [employeeID || previousDoc?.employeeID].filter(Boolean),
+    });
+    const lockedDays =
+      mergeLockedDays(
+        getExpiredDaysForMonth(month),
+        lockedDaysMap.get(`USR:${normalizeKey(employeeUserId || previousDoc?.employeeUserId)}`) ||
+          lockedDaysMap.get(`EMP:${normalizeKey(employeeID || previousDoc?.employeeID)}`) ||
+          []
+      );
+    const protectedResult = preserveLockedShiftDays({
+      previousShifts: previousDoc?.shifts || {},
+      nextShifts: shifts || {},
+      lockedDays,
+    });
     const data = await ShiftManagement.findOneAndUpdate(
       singleFilter,
       {
         employeeID,
         employeeUserId,
         designation,
-        shifts,
+        month,
+        shifts: protectedResult.shifts,
       },
       { upsert: true, new: true }
     );
@@ -121,7 +256,11 @@ exports.saveShift = async (req, res) => {
       });
     }
 
-    res.status(200).json(data);
+    res.status(200).json({
+      ...data.toObject(),
+      lockedDays,
+      blockedDays: protectedResult.blockedDays,
+    });
   } catch (error) {
     console.error("Save Shift Error:", error);
     res.status(500).json({ message: error.message });
@@ -132,6 +271,12 @@ exports.saveShift = async (req, res) => {
 exports.saveBulkShifts = async (req, res) => {
   try {
     const { month, data } = req.body;
+    const rows = Array.isArray(data) ? data : [];
+    const lockedDaysMap = await getLockedDaysMapForMonth({
+      monthLabel: month,
+      employeeUserIds: rows.map((item) => item.employeeUserId),
+      employeeIds: rows.map((item) => item.employeeID),
+    });
     const employeeIds = (Array.isArray(data) ? data : []).map((item) => String(item.employeeID || "").trim()).filter(Boolean);
     const employeeUserIds = (Array.isArray(data) ? data : []).map((item) => String(item.employeeUserId || "").trim()).filter(Boolean);
     const previousDocs = await ShiftManagement.find({
@@ -150,9 +295,33 @@ exports.saveBulkShifts = async (req, res) => {
       })
     );
 
+    const blockedChanges = [];
     const ops = data.flatMap((item) => {
       const userId = String(item.employeeUserId || "").trim();
       const employeeId = String(item.employeeID || "").trim();
+      const previous =
+        previousMap.get(`USR:${userId.toUpperCase()}`) ||
+        previousMap.get(`EMP:${employeeId.toUpperCase()}`) ||
+        null;
+      const lockedDays =
+        mergeLockedDays(
+          getExpiredDaysForMonth(month),
+          lockedDaysMap.get(`USR:${normalizeKey(userId)}`) ||
+            lockedDaysMap.get(`EMP:${normalizeKey(employeeId)}`) ||
+            []
+        );
+      const protectedResult = preserveLockedShiftDays({
+        previousShifts: previous?.shifts || {},
+        nextShifts: item.shifts || {},
+        lockedDays,
+      });
+      if (protectedResult.blockedDays.length > 0) {
+        blockedChanges.push({
+          employeeID: employeeId,
+          employeeUserId: userId,
+          blockedDays: protectedResult.blockedDays,
+        });
+      }
 
       const cleanupOp = {
         deleteMany: {
@@ -191,7 +360,8 @@ exports.saveBulkShifts = async (req, res) => {
               employeeUserId: userId,
               designation: item.designation,
               department: item.department,
-              shifts: item.shifts,
+              month,
+              shifts: protectedResult.shifts,
             },
           },
           upsert: true,
@@ -209,7 +379,18 @@ exports.saveBulkShifts = async (req, res) => {
           previousMap.get(`EMP:${String(item.employeeID || "").trim().toUpperCase()}`) ||
           null;
         const beforeShifts = mapLikeToObject(previous?.shifts);
-        const afterShifts = item.shifts || {};
+        const lockedDays =
+          mergeLockedDays(
+            getExpiredDaysForMonth(month),
+            lockedDaysMap.get(`USR:${normalizeKey(item.employeeUserId)}`) ||
+              lockedDaysMap.get(`EMP:${normalizeKey(item.employeeID)}`) ||
+              []
+          );
+        const afterShifts = preserveLockedShiftDays({
+          previousShifts: beforeShifts,
+          nextShifts: item.shifts || {},
+          lockedDays,
+        }).shifts;
         const shiftDiff = diffKeyedObject(beforeShifts, afterShifts);
         const fieldChanged =
           !previous || Object.keys(shiftDiff.currentChanges).length > 0;
@@ -260,7 +441,7 @@ exports.saveBulkShifts = async (req, res) => {
       );
     }
 
-    res.status(200).json({ message: "Saved" });
+    res.status(200).json({ message: "Saved", blockedChanges });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

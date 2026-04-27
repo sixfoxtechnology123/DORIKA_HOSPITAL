@@ -50,7 +50,6 @@ attendanceSchema.pre("save", function (next) {
     let absentCount = 0;
     let offCount = 0;
     let leaveCount = 0;
-    let doubleShiftCredits = 0;
     let monthlyOTSum = 0;
 
     const processedDates = new Set();
@@ -100,8 +99,6 @@ attendanceSchema.pre("save", function (next) {
     if (status === "Present") {
       if (isDoubleShift) {
         presentCount += 2;
-        // doubleShiftCredits helps offset the totalAbsent calculation
-        doubleShiftCredits += 1;
       } else {
         presentCount += 1;
       }
@@ -114,7 +111,7 @@ attendanceSchema.pre("save", function (next) {
       }
     });
 
-    doc.totalAbsent = Math.max(0, absentCount - doubleShiftCredits);
+    doc.totalAbsent = absentCount;
     doc.totalPresent = presentCount;
     doc.totalOff = offCount;
     doc.totalLeave = leaveCount;

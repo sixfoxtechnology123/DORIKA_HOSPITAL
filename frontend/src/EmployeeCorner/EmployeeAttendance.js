@@ -245,23 +245,28 @@ const EmployeeAttendance = () => {
     attendanceActionState;
 
   const getLocation = () => {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject("Geolocation not supported");
-    }
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject("Geolocation not supported");
+      }
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        resolve({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-        });
-      },
-      () => reject("Location permission denied")
-    );
-  });
-};
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          resolve({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+          });
+        },
+        () => reject("Location permission denied"),
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        }
+      );
+    });
+  };
 
   const handleAttendanceAction = async () => {
     if (attendanceRequestInFlightRef.current || loading) return;

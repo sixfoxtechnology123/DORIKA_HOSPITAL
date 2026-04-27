@@ -10,9 +10,9 @@ const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep
 const OFFICE_LAT = 26.652061;
 const OFFICE_LNG = 92.790961;
 
-// our ofice location--
-// const OFFICE_LAT = 22.965561;
-// const OFFICE_LNG = 88.457227;
+// our office location--
+// const OFFICE_LAT =22.961448;
+// const OFFICE_LNG = 88.459610;
 const ALLOWED_DISTANCE = 300;
 
 const normalizeShiftCode = (value) => String(value || "").trim().toUpperCase();
@@ -195,6 +195,12 @@ const calculateTotalPaidDays = (records) => {
   const leaveCount = uniqueRecords.filter(r => r.status.includes("SL") || r.status.includes("CL")).length;
 
   return presentCount + offCount + leaveCount;
+};
+
+const normalizeAttendanceRecords = (records = []) => {
+  const cleaned = (records || []).filter((rec) => Boolean(rec?.date));
+  sortAttendanceRecords(cleaned);
+  return cleaned;
 };
 
 const deriveLeaveCode = (leaveType) => {
@@ -478,6 +484,118 @@ const backfillAttendanceGaps = async ({
   }
 
   return changedDocs;
+};
+
+const syncAttendanceMonthFromShifts = async ({ month, year, now = new Date() }) => {
+  const monthLabel = `${monthNames[month - 1]}-${year}`;
+  if (!monthLabel || !monthNames[month - 1]) return;
+
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 0);
+  const isCurrentMonth = now.getFullYear() === year && now.getMonth() + 1 === month;
+  const fillEndDate = isCurrentMonth
+    ? new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+    : monthEnd;
+
+  const shiftDocs = await ShiftManagement.find({ month: monthLabel }).lean();
+  if (!shiftDocs.length) return;
+
+  const attendanceDocs = await Attendance.find({ month, year });
+  const attendanceByUserId = new Map(
+    attendanceDocs.map((doc) => [String(doc.employeeUserId || "").trim(), doc])
+  );
+
+  for (const shiftDoc of shiftDocs) {
+    const employeeUserId = String(shiftDoc.employeeUserId || "").trim();
+    if (!employeeUserId) continue;
+
+    let attendanceDoc = attendanceByUserId.get(employeeUserId);
+    if (!attendanceDoc) {
+      attendanceDoc = new Attendance({
+        employeeId: shiftDoc.employeeID || "",
+        employeeUserId,
+        employeeName: shiftDoc.employeeName || employeeUserId,
+        month,
+        year,
+        financialYear: getFinancialYearForMonth(month, year),
+        records: [],
+      });
+      attendanceByUserId.set(employeeUserId, attendanceDoc);
+    } else {
+      if (!attendanceDoc.employeeId && shiftDoc.employeeID) attendanceDoc.employeeId = shiftDoc.employeeID;
+      if (!attendanceDoc.employeeName && shiftDoc.employeeName) attendanceDoc.employeeName = shiftDoc.employeeName;
+      if (!Array.isArray(attendanceDoc.records)) attendanceDoc.records = [];
+    }
+
+    let docChanged = false;
+    const approvedLeaves = await findApprovedLeavesForEmployee({
+      employeeUserId,
+      employeeIdRegex: shiftDoc.employeeID ? new RegExp(`^${String(shiftDoc.employeeID).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") : null,
+    });
+
+    if (fillEndDate >= monthStart) {
+      const effectiveEnd = fillEndDate < monthEnd ? fillEndDate : monthEnd;
+      for (let d = new Date(monthStart); d <= effectiveEnd; d.setDate(d.getDate() + 1)) {
+        const dateObj = new Date(d);
+        const dateKey = formatDateKey(dateObj);
+        if ((attendanceDoc.records || []).some((rec) => rec?.date === dateKey)) continue;
+
+        const dayKey = dateObj.getDate();
+        const rawShiftCode = shiftDoc?.shifts?.[dayKey] || shiftDoc?.shifts?.[dayKey.toString()] || "--";
+        const normalizedShift = normalizeShiftCode(rawShiftCode);
+        if (!normalizedShift || normalizedShift === "--") continue;
+
+        attendanceDoc.records.push(
+          await buildAttendanceRecordForDate({
+            dateObj,
+            rawShiftCode,
+            approvedLeaves,
+          })
+        );
+        docChanged = true;
+      }
+    }
+
+    if (isCurrentMonth) {
+      const autoTodaySync = await ensureAutoAttendanceForDate({
+        attendanceDoc,
+        employeeId: shiftDoc.employeeID || "",
+        employeeUserId,
+        employeeName: shiftDoc.employeeName || employeeUserId,
+        dateObj: now,
+        shiftMgmt: shiftDoc,
+        approvedLeaves,
+        now,
+      });
+      attendanceDoc = autoTodaySync.attendanceDoc || attendanceDoc;
+      if (autoTodaySync.changed) docChanged = true;
+    }
+
+    if (await applyApprovedLeavesToAttendance(attendanceDoc, approvedLeaves)) {
+      docChanged = true;
+    }
+    if (autoCloseAttendanceRecords(attendanceDoc, now)) {
+      docChanged = true;
+    }
+
+    const normalizedRecords = normalizeAttendanceRecords(attendanceDoc.records);
+    if (normalizedRecords.length !== (attendanceDoc.records || []).length) {
+      attendanceDoc.records = normalizedRecords;
+      docChanged = true;
+    } else {
+      attendanceDoc.records = normalizedRecords;
+    }
+
+    const recomputedPaidDays = calculateTotalPaidDays(attendanceDoc.records || []);
+    if (attendanceDoc.totalPaidDays !== recomputedPaidDays) {
+      attendanceDoc.totalPaidDays = recomputedPaidDays;
+      docChanged = true;
+    }
+
+    if (docChanged) {
+      await attendanceDoc.save();
+    }
+  }
 };
 
 const getMonthRange = (year, month) => {
@@ -1288,6 +1406,7 @@ const getMyAttendance = async (req, res) => {
     const history = await Attendance.find({ employeeUserId: userRegex }).sort({ year: -1, month: -1 });
     const sanitized = [];
     for (const doc of history) {
+      let docChanged = false;
       const { start, end } = getMonthRange(doc.year, doc.month);
       const approvedLeavesRaw = await Leave.find({
         employeeUserId: userRegex,
@@ -1302,28 +1421,33 @@ const getMyAttendance = async (req, res) => {
       );
 
       try {
-        if (await applyApprovedLeavesToAttendance(doc, approvedLeaves)) {
-          await doc.save();
-        }
+        if (await applyApprovedLeavesToAttendance(doc, approvedLeaves)) docChanged = true;
       } catch (e) {
         console.error("APPLY_LEAVE_SYNC_ERROR(getMyAttendance):", e);
       }
       try {
-        if (autoCloseAttendanceRecords(doc, now)) {
-          await doc.save();
-        }
+        if (autoCloseAttendanceRecords(doc, now)) docChanged = true;
       } catch (e) {
         console.error("AUTO_CLOSE_ERROR(getMyAttendance):", e);
       }
       try {
+        const normalizedRecords = normalizeAttendanceRecords(doc.records);
+        if (normalizedRecords.length !== (doc.records || []).length) {
+          doc.records = normalizedRecords;
+          docChanged = true;
+        } else {
+          doc.records = normalizedRecords;
+        }
         const recomputedPaidDays = calculateTotalPaidDays(doc.records || []);
         if (doc.totalPaidDays !== recomputedPaidDays) {
           doc.totalPaidDays = recomputedPaidDays;
-          doc.markModified("records");
-          await doc.save();
+          docChanged = true;
         }
       } catch (e) {
         console.error("PAID_DAYS_RECALC_ERROR(getMyAttendance):", e);
+      }
+      if (docChanged) {
+        await doc.save();
       }
       const plain = doc.toObject();
       sanitized.push({
@@ -1341,6 +1465,15 @@ const getAttendanceHistory = async (req, res) => {
   try {
     const { month, year, summary, skipSync } = req.query;
     const query = { month: Number(month), year: Number(year) };
+    const now = new Date();
+
+    if (!(skipSync === "1" || skipSync === "true")) {
+      await syncAttendanceMonthFromShifts({
+        month: query.month,
+        year: query.year,
+        now,
+      });
+    }
 
     // Fast path for summary-only requests (e.g., payslip generation)
     if (summary === "1" || summary === "true") {
@@ -1351,10 +1484,10 @@ const getAttendanceHistory = async (req, res) => {
     }
 
     const data = await Attendance.find(query);
-    const now = new Date();
     const normalizedDocs = [];
     for (const doc of data) {
       if (!(skipSync === "1" || skipSync === "true")) {
+        let docChanged = false;
         const { start, end } = getMonthRange(doc.year, doc.month);
         const approvedLeavesRaw = await findApprovedLeavesForEmployee({
           employeeUserId: doc.employeeUserId,
@@ -1364,28 +1497,33 @@ const getAttendanceHistory = async (req, res) => {
         );
 
         try {
-          if (await applyApprovedLeavesToAttendance(doc, approvedLeaves)) {
-            await doc.save();
-          }
+          if (await applyApprovedLeavesToAttendance(doc, approvedLeaves)) docChanged = true;
         } catch (e) {
           console.error("APPLY_LEAVE_SYNC_ERROR(getAttendanceHistory):", e);
         }
         try {
-          if (autoCloseAttendanceRecords(doc, now)) {
-            await doc.save();
-          }
+          if (autoCloseAttendanceRecords(doc, now)) docChanged = true;
         } catch (e) {
           console.error("AUTO_CLOSE_ERROR(getAttendanceHistory):", e);
         }
         try {
+          const normalizedRecords = normalizeAttendanceRecords(doc.records);
+          if (normalizedRecords.length !== (doc.records || []).length) {
+            doc.records = normalizedRecords;
+            docChanged = true;
+          } else {
+            doc.records = normalizedRecords;
+          }
           const recomputedPaidDays = calculateTotalPaidDays(doc.records || []);
           if (doc.totalPaidDays !== recomputedPaidDays) {
             doc.totalPaidDays = recomputedPaidDays;
-            doc.markModified("records");
-            await doc.save();
+            docChanged = true;
           }
         } catch (e) {
           console.error("PAID_DAYS_RECALC_ERROR(getAttendanceHistory):", e);
+        }
+        if (docChanged) {
+          await doc.save();
         }
       }
       normalizedDocs.push(doc.toObject());

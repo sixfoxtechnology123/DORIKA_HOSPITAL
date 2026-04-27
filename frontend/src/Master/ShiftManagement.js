@@ -36,6 +36,7 @@ const ShiftManagement = () => {
   const [selectedDesignation, setSelectedDesignation] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [shifts, setShifts] = useState({});
+  const [lockedDaysByUserId, setLockedDaysByUserId] = useState({});
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(getStoredPerPage);
@@ -239,6 +240,7 @@ const employeePrefixOptions = useMemo(() => {
         );
 
         const formatted = {};
+        const lockedMap = {};
         const validCodes = new Set(shiftOptions.map((opt) => normalizeCode(opt.code)));
         res.data.forEach((item) => {
           const processedShifts = {};
@@ -259,12 +261,15 @@ const employeePrefixOptions = useMemo(() => {
             }
           });
           formatted[item.employeeUserId] = processedShifts;
+          lockedMap[item.employeeUserId] = Array.isArray(item.lockedDays) ? item.lockedDays : [];
         });
   
         setShifts(formatted);
+        setLockedDaysByUserId(lockedMap);
       } catch (err) {
         toast.error("Shift fetch error:", err);
         setShifts({});
+        setLockedDaysByUserId({});
       }
     };
     fetchShifts();
@@ -282,6 +287,23 @@ const employeePrefixOptions = useMemo(() => {
     const [year, month] = selectedMonth.split("-").map(Number);
     return { year, month };
   }, [selectedMonth]);
+  const expiredDaysSet = useMemo(() => {
+    if (!monthMeta.year || !monthMeta.month) return new Set();
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    if (monthMeta.year < currentYear || (monthMeta.year === currentYear && monthMeta.month < currentMonth)) {
+      const totalDays = new Date(monthMeta.year, monthMeta.month, 0).getDate();
+      return new Set(Array.from({ length: totalDays }, (_, index) => index + 1));
+    }
+
+    if (monthMeta.year === currentYear && monthMeta.month === currentMonth) {
+      return new Set(Array.from({ length: Math.max(0, now.getDate() - 1) }, (_, index) => index + 1));
+    }
+
+    return new Set();
+  }, [monthMeta]);
   const getDayLabel = (day) => {
     if (!monthMeta.year || !monthMeta.month) return "";
     const idx = new Date(monthMeta.year, monthMeta.month - 1, day).getDay();
@@ -356,6 +378,7 @@ const employeePrefixOptions = useMemo(() => {
     ]);
 
        const handleShiftChange = (emp, day, value, isSecondHalf = null) => {
+        if (expiredDaysSet.has(day) || (lockedDaysByUserId?.[emp.employeeUserId] || []).includes(day)) return;
         setShifts((prev) => {
           const empShifts = { ...(prev[emp.employeeUserId] || {}) };
           const currentVal = normalizeCode(empShifts[day] || "");
@@ -741,6 +764,9 @@ const scrollTable = (direction) => {
                 const currentShift = shifts?.[emp.employeeUserId]?.[day] || "";
                 const isDD = currentShift.startsWith("DD:");
                 const ddParts = isDD ? parseDDCodes(currentShift) : ["", ""];
+                const isLocked =
+                  expiredDaysSet.has(day) ||
+                  (lockedDaysByUserId?.[emp.employeeUserId] || []).includes(day);
 
                 return (
                   <td
@@ -752,7 +778,9 @@ const scrollTable = (direction) => {
                     <select
                         value={isDD ? "DD" : currentShift}
                         onChange={(e) => handleShiftChange(emp, day, e.target.value)}
-                       className="bg-transparent border rounded px-0 md:px-1 py-0.5 text-[10px] md:text-xs font-semibold w-full cursor-pointer"
+                        disabled={isLocked}
+                       className={`bg-transparent border rounded px-0 md:px-1 py-0.5 text-[10px] md:text-xs font-semibold w-full ${isLocked ? "cursor-not-allowed opacity-40" : "cursor-pointer"}`}
+                        title={isLocked ? "Attendance already exists for this date. Shift cannot be changed." : ""}
                       >
                         <option value="">-</option>
                         {shiftOptions.map((opt) => (
@@ -773,7 +801,8 @@ const scrollTable = (direction) => {
                           <select
                             value={ddParts[0]}
                             onChange={(e) => handleShiftChange(emp, day, e.target.value, false)}
-                            className="bg-white border rounded text-[10px] w-10 px-0.5 font-bold"
+                            disabled={isLocked}
+                            className={`bg-white border rounded text-[10px] w-10 px-0.5 font-bold ${isLocked ? "cursor-not-allowed opacity-60" : ""}`}
                           >
                             {nonDDShiftOptions.map(opt => (
                               <option 
@@ -792,7 +821,8 @@ const scrollTable = (direction) => {
                           <select
                             value={ddParts[1]}
                             onChange={(e) => handleShiftChange(emp, day, e.target.value, true)}
-                            className="bg-white border rounded text-[10px] w-10 px-0.5 font-bold"
+                            disabled={isLocked}
+                            className={`bg-white border rounded text-[10px] w-10 px-0.5 font-bold ${isLocked ? "cursor-not-allowed opacity-60" : ""}`}
                           >
                             {nonDDShiftOptions.map(opt => (
                               <option 
