@@ -7,5 +7,5 @@ const adminSchema = new mongoose.Schema({
   profileImage: { type: String, default: "" }, // profile image path
   role: { type: String, enum: ["Admin"], default: "Admin" }, //  role for middleware
 });
-
+  
 module.exports = mongoose.model("Admin", adminSchema);

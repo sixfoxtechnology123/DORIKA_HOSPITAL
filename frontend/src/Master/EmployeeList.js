@@ -303,12 +303,12 @@ const paginatedEmployees = perPage === "all"
                     <FaEdit />
                   </button>
 
-                    {/* <button
+                    <button
                       onClick={() => deleteEmployee(e._id)}
                       className="text-dorika-orange hover:text-red-700"
                     >
                       <FaTrash />
-                    </button> */}
+                    </button>
                   </div>
                 </td>
               </tr>

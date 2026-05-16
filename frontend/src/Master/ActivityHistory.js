@@ -191,8 +191,8 @@ const ActivityHistory = () => {
         formatName(row.targetUser?.name).toLowerCase().includes(value) ||
         formatText(row.changedDetails?.module).toLowerCase().includes(value) ||
         formatText(row.changedDetails?.details).toLowerCase().includes(value) ||
-        formatText(row.changedBy?.employeeID).toLowerCase().includes(value) ||
-        formatText(row.targetUser?.employeeID).toLowerCase().includes(value)
+        formatText(row.changedBy?.employeeID || row.changedBy?.employeeId).toLowerCase().includes(value) ||
+        formatText(row.targetUser?.employeeID || row.targetUser?.employeeId).toLowerCase().includes(value)
       );
     }
     return data;
