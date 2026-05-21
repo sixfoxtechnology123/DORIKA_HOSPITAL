@@ -476,7 +476,7 @@ const handleSubmit = async () => {
             <label className="block text-xs sm:text-sm font-bold text-gray-700">From Date</label>
             <input
               type="date"
-              className="hidden"
+              className="block"
               id="fromDatePicker"
               min={fy.min} // e.g., "2025-04-01"
               max={fy.max} // e.g., "2026-03-31"
@@ -500,7 +500,7 @@ const handleSubmit = async () => {
             <label className="block text-xs sm:text-sm font-bold text-gray-700">To Date</label>
             <input
               type="date"
-              className="hidden"
+              className="block"
               id="toDatePicker"
               min={fy.min}
               max={fy.max}
